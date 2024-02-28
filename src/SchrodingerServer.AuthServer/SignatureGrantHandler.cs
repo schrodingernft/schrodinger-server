@@ -39,7 +39,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IOptionsMonitor<TimeRangeOption> _timeRangeOption;
     private readonly IOptionsMonitor<GraphQLOption> _graphQlOption;
-    private readonly IOptionsMonitor<RegisterOptions> _registerOption;
+    private readonly IOptionsMonitor<IpWhiteListOptions> _ipWhiteListOptions;
 
     private const string LockKeyPrefix = "SchrodingerServer:Auth:SignatureGrantHandler:";
     private const string SourcePortkey = "portkey";
@@ -49,7 +49,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         ILogger<SignatureGrantHandler> logger, IAbpDistributedLock distributedLock,
         IHttpContextAccessor httpContextAccessor, IdentityUserManager userManager,
         IOptionsMonitor<TimeRangeOption> timeRangeOption,
-        IOptionsMonitor<GraphQLOption> graphQlOption, IOptionsMonitor<RegisterOptions> registerOption)
+        IOptionsMonitor<GraphQLOption> graphQlOption, IOptionsMonitor<IpWhiteListOptions> ipWhiteListOptions)
     {
         _userInformationProvider = userInformationProvider;
         _logger = logger;
@@ -58,7 +58,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         _userManager = userManager;
         _timeRangeOption = timeRangeOption;
         _graphQlOption = graphQlOption;
-        _registerOption = registerOption;
+        _ipWhiteListOptions = ipWhiteListOptions;
     }
 
     public string Name { get; } = "signature";
@@ -81,7 +81,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             AssertHelper.NotEmpty(address, "invalid parameter address.");
             AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
                 "invalid parameter timestamp value.");
-            if (headers == null || !headers.TryGetValue(_registerOption.CurrentValue.DomainHeader, out var host) ||
+            if (headers == null || !headers.TryGetValue(_ipWhiteListOptions.CurrentValue.HostHeader, out var host) ||
                 host.IsNullOrEmpty())
             {
                 throw new UserFriendlyException("Register domain header not exists");

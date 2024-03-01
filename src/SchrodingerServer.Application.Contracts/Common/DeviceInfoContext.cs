@@ -27,5 +27,7 @@ public class DeviceInfo
     public string Version { get; set; }
     
     public string ClientIp { get; set; }
+    
+    public string Host { get; set; }
 
 }

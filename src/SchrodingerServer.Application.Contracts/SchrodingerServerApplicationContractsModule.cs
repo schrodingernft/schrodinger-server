@@ -27,7 +27,7 @@ public class SchrodingerServerApplicationContractsModule : AbpModule
     {
         var configuration = context.Services.GetConfiguration();
         Configure<PointServiceOptions>(configuration.GetSection("Chains"));
-        Configure<IpWhiteListOptions>(configuration.GetSection("IpWhiteList"));
+        Configure<AccessVerifyOptions>(configuration.GetSection("AccessVerify"));
         SchrodingerServerDtoExtensions.Configure();
     }
 }

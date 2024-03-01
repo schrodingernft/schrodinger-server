@@ -3,20 +3,24 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
+using SchrodingerServer.Options;
 
 namespace SchrodingerServer.Middleware;
 
 public class DeviceInfoMiddleware
 {
-    
     private readonly ILogger<DeviceInfoMiddleware> _logger;
+    private readonly IOptionsMonitor<AccessVerifyOptions> _ipWhiteListOptions;
     private readonly RequestDelegate _next;
 
-    public DeviceInfoMiddleware(RequestDelegate next, ILogger<DeviceInfoMiddleware> logger)
+    public DeviceInfoMiddleware(RequestDelegate next, ILogger<DeviceInfoMiddleware> logger,
+        IOptionsMonitor<AccessVerifyOptions> ipWhiteListOptions)
     {
         _next = next;
         _logger = logger;
+        _ipWhiteListOptions = ipWhiteListOptions;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -39,21 +43,24 @@ public class DeviceInfoMiddleware
             var headers = context.Request.Headers;
             var clientTypeExists = headers.TryGetValue("Client-Type", out var clientType);
             var clientVersionExists = headers.TryGetValue("Version", out var clientVersion);
+            var hostHeader = _ipWhiteListOptions.CurrentValue.HostHeader ?? "Host";
 
             return new DeviceInfo
             {
                 ClientType = clientTypeExists ? clientType.ToString() : null,
                 Version = clientVersionExists ? clientVersion.ToString() : null,
-                ClientIp = GetClientIp(context)
+                ClientIp = GetClientIp(context),
+                Host = headers[hostHeader].FirstOrDefault() ?? CommonConstant.EmptyString
             };
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Decode device info error");
         }
+
         return null;
     }
-    
+
     private string GetClientIp(HttpContext context)
     {
         // Check the X-Forwarded-For header (set by some agents)
@@ -63,7 +70,7 @@ public class DeviceInfoMiddleware
             var ip = forwardedHeader.FirstOrDefault();
             if (!string.IsNullOrEmpty(ip))
             {
-                return ip.Split(',')[0].Trim();// Take the first IP (if there are more than one)
+                return ip.Split(',')[0].Trim(); // Take the first IP (if there are more than one)
             }
         }
 

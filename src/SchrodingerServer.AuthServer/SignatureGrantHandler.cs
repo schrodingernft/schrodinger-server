@@ -37,9 +37,10 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     private readonly IAbpDistributedLock _distributedLock;
     private readonly IdentityUserManager _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IUserActionProvider _userActionProvider;
+    
     private readonly IOptionsMonitor<TimeRangeOption> _timeRangeOption;
     private readonly IOptionsMonitor<GraphQLOption> _graphQlOption;
-    private readonly IOptionsMonitor<IpWhiteListOptions> _ipWhiteListOptions;
 
     private const string LockKeyPrefix = "SchrodingerServer:Auth:SignatureGrantHandler:";
     private const string SourcePortkey = "portkey";
@@ -49,7 +50,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         ILogger<SignatureGrantHandler> logger, IAbpDistributedLock distributedLock,
         IHttpContextAccessor httpContextAccessor, IdentityUserManager userManager,
         IOptionsMonitor<TimeRangeOption> timeRangeOption,
-        IOptionsMonitor<GraphQLOption> graphQlOption, IOptionsMonitor<IpWhiteListOptions> ipWhiteListOptions)
+        IOptionsMonitor<GraphQLOption> graphQlOption, IUserActionProvider userActionProvider)
     {
         _userInformationProvider = userInformationProvider;
         _logger = logger;
@@ -58,7 +59,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         _userManager = userManager;
         _timeRangeOption = timeRangeOption;
         _graphQlOption = graphQlOption;
-        _ipWhiteListOptions = ipWhiteListOptions;
+        _userActionProvider = userActionProvider;
     }
 
     public string Name { get; } = "signature";
@@ -72,7 +73,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             var timestampVal = context.Request.GetParameter("timestamp").ToString();
             var address = context.Request.GetParameter("address").ToString();
             var source = context.Request.GetParameter("source").ToString();
-            var headers = _httpContextAccessor.HttpContext?.Request.Headers;
+            var registerHost = DeviceInfoContext.CurrentDeviceInfo.Host ?? CommonConstant.EmptyString;
 
             AssertHelper.NotEmpty(source, "invalid parameter source.");
             AssertHelper.NotEmpty(publicKeyVal, "invalid parameter publickey.");
@@ -81,11 +82,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             AssertHelper.NotEmpty(address, "invalid parameter address.");
             AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
                 "invalid parameter timestamp value.");
-            if (headers == null || !headers.TryGetValue(_ipWhiteListOptions.CurrentValue.HostHeader, out var host) ||
-                host.IsNullOrEmpty())
-            {
-                throw new UserFriendlyException("Register domain header not exists");
-            }
+            AssertHelper.IsTrue(await _userActionProvider.CheckDomainAsync(registerHost), "Invalid host");
 
             var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
             var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
@@ -135,7 +132,6 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
                 throw new UserFriendlyException("Source not support.");
             }
 
-            var registerHost = host.FirstOrDefault();
             var user = await _userManager.FindByNameAsync(caHash);
             if (user == null)
             {

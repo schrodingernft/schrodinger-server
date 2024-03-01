@@ -1,6 +1,9 @@
+using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using AElf;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SchrodingerServer.Common;
@@ -14,7 +17,6 @@ namespace SchrodingerServer.PointServer;
 
 public interface IPointServerProvider
 {
-    Task InvitationRelationshipsAsync(InvitationRequest request);
     
     Task<bool> CheckDomainAsync(string domain);
     
@@ -24,9 +26,10 @@ public class PointServerProvider : IPointServerProvider, ISingletonDependency
 {
     public static class Api
     {
-        public static ApiInfo Invitation = new(HttpMethod.Post, "/api/app/dapps/invitation/relationships");
+        public static ApiInfo CheckDomain = new(HttpMethod.Post, "/api/app/apply/domain/check");
     }
 
+    private readonly ILogger<PointServerProvider> _logger;
     private readonly IOptionsMonitor<PointServiceOptions> _pointServiceOptions;
     private readonly IHttpProvider _httpProvider;
 
@@ -37,28 +40,32 @@ public class PointServerProvider : IPointServerProvider, ISingletonDependency
         .Build();
 
 
-    public PointServerProvider(IHttpProvider httpProvider, IOptionsMonitor<PointServiceOptions> pointServiceOptions)
+    public PointServerProvider(IHttpProvider httpProvider, IOptionsMonitor<PointServiceOptions> pointServiceOptions, ILogger<PointServerProvider> logger)
     {
         _httpProvider = httpProvider;
         _pointServiceOptions = pointServiceOptions;
+        _logger = logger;
     }
-
-
-    public async Task InvitationRelationshipsAsync(InvitationRequest request)
-    {
-        request.DappName = _pointServiceOptions.CurrentValue.DappName;
-        request.Signature = GetSign(request);
-        var resp = await _httpProvider.InvokeAsync<CommonResponseDto<bool>>(
-            _pointServiceOptions.CurrentValue.BaseUrl, Api.Invitation,
-            body: JsonConvert.SerializeObject(request, JsonSerializerSettings));
-        AssertHelper.NotNull(resp, "Response empty");
-        AssertHelper.NotNull(resp.Data, "Response failed, {}", resp.Message);
-    }
-
+    
     public async Task<bool> CheckDomainAsync(string domain)
     {
-        //TODO
-        return true;
+        try
+        {
+            var resp = await _httpProvider.InvokeAsync<CommonResponseDto<Empty>>(
+                _pointServiceOptions.CurrentValue.BaseUrl, Api.CheckDomain,
+                body: JsonConvert.SerializeObject(new CheckDomainRequest
+                {
+                    Domain = domain
+                }, JsonSerializerSettings));
+            AssertHelper.NotNull(resp, "Response empty");
+            AssertHelper.NotNull(resp.Success, "Response failed, {}", resp.Message);
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Points domain check failed");
+            return false;
+        }
     }
 
 

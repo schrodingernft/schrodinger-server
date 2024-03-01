@@ -14,12 +14,12 @@ namespace SchrodingerServer.Controllers;
 [ControllerName("Users")]
 [Route("api/app")]
 [Authorize]
-public class UserDemoController : AbpController
+public class UserController : AbpController
 {
 
     private readonly IUserActionProvider _userActionProvider;
     
-    public UserDemoController(IUserActionProvider userActionProvider)
+    public UserController(IUserActionProvider userActionProvider)
     {
         _userActionProvider = userActionProvider;
     }

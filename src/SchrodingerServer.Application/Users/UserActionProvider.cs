@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -19,29 +20,49 @@ public class UserActionProvider : ApplicationService, IUserActionProvider
     private readonly IClusterClient _clusterClient;
     private readonly IPointServerProvider _pointServerProvider;
     private readonly IDistributedCache<string> _checkDomainCache;
-    private readonly IOptionsMonitor<IpWhiteListOptions> _ipWhiteListOptions;
+    private readonly IOptionsMonitor<AccessVerifyOptions> _accessVerifyOptions;
 
     public UserActionProvider(IClusterClient clusterClient, IPointServerProvider pointServerProvider,
-        ILogger<UserActionProvider> logger, IDistributedCache<string> checkDomainCache, IOptionsMonitor<IpWhiteListOptions> ipWhiteListOptions)
+        ILogger<UserActionProvider> logger, IDistributedCache<string> checkDomainCache,
+        IOptionsMonitor<AccessVerifyOptions> accessVerifyOptions)
     {
         _clusterClient = clusterClient;
         _pointServerProvider = pointServerProvider;
         _logger = logger;
         _checkDomainCache = checkDomainCache;
-        _ipWhiteListOptions = ipWhiteListOptions;
+        _accessVerifyOptions = accessVerifyOptions;
     }
+
 
     public async Task<bool> CheckDomainAsync(string domain)
     {
+        // 1. The domain name must not be empty and matched pattern
+        // 2. The domain name exists on the whitelist or on the points platform.
+        return domain.NotNullOrEmpty() &&
+               (_accessVerifyOptions.CurrentValue.HostWhiteList.Any(pattern => domain.Match(pattern)) ||
+                domain.Match(@"^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*\.[a-zA-Z]{2,}(:[0-9]{2,5}){0,1}$") &&
+                await CheckPointsDomainWithCacheAsync(domain));
+    }
+
+    private async Task<bool> CheckPointsDomainWithCacheAsync(string domain)
+    {
         try
         {
-            var cacheResult = await _checkDomainCache.GetOrAddAsync("DomainCheck:" + domain,
-                async () => (await _pointServerProvider.CheckDomainAsync(domain)).ToString(),
-                () => new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpiration = DateTimeOffset.Now.AddSeconds(_ipWhiteListOptions.CurrentValue.DomainCacheSeconds)
-                });
-            return bool.TryParse(cacheResult, out var resultValue) && resultValue;
+            var cacheKey = "DomainCheck:" + domain;
+            var cachedData = await _checkDomainCache.GetAsync(cacheKey);
+            if (cachedData.NotNullOrEmpty())
+                return bool.TryParse(cachedData, out var cachedValue) && cachedValue;
+
+            var pointsServerCheck = await _pointServerProvider.CheckDomainAsync(domain);
+            if (!pointsServerCheck) return false;
+
+            // Only existing domain data is stored in the cache
+            await _checkDomainCache.SetAsync(cacheKey, true.ToString(), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpiration =
+                    DateTimeOffset.Now.AddSeconds(_accessVerifyOptions.CurrentValue.DomainCacheSeconds)
+            });
+            return true;
         }
         catch (Exception e)
         {

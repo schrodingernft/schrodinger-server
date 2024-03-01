@@ -271,9 +271,6 @@ public class SchrodingerServerAuthServerModule : AbpModule
         app.UseCorrelationId();
 
         app.UseMiddleware<DeviceInfoMiddleware>();
-        app.UseMiddleware<IpWhitelistMiddleware>();
-        app.UseMiddleware<HostWhitelistMiddleware>();
-        
         app.UseStaticFiles();
         app.UseRouting();
         app.UseCors();

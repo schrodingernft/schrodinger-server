@@ -86,10 +86,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
 
             var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
             var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
-            var managerAddress = Address.FromPublicKey(publicKey);
-            var caHash = string.Empty;
-            var caAddressMain = string.Empty;
-            var caAddressSide = new Dictionary<string, string>();
+            var signAddress = Address.FromPublicKey(publicKey);
 
             AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
                 HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
@@ -102,11 +99,15 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
                 time < DateTime.UtcNow.AddMinutes(_timeRangeOption.CurrentValue.TimeRange),
                 "The time should be {} minutes before and after the current time.",
                 _timeRangeOption.CurrentValue.TimeRange);
-
+            
+            var userName = string.Empty;
+            var caHash = string.Empty;
+            var caAddressMain = string.Empty;
+            var caAddressSide = new Dictionary<string, string>();
             if (source == SourcePortkey)
             {
                 var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
-                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, managerAddress.ToBase58());
+                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, signAddress.ToBase58());
                 AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
                 AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
                 AssertHelper.IsTrue(
@@ -126,19 +127,25 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
                         caAddressSide.TryAdd(account.ChainId, account.CaAddress);
                     }
                 }
+
+                userName = caHash;
             }
+            else if (source == SourceNightAElf)
+            {
+                AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
+                userName = address;
+            } 
             else
             {
                 throw new UserFriendlyException("Source not support.");
             }
 
-            var user = await _userManager.FindByNameAsync(caHash);
+            var user = await _userManager.FindByNameAsync(userName!);
             if (user == null)
             {
                 var userId = Guid.NewGuid();
                 var createUserResult = await CreateUserAsync(_userManager, _userInformationProvider, userId,
-                    caAddressMain,
-                    caHash, caAddressMain, caAddressSide, registerHost);
+                    address!, caHash, caAddressMain, caAddressSide, registerHost);
                 AssertHelper.IsTrue(createUserResult, "Create user failed.");
                 user = await _userManager.GetByIdAsync(userId);
             }
@@ -147,7 +154,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
                 var userSourceInput = new UserGrainDto
                 {
                     Id = user.Id,
-                    AelfAddress = caAddressMain,
+                    AelfAddress = address!,
                     CaHash = caHash,
                     CaAddressMain = caAddressMain,
                     CaAddressSide = caAddressSide,

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SchrodingerServer.Common;
 using SchrodingerServer.Grains;
+using SchrodingerServer.Options;
 using Volo.Abp.Account;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.FeatureManagement;
@@ -29,8 +30,10 @@ public class SchrodingerServerApplicationModule : AbpModule
     {
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<SchrodingerServerApplicationModule>(); });
         context.Services.AddSingleton(typeof(ILocalMemoryCache<>), typeof(LocalMemoryCache<>));
-
         context.Services.AddHttpClient();
+        
+        var configuration = context.Services.GetConfiguration();
+        Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
     }
     
 }

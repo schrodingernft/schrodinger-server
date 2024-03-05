@@ -51,7 +51,7 @@ public class PointServerProvider : IPointServerProvider, ISingletonDependency
     {
         try
         {
-            var resp = await _httpProvider.InvokeAsync<CommonResponseDto<Empty>>(
+            var resp = await _httpProvider.InvokeAsync<CommonResponseDto<CheckDomainResponse>>(
                 _pointServiceOptions.CurrentValue.BaseUrl, Api.CheckDomain,
                 body: JsonConvert.SerializeObject(new CheckDomainRequest
                 {
@@ -59,7 +59,7 @@ public class PointServerProvider : IPointServerProvider, ISingletonDependency
                 }, JsonSerializerSettings));
             AssertHelper.NotNull(resp, "Response empty");
             AssertHelper.NotNull(resp.Success, "Response failed, {}", resp.Message);
-            return true;
+            return resp.Data.Exists;
         }
         catch (Exception e)
         {

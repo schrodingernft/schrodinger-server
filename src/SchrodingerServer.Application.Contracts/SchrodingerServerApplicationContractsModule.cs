@@ -26,7 +26,7 @@ public class SchrodingerServerApplicationContractsModule : AbpModule
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
-        Configure<PointServiceOptions>(configuration.GetSection("Chains"));
+        Configure<PointServiceOptions>(configuration.GetSection("PointService"));
         Configure<AccessVerifyOptions>(configuration.GetSection("AccessVerify"));
         SchrodingerServerDtoExtensions.Configure();
     }

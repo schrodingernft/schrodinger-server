@@ -9,6 +9,7 @@ using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.Users;
 using SchrodingerServer.Options;
 using SchrodingerServer.PointServer;
+using SchrodingerServer.Users.Dto;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Caching;
 
@@ -91,5 +92,10 @@ public class UserActionProvider : ApplicationService, IUserActionProvider
         var res = await userActionGrain.AddActionAsync(actionType);
         AssertHelper.IsTrue(res?.Success ?? false, "Query action time failed");
         return res!.Data;
+    }
+
+    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetPointsEarnedDetailInput input)
+    {
+        return await _pointServerProvider.GetMyPointsAsync(input);
     }
 }

@@ -79,7 +79,7 @@ public class PointServerProvider : IPointServerProvider, ISingletonDependency
                 _pointServiceOptions.CurrentValue.BaseUrl, Api.GetMyPoints, null,
                 new Dictionary<string, string>()
                 {
-                    ["dappname"] = input.DappName,
+                    ["dappname"] = _pointServiceOptions.CurrentValue.DappId,
                     ["address"] = input.Address,
                     ["domain"] = input.Domain
                 });

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using AElf;
+using AElf.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Dtos.TraitsDto;
@@ -41,6 +43,7 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
         if (!requestId.IsNullOrEmpty())
         {
            var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+           var salt = _traitsOptions.CurrentValue.Salt;
            res.images = aiQueryResponse;
         }
         else
@@ -63,34 +66,35 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
     {
         try
         {
-            imageInfo = new GenerateImage
-            {
-                seed = "",
-                newTraits = new List<Trait>
-                {
-                    new Trait
-                    {
-                        name = "mouth",
-                        value = "bewitching"
-                    }
-                },
-                baseImage = new BaseImage
-                {
-                    traits = new List<Trait>
-                    {
-                        new Trait
-                        {
-                            name = "hat",
-                            value = "alpine hat"
-                        },
-                        new Trait
-                        {
-                            name = "eye",
-                            value = "is wearing 3d glasses"
-                        }
-                    }
-                }
-            };
+            // todo remove
+            // imageInfo = new GenerateImage
+            // {
+            //     seed = "",
+            //     newTraits = new List<Trait>
+            //     {
+            //         new Trait
+            //         {
+            //             name = "mouth",
+            //             value = "bewitching"
+            //         }
+            //     },
+            //     baseImage = new BaseImage
+            //     {
+            //         traits = new List<Trait>
+            //         {
+            //             new Trait
+            //             {
+            //                 name = "hat",
+            //                 value = "alpine hat"
+            //             },
+            //             new Trait
+            //             {
+            //                 name = "eye",
+            //                 value = "is wearing 3d glasses"
+            //             }
+            //         }
+            //     }
+            // };
 
             using var httpClient = new HttpClient();
             var jsonString = ConvertObjectToJsonString(imageInfo);
@@ -121,7 +125,7 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
     
     private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)
     {
-        requestId = "363408ba-4f7f-4a9b-8503-77df25b60203";
+        // requestId = "363408ba-4f7f-4a9b-8503-77df25b60203"; // todo remove
         var queryImage = new QueryImage
         {
             requestId = requestId 
@@ -136,6 +140,8 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
             string responseContent = await response.Content.ReadAsStringAsync();
             AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
             _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success");
+            // todo image 字段加密
+            // GenerateContractSignature 下面接口
             return aiQueryResponse;
         }
         else
@@ -150,4 +156,16 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
         var paramMap = paramObj.GetType().GetProperties().ToDictionary(p => p.Name, p => p.GetValue(paramObj, null));
         return JsonConvert.SerializeObject(paramMap);
     }
+
+    // private string GenerateContractSignature(string image)
+    // {
+    //     var data = new ImageOperation{
+    //         salt = _traitsOptions.CurrentValue.Salt,
+    //         image = image
+    //     };
+    //     var dataHash = HashHelper.ComputeFrom(data);
+    //     var signature = CryptoHelper.SignWithPrivatebKey(Encoding.UTF8.GetBytes(_traitsOptions.CurrentValue.Salt), dataHash.ToByteArray());
+    //     return signature.ToHex();
+    //
+    // }
 }

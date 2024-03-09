@@ -70,3 +70,8 @@ public class Image
     public string waterMarkImage { get; set; }
     public string extraData { get; set; }
 }
+
+public class ImageOperation{
+    public string salt { get; set; }
+    public string image { get; set; }
+};

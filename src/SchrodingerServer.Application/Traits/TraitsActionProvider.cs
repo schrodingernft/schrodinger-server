@@ -17,31 +17,40 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
 {
     private readonly ILogger<TraitsActionProvider> _logger;
     private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
+    private readonly ITraitsService _traitsService;
 
-    public TraitsActionProvider(ILogger<TraitsActionProvider> logger,IOptionsMonitor<TraitsOptions> traitsOption)
+    public TraitsActionProvider(ILogger<TraitsActionProvider> logger,IOptionsMonitor<TraitsOptions> traitsOption, ITraitsService traitsService)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
+        _traitsService = traitsService;
     }
 
 
     public async Task<bool> ImageGenerateAsync(string adoptId)
     {
-        var requestId = "";
         // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
-        
-        // query traits from indexer
-        var imageInfo = await QueryTraitsAsync(adoptId);
-        // 
-        requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
-        requestId = "363408ba-4f7f-4a9b-8503-77df25b60203";
-        var res = await QueryImageInfoByAiAsync(requestId);
+        var requestId = await _traitsService.GetRequestAsync(adoptId);
+        if (!requestId.IsNullOrEmpty())
+        {
+            await QueryImageInfoByAiAsync(requestId);
+        }
+        else
+        {
+            // query traits from indexer
+            var imageInfo = await QueryTraitsAsync(adoptId);
+            // generate image by ai 
+            requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
+            // save to grain
+            await _traitsService.SetRequestAsync(adoptId, requestId);
+        }
+
         return true;
     }
 
     private async Task<GenerateImage> QueryTraitsAsync(string adoptId)
     {
-        return new GenerateImage{};
+        return new GenerateImage{}; // todo
     }
     
     
@@ -121,7 +130,7 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
         {
             string responseContent = await response.Content.ReadAsStringAsync();
             AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
-            _logger.LogError("TraitsActionProvider QueryImageInfoByAiAsync query success");
+            _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success");
             return aiQueryResponse;
         }
         else

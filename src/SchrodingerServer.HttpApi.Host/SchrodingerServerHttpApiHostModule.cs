@@ -60,6 +60,7 @@ namespace SchrodingerServer
             var configuration = context.Services.GetConfiguration();
             var hostingEnvironment = context.Services.GetHostingEnvironment();
             Configure<ChainOptions>(configuration.GetSection("Chains"));
+            Configure<TraitsOptions>(configuration.GetSection("Traits"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

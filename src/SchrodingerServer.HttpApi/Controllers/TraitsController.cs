@@ -25,8 +25,6 @@ public class ImageGenerationController : AbpController
     [HttpGet("image-generate")]
     public async Task<GenerateImageResponse?> ImageGenerationAsync(GenerateImageRequest generateImageRequest)
     {
-        var domainValid = await _traitsActionProvider.ImageGenerateAsync(generateImageRequest.AdoptId);
-        AssertHelper.IsTrue(domainValid, "Invalid host");
-        return new GenerateImageResponse();
+        return await _traitsActionProvider.ImageGenerateAsync(generateImageRequest.AdoptId);
     }
 }

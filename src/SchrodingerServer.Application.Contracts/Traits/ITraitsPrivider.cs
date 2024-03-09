@@ -1,9 +1,10 @@
 using System.Threading.Tasks;
+using SchrodingerServer.Dtos.TraitsDto;
 
 namespace SchrodingerServer.Traits;
 
 public interface ITraitsActionProvider
 {
-    Task<bool> ImageGenerateAsync(string adoptId);
+    Task<GenerateImageResponse> ImageGenerateAsync(string adoptId);
 
 }

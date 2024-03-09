@@ -10,8 +10,8 @@ public class GenerateImageRequest
 
 public class GenerateImageResponse
 {
-    public List<ImageInfo> ImageInfos { get; set; }
-    public List<ImageTrait> ImageTraits { get; set; }
+    public GenerateImage items { get; set; }
+    public AiQueryResponse images { get; set; }
 }
 
 public class ImageInfo

@@ -27,33 +27,37 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
     }
 
 
-    public async Task<bool> ImageGenerateAsync(string adoptId)
+    public async Task<GenerateImageResponse> ImageGenerateAsync(string adoptId)
     {
+        var res = new GenerateImageResponse { };
+        
+        // query traits from indexer
+        var imageInfo = await QueryTraitsAsync(adoptId);
+        res.items = imageInfo;
+        
         // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
         var requestId = await _traitsService.GetRequestAsync(adoptId);
+
         if (!requestId.IsNullOrEmpty())
         {
-            await QueryImageInfoByAiAsync(requestId);
+           var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+           res.images = aiQueryResponse;
         }
         else
         {
-            // query traits from indexer
-            var imageInfo = await QueryTraitsAsync(adoptId);
-            // generate image by ai 
+            // generate image by ai
             requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
             // save to grain
             await _traitsService.SetRequestAsync(adoptId, requestId);
         }
 
-        return true;
+        return res;
     }
 
     private async Task<GenerateImage> QueryTraitsAsync(string adoptId)
     {
         return new GenerateImage{}; // todo
     }
-    
-    
 
     private async Task<string> GenerateImageByAiAsync(GenerateImage imageInfo, string adoptId)
     {
@@ -117,6 +121,7 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
     
     private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)
     {
+        requestId = "363408ba-4f7f-4a9b-8503-77df25b60203";
         var queryImage = new QueryImage
         {
             requestId = requestId 

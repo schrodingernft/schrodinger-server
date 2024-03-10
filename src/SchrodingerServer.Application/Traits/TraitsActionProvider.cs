@@ -1,17 +1,15 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using AElf;
-using AElf.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using SchrodingerServer.Dtos.TraitsDto;
+using SchrodingerServer.Image;
 using SchrodingerServer.Options;
 using Volo.Abp.Application.Services;
-using Newtonsoft.Json;
 
 namespace SchrodingerServer.Traits;
 
@@ -55,6 +53,11 @@ public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
         }
 
         return res;
+    }
+
+    public Task<GetImageResponse> GetImageAsync(string adoptId)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task<GenerateImage> QueryTraitsAsync(string adoptId)

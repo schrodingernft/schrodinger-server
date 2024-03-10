@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using SchrodingerServer.Dtos.Adopts;
 
-namespace SchrodingerServer.Traits;
+namespace SchrodingerServer.Adopts.provider;
 
 public class AdoptInfo
 {
@@ -8,11 +9,7 @@ public class AdoptInfo
     public string TokenName { get; set; }
     public List<Attribute> Attributes { get; set; }
     public string Adoptor { get; set; }
-    public long ImageCount { get; set; }
-}
-
-public class Attribute
-{
-    public string TraitType { get; set; }
-    public string value { get; set; }
+    public int ImageCount { get; set; }
+    
+    public int Generation { get; set; }
 }

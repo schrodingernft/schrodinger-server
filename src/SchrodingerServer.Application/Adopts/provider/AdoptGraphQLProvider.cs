@@ -4,21 +4,22 @@ using System.Threading.Tasks;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using SchrodingerServer.Common.GraphQL;
+using SchrodingerServer.Dtos.Adopts;
 using Volo.Abp.DependencyInjection;
 
-namespace SchrodingerServer.Traits;
+namespace SchrodingerServer.Adopts.provider;
 
-public interface ITraitsGraphQLProvider
+public interface IAdoptGraphQLProvider
 {
     Task<AdoptInfo> QueryAdoptInfoAsync(string adoptId);
 }
 
-public class TraitsGraphQLProvider : ITraitsGraphQLProvider, ISingletonDependency
+public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
 {
     private readonly IGraphQlHelper _graphQlHelper;
-    private readonly ILogger<TraitsGraphQLProvider> _logger;
+    private readonly ILogger<AdoptGraphQLProvider> _logger;
 
-    public TraitsGraphQLProvider(IGraphQlHelper graphQlHelper, ILogger<TraitsGraphQLProvider> logger)
+    public AdoptGraphQLProvider(IGraphQlHelper graphQlHelper, ILogger<AdoptGraphQLProvider> logger)
     {
         _graphQlHelper = graphQlHelper;
         _logger = logger;
@@ -39,6 +40,7 @@ public class TraitsGraphQLProvider : ITraitsGraphQLProvider, ISingletonDependenc
                           }
                           adoptor
                           imageCount
+                          gen
                 }
             }",
             Variables = new
@@ -62,7 +64,8 @@ public class TraitsGraphQLProvider : ITraitsGraphQLProvider, ISingletonDependenc
                 value = a.Value
             }).ToList(),
             Adoptor = adpotInfoDto.Adoptor,
-            ImageCount = adpotInfoDto.ImageCount
+            ImageCount = adpotInfoDto.ImageCount,
+            Generation = adpotInfoDto.Gen
         };
     }
 }
@@ -86,7 +89,7 @@ public class AdpotInfoDto
     public long LossAmount { get; set; }
     public long CommissionAmount { get; set; }
     public long OutputAmount { get; set; }
-    public long ImageCount { get; set; }
+    public int ImageCount { get; set; }
     public long TotalSupply { get; set; }
     public int IssueChainId { get; set; }
     public int Gen { get; set; }

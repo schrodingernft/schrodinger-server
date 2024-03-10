@@ -12,9 +12,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Schrodinger;
+using SchrodingerServer.Adopts.provider;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
-using SchrodingerServer.Image;
 using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
@@ -31,13 +31,16 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly IAdoptImageService _adoptImageService;
     private readonly AdoptImageOptions _adoptImageOptions;
     private readonly ChainOptions _chainOptions;
+    private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
-        IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions, IOptionsMonitor<ChainOptions> chainOptions)
+        IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
+        IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
         _adoptImageService = adoptImageService;
+        _adoptGraphQlProvider = adoptGraphQlProvider;
         _chainOptions = chainOptions.CurrentValue;
         _adoptImageOptions = adoptImageOptions.CurrentValue;
     }
@@ -127,9 +130,9 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return images;
     }
 
-    private Task<AdoptInfo> QueryAdoptInfoAsync(string adoptId)
+    private async Task<AdoptInfo> QueryAdoptInfoAsync(string adoptId)
     {
-        return Task.FromResult(new AdoptInfo()); // todo
+        return await _adoptGraphQlProvider.QueryAdoptInfoAsync(adoptId);
     }
 
     private async Task<string> GenerateImageByAiAsync(GenerateImage imageInfo, string adoptId)

@@ -94,7 +94,7 @@ public class UserActionProvider : ApplicationService, IUserActionProvider
         return res!.Data;
     }
 
-    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetPointsEarnedDetailInput input)
+    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
     {
         return await _pointServerProvider.GetMyPointsAsync(input);
     }

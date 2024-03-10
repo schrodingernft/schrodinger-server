@@ -13,5 +13,5 @@ public interface IUserActionProvider
 
     Task<UserActionGrainDto> AddActionAsync(ActionType actionType);
 
-    Task<MyPointDetailsDto> GetMyPointsAsync(GetPointsEarnedDetailInput input);
+    Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input);
 }

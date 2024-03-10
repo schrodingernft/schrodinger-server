@@ -21,7 +21,7 @@ public interface IPointServerProvider
 {
     Task<bool> CheckDomainAsync(string domain);
 
-    Task<MyPointDetailsDto> GetMyPointsAsync(GetPointsEarnedDetailInput input);
+    Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input);
 }
 
 public class PointServerProvider : IPointServerProvider, ISingletonDependency
@@ -71,7 +71,7 @@ public class PointServerProvider : IPointServerProvider, ISingletonDependency
         }
     }
 
-    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetPointsEarnedDetailInput input)
+    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
     {
         try
         {

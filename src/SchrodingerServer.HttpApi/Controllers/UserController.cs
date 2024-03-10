@@ -46,7 +46,7 @@ public class UserController : AbpController
     }
 
     [HttpGet("my/points")]
-    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetPointsEarnedDetailInput input)
+    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
     {
         return await _userActionProvider.GetMyPointsAsync(input);
     }

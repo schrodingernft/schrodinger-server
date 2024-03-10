@@ -16,6 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AElf.Cryptography" Version="1.6.0" />
+    <PackageReference Include="AElf.Types" Version="1.6.0" />
     <PackageReference Include="GraphQL" Version="7.4.1" />
     <PackageReference Include="GraphQL.Client.Abstractions" Version="6.0.0" />
     <PackageReference Include="GraphQL.SystemTextJson" Version="7.4.1" />
@@ -40,6 +42,9 @@
     <ContractReference Include="..\..\protobuf\token_contract.proto">
       <Link>Protobuf\Proto\token_contract.proto</Link>
     </ContractReference>
+    <CommonMessage Include="..\..\protobuf\schrodinger_contract.proto">
+      <Link>Protobuf\Proto\schrodinger_contract.proto</Link>
+    </CommonMessage>
   </ItemGroup>
 
 </Project>

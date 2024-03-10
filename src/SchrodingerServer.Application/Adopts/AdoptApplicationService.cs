@@ -1,68 +1,135 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using AElf;
+using AElf.Cryptography;
+using AElf.Types;
+using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Schrodinger;
+using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
 using SchrodingerServer.Options;
+using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Auditing;
 
-namespace SchrodingerServer.Traits;
+namespace SchrodingerServer.Adopts;
 
-public class TraitsActionProvider : ApplicationService, ITraitsActionProvider
+[RemoteService(IsEnabled = false)]
+[DisableAuditing]
+public class AdoptApplicationService : ApplicationService, IAdoptApplicationService
 {
-    private readonly ILogger<TraitsActionProvider> _logger;
+    private readonly ILogger<AdoptApplicationService> _logger;
     private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
-    private readonly ITraitsService _traitsService;
+    private readonly IAdoptImageService _adoptImageService;
+    private readonly AdoptImageOptions _adoptImageOptions;
+    private readonly ChainOptions _chainOptions;
 
-    public TraitsActionProvider(ILogger<TraitsActionProvider> logger,IOptionsMonitor<TraitsOptions> traitsOption, ITraitsService traitsService)
+    public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
+        IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions, IOptionsMonitor<ChainOptions> chainOptions)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
-        _traitsService = traitsService;
+        _adoptImageService = adoptImageService;
+        _chainOptions = chainOptions.CurrentValue;
+        _adoptImageOptions = adoptImageOptions.CurrentValue;
     }
 
 
-    public async Task<GenerateImageResponse> ImageGenerateAsync(string adoptId)
+    public async Task<GetAdoptImageInfoOutput> GetAdoptImageInfoAsync(string adoptId)
     {
-        var res = new GenerateImageResponse { };
+        var output = new GetAdoptImageInfoOutput();
         
         // query traits from indexer
-        var imageInfo = await QueryTraitsAsync(adoptId);
-        res.items = imageInfo;
+        var adoptInfo = await QueryAdoptInfoAsync(adoptId);
         
         // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
-        var requestId = await _traitsService.GetRequestAsync(adoptId);
-
-        if (!requestId.IsNullOrEmpty())
+        //TODO need to use adoptId and Address insteadof adoptId
+        var imageGenerationId = await _adoptImageService.GetImageGenerationIdAsync(adoptId);
+        
+        output.AdoptImageInfo = new AdoptImageInfo
         {
-           var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
-           var salt = _traitsOptions.CurrentValue.Salt;
-           res.images = aiQueryResponse;
-        }
-        else
+            Attributes = adoptInfo.Attributes,
+            Generation = adoptInfo.Generation,
+        };
+
+        if (imageGenerationId == null)
         {
-            // generate image by ai
-            requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
-            // save to grain
-            await _traitsService.SetRequestAsync(adoptId, requestId);
+            await _adoptImageService.SetImageGenerationIdAsync(adoptId, Guid.NewGuid().ToString());
+            return output;
         }
 
-        return res;
+        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount);
+        // if (!requestId.IsNullOrEmpty())
+        // {
+        //    var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+        //    var salt = _traitsOptions.CurrentValue.Salt;
+        //    res.images = aiQueryResponse;
+        // }
+        // else
+        // {
+        //     // generate image by ai
+        //     requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
+        //     // save to grain
+        //     await _traitsService.SetImageGenerationIdAsync(adoptId, requestId);
+        // }
+
+        return output;
     }
 
-    public Task<GetImageResponse> GetImageAsync(string adoptId)
+    public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
-        throw new NotImplementedException();
+        var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
+        if (!images.Contains(input.Image)) throw new UserFriendlyException("Invalid adopt image");
+        //TODO Need to save used image for checking next request.
+        var waterMarkImage = _adoptImageOptions.WaterMarkImages[_adoptImageOptions.Images.IndexOf(input.Image)];
+        return new GetWaterMarkImageInfoOutput
+        {
+            Image = waterMarkImage,
+            Signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey),input.AdoptId, waterMarkImage)
+        };
+    }
+    
+    private string GenerateSignature(byte[] privateKey, string adoptId, string image)
+    {
+        var data = new ConfirmInput {
+            AdoptId = Hash.LoadFromHex(adoptId),
+            Image = image
+        };
+        var dataHash = HashHelper.ComputeFrom(data);
+        var signature = CryptoHelper.SignWithPrivateKey(privateKey, dataHash.ToByteArray());
+        return signature.ToHex();
     }
 
-    private async Task<GenerateImage> QueryTraitsAsync(string adoptId)
+    private async Task<List<string>> GetImagesAsync(string adoptId, int count)
     {
-        return new GenerateImage{}; // todo
+        var images = await _adoptImageService.GetImagesAsync(adoptId);
+        if (images != null)
+        {
+            return images;
+        } 
+        
+        images = new List<string>();
+        var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count);
+        for (int i = 0; i < count; i++)
+        {
+            images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]);
+            index++;
+        }
+        await _adoptImageService.SetImagesAsync(adoptId, images);
+        return images;
+    }
+
+    private Task<AdoptInfo> QueryAdoptInfoAsync(string adoptId)
+    {
+        return Task.FromResult(new AdoptInfo()); // todo
     }
 
     private async Task<string> GenerateImageByAiAsync(GenerateImage imageInfo, string adoptId)

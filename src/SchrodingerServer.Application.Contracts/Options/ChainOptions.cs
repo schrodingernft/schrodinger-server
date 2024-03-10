@@ -15,4 +15,7 @@ public class ChainOptions
         public bool IsMainChain { get; set; }
         public Dictionary<string, Dictionary<string, string>> ContractAddress { get; set; } = new();
     }
+    
+    //TODO Need to remove
+    public string PrivateKey { get; set; }
 }

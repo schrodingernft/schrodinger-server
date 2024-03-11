@@ -62,7 +62,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
             Attributes = adpotInfoDto.Attributes.Select(a => new Attribute()
             {
                 TraitType = a.TraitType,
-                value = a.Value,
+                Value = a.Value,
                 Percent = a.Percent
             }).ToList(),
             Adoptor = adpotInfoDto.Adoptor,

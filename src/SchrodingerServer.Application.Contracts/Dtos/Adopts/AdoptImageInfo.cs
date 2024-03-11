@@ -12,7 +12,7 @@ public class AdoptImageInfo
 public class Attribute
 {
     public string TraitType { get; set; }
-    public string value { get; set; }
+    public string Value { get; set; }
     public string Percent { get; set; }
 }
 

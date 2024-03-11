@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SchrodingerServer.Common;
 using SchrodingerServer.Dto;
 using SchrodingerServer.Users;
+using SchrodingerServer.Users.Dto;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc;
 
@@ -16,14 +17,13 @@ namespace SchrodingerServer.Controllers;
 [Authorize]
 public class UserController : AbpController
 {
-
     private readonly IUserActionProvider _userActionProvider;
-    
+
     public UserController(IUserActionProvider userActionProvider)
     {
         _userActionProvider = userActionProvider;
     }
-    
+
     [HttpGet("user/info")]
     public async Task<UserInfoDto> GetUserInfo()
     {
@@ -44,7 +44,10 @@ public class UserController : AbpController
             IsJoin = grainDto.ActionData.ContainsKey(ActionType.Join.ToString())
         };
     }
-    
-    
-    
+
+    [HttpGet("my/points")]
+    public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
+    {
+        return await _userActionProvider.GetMyPointsAsync(input);
+    }
 }

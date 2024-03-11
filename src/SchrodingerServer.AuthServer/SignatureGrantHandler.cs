@@ -38,7 +38,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     private readonly IdentityUserManager _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IUserActionProvider _userActionProvider;
-    
+
     private readonly IOptionsMonitor<TimeRangeOption> _timeRangeOption;
     private readonly IOptionsMonitor<GraphQLOption> _graphQlOption;
 
@@ -82,7 +82,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             AssertHelper.NotEmpty(address, "invalid parameter address.");
             AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
                 "invalid parameter timestamp value.");
-            AssertHelper.IsTrue(await _userActionProvider.CheckDomainAsync(registerHost), "Invalid host");
+            AssertHelper.IsTrue(await _userActionProvider.CheckDomainAsync(registerHost), string.Format("Invalid host:{0}", registerHost));
 
             var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
             var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
@@ -99,7 +99,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
                 time < DateTime.UtcNow.AddMinutes(_timeRangeOption.CurrentValue.TimeRange),
                 "The time should be {} minutes before and after the current time.",
                 _timeRangeOption.CurrentValue.TimeRange);
-            
+
             var userName = string.Empty;
             var caHash = string.Empty;
             var caAddressMain = string.Empty;
@@ -134,7 +134,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             {
                 AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
                 userName = address;
-            } 
+            }
             else
             {
                 throw new UserFriendlyException("Source not support.");

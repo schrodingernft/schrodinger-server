@@ -5,13 +5,16 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using Orleans.Runtime;
 using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.Users;
 using SchrodingerServer.Options;
 using SchrodingerServer.PointServer;
 using SchrodingerServer.Users.Dto;
+using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Caching;
+using Volo.Abp.Users;
 
 namespace SchrodingerServer.Users;
 
@@ -22,16 +25,18 @@ public class UserActionProvider : ApplicationService, IUserActionProvider
     private readonly IPointServerProvider _pointServerProvider;
     private readonly IDistributedCache<string> _checkDomainCache;
     private readonly IOptionsMonitor<AccessVerifyOptions> _accessVerifyOptions;
+    private readonly IUserInformationProvider _userInformationProvider;
 
     public UserActionProvider(IClusterClient clusterClient, IPointServerProvider pointServerProvider,
         ILogger<UserActionProvider> logger, IDistributedCache<string> checkDomainCache,
-        IOptionsMonitor<AccessVerifyOptions> accessVerifyOptions)
+        IOptionsMonitor<AccessVerifyOptions> accessVerifyOptions, IUserInformationProvider userInformationProvider)
     {
         _clusterClient = clusterClient;
         _pointServerProvider = pointServerProvider;
         _logger = logger;
         _checkDomainCache = checkDomainCache;
         _accessVerifyOptions = accessVerifyOptions;
+        _userInformationProvider = userInformationProvider;
     }
 
 
@@ -96,6 +101,14 @@ public class UserActionProvider : ApplicationService, IUserActionProvider
 
     public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
     {
+        var info = await _userInformationProvider.GetUserById(CurrentUser.GetId());
+        if (info == null || String.IsNullOrEmpty(info.RegisterDomain))
+        {
+            return new MyPointDetailsDto();
+        }
+
+        input.Domain = info.RegisterDomain;
+        _logger.Info("GetMyPoints by {0} {1}", input.Address, input.Domain);
         return await _pointServerProvider.GetMyPointsAsync(input);
     }
 }

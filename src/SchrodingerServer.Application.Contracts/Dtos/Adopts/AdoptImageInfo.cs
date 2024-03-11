@@ -13,5 +13,6 @@ public class Attribute
 {
     public string TraitType { get; set; }
     public string value { get; set; }
+    public string Percent { get; set; }
 }
 

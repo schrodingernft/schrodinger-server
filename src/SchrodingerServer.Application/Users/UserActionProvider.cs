@@ -111,4 +111,17 @@ public class UserActionProvider : ApplicationService, IUserActionProvider
         _logger.Info("GetMyPoints by {0} {1}", input.Address, input.Domain);
         return await _pointServerProvider.GetMyPointsAsync(input);
     }
+    public async Task<string> GetCurrentUserAddressAsync(string chainId)
+    {
+        var userId  = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
+        string userAddress = null;
+        if (userId != Guid.Empty)
+        {
+            var userGrain =  await _userInformationProvider.GetUserById(userId);
+
+            userAddress = userGrain.AelfAddress;
+        }
+        _logger.LogInformation("Get current user address chainId: {chainId} address:{address}", chainId, userAddress);
+        return userAddress;
+    }
 }

@@ -37,6 +37,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
                           attributes{
                             traitType
                             value
+                            percent
                           }
                           adoptor
                           imageCount
@@ -101,4 +102,5 @@ public class Trait
 {
     public string TraitType { get; set; }
     public string Value { get; set; }
+    public string Percent { get; set; }
 }

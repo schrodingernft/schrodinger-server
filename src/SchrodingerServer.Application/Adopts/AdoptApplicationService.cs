@@ -13,12 +13,17 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Schrodinger;
 using SchrodingerServer.Adopts.provider;
+using SchrodingerServer.Common;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
+using Volo.Abp.Users;
+using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
+using SchrodingerServer.Users;
+using SchrodingerServer.Users.Dto;
 
 namespace SchrodingerServer.Adopts;
 
@@ -28,14 +33,16 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 {
     private readonly ILogger<AdoptApplicationService> _logger;
     private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
+    private readonly IOptionsMonitor<CmsConfigOptions> _cmsConfigOptions;
     private readonly IAdoptImageService _adoptImageService;
     private readonly AdoptImageOptions _adoptImageOptions;
     private readonly ChainOptions _chainOptions;
     private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
+    private readonly IUserActionProvider _userActionProvider;
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
-        IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider)
+        IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -43,6 +50,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _adoptGraphQlProvider = adoptGraphQlProvider;
         _chainOptions = chainOptions.CurrentValue;
         _adoptImageOptions = adoptImageOptions.CurrentValue;
+        _cmsConfigOptions = cmsConfigOptions;
+        _userActionProvider = userActionProvider;
     }
 
 
@@ -52,10 +61,31 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         
         // query traits from indexer
         var adoptInfo = await QueryAdoptInfoAsync(adoptId);
+        // var attribute = new Attribute
+        // {
+        //     Percent = "11.11",
+        //     TraitType = "ada",
+        //     value = "sdd"
+        // };
+        // var attributes = new List<Attribute> { };
+        // attributes.Add(attribute);
+        // var adoptInfo = new AdoptInfo
+        // {
+        //     Attributes = attributes,
+        //     Generation = 1 ,
+        //     ImageCount = 2,
+        // };
         
         // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
         //TODO need to use adoptId and Address insteadof adoptId
-        var imageGenerationId = await _adoptImageService.GetImageGenerationIdAsync(adoptId);
+        var chainId = CommonConstant.MainChainId;
+        if (_cmsConfigOptions.CurrentValue.ConfigMap.TryGetValue("curChain", out var curChain))
+        {
+            chainId = curChain;
+        }
+        var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(chainId);
+        
+        var imageGenerationId = await _adoptImageService.GetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress));
         
         output.AdoptImageInfo = new AdoptImageInfo
         {
@@ -65,7 +95,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         if (imageGenerationId == null)
         {
-            await _adoptImageService.SetImageGenerationIdAsync(adoptId, Guid.NewGuid().ToString());
+            await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
             return output;
         }
 
@@ -86,6 +116,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         return output;
     }
+    
+    
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
@@ -234,6 +266,11 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var paramMap = paramObj.GetType().GetProperties().ToDictionary(p => p.Name, p => p.GetValue(paramObj, null));
         return JsonConvert.SerializeObject(paramMap);
     }
+    
+    private string JoinAdoptIdAndAelfAddress(string adoptId, string aelfAddress)
+    {
+        return adoptId + "_" + aelfAddress;
+    }
 
     // private string GenerateContractSignature(string image)
     // {
@@ -246,4 +283,5 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     //     return signature.ToHex();
     //
     // }
+    
 }

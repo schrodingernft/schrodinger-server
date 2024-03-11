@@ -18,6 +18,7 @@ using Microsoft.OpenApi.Models;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
+using SchrodingerServer.CoinGeckoApi;
 using StackExchange.Redis;
 using SchrodingerServer.Grains;
 using SchrodingerServer.Middleware;
@@ -61,6 +62,8 @@ namespace SchrodingerServer
             var hostingEnvironment = context.Services.GetHostingEnvironment();
             Configure<ChainOptions>(configuration.GetSection("Chains"));
             Configure<TraitsOptions>(configuration.GetSection("Traits"));
+            Configure<TransactionFeeOptions>(configuration.GetSection("TransactionFeeInfo"));
+            Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
@@ -91,7 +94,7 @@ namespace SchrodingerServer
                 });
         }
 
-        
+
         private void ConfigureVirtualFileSystem(ServiceConfigurationContext context)
         {
             var hostingEnvironment = context.Services.GetHostingEnvironment();
@@ -118,13 +121,9 @@ namespace SchrodingerServer
 
         private void ConfigureConventionalControllers()
         {
-            Configure<AbpAspNetCoreMvcOptions>(options =>
-            {
-                options.ConventionalControllers.Create(typeof(SchrodingerServerHttpApiModule).Assembly);
-            });
+            Configure<AbpAspNetCoreMvcOptions>(options => { options.ConventionalControllers.Create(typeof(SchrodingerServerHttpApiModule).Assembly); });
         }
 
-       
 
         private static void ConfigureSwaggerServices(ServiceConfigurationContext context, IConfiguration configuration)
         {
@@ -263,9 +262,9 @@ namespace SchrodingerServer
 
             app.UseHttpsRedirection();
             app.UseCorrelationId();
-            
+
             app.UseMiddleware<DeviceInfoMiddleware>();
-            
+
             app.UseStaticFiles();
             app.UseRouting();
             app.UseCors();
@@ -279,7 +278,7 @@ namespace SchrodingerServer
             app.UseSwagger();
             app.UseAbpSwaggerUI(options => { options.SwaggerEndpoint("/swagger/v1/swagger.json", "Support APP API"); });
             // }
-            
+
             app.UseAuditing();
             app.UseAbpSerilogEnrichers();
             app.UseUnitOfWork();

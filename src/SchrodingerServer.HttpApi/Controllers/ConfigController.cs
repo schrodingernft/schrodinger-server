@@ -1,11 +1,11 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SchrodingerServer.Config;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc;
 
 namespace SchrodingerServer.Controllers;
-
 
 [RemoteService]
 [Area("app")]
@@ -25,4 +25,5 @@ public class ConfigController : AbpController
     {
         return _configAppService.GetConfig();
     }
+   
 }

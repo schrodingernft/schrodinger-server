@@ -95,6 +95,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         if (imageGenerationId == null)
         {
+            // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
             await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
             return output;
         }
@@ -155,12 +156,13 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         {
             return images;
         } 
+        // todo get  images from ai query and save them
         
         images = new List<string>();
-        var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count);
+        var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
         for (int i = 0; i < count; i++)
         {
-            images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]);
+            images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]); // todo mack
             index++;
         }
         await _adoptImageService.SetImagesAsync(adoptId, images);

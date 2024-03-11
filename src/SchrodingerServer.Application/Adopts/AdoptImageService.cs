@@ -5,10 +5,11 @@ using Microsoft.Extensions.Logging;
 using Orleans;
 using SchrodingerServer.Grains.Grain.Traits;
 using SchrodingerServer.Traits;
+using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Adopts;
 
-public class AdoptImageService : IAdoptImageService
+public class AdoptImageService : IAdoptImageService, ISingletonDependency
 {
     private readonly IClusterClient _clusterClient;
     private readonly ILogger<AdoptImageService> _logger;

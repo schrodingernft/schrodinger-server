@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 using AElf;
 using AElf.Cryptography;
 using AElf.Types;
-using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Orleans.Runtime;
 using Schrodinger;
 using SchrodingerServer.Adopts.provider;
+using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Options;
@@ -89,15 +90,37 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
-        var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        // if (images.IsNullOrEmpty() || !images.Contains(input.Image))
+        _logger.Info("GetWaterMarkImageInfoAsync, {req}", JsonConvert.SerializeObject(input));
+        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
+        {
+            _logger.Info("has already been watermarked, {id}", input.AdoptId);
+            throw new UserFriendlyException("has already been watermarked");
+        }
+        
+        // var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
+        // if (images.IsNullOrEmpty() || !images.Contains(input.Image))q
         // {
         //     throw new UserFriendlyException("Invalid adopt image");
         // }
-
-        //TODO Need to save used image for checking next request.
+        //
+        // var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
+        // if (adoptInfo == null)
+        // {
+        //     throw new UserFriendlyException("query adopt info fail");
+        // }
+        //
+        // var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
+        // {
+        //     sourceImage = input.Image,
+        //     watermark = adoptInfo.Symbol
+        // });
+        
+        
         var index = _adoptImageOptions.Images.IndexOf(input.Image);
         var waterMarkImage = _adoptImageOptions.WaterMarkImages[index];
+
+        await _adoptImageService.SetWatermarkAsync(input.AdoptId);
+        
         return new GetWaterMarkImageInfoOutput
         {
             Image = waterMarkImage,
@@ -139,6 +162,39 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         return await _adoptGraphQlProvider.QueryAdoptInfoAsync(adoptId);
     }
+    
+    private async Task<string> GetWatermarkImageAsync(WatermarkInput input)
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var jsonString = ConvertObjectToJsonString(input);
+            var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+            httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+
+            var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageProcessUrl, requestContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseString = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("Get Watermark Image Success");
+               
+                return responseString;
+            }
+            else
+            {
+                _logger.LogError("Get Watermark Image Success fail, {resp}", response.ToString());
+            }
+            return "";
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Get Watermark Image Success fail error, {err}", e.ToString());
+            return "";
+        }
+    }
+    
+    
 
     private async Task<string> GenerateImageByAiAsync(GenerateImage imageInfo, string adoptId)
     {

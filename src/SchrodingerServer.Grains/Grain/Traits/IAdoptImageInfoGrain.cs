@@ -12,6 +12,8 @@ public interface IAdoptImageInfoGrain : IGrainWithStringKey
     Task SetImagesAsync(List<string> images);
     Task<string> GetImageGenerationIdAsync();
     Task<List<string>> GetImagesAsync();
+    Task SetWatermarkAsync();
+    Task<bool> HasWatermarkAsync();
 }
 
 public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGrain
@@ -63,4 +65,16 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
         await base.ReadStateAsync();
         await base.OnActivateAsync();
     }
+    
+    public async Task SetWatermarkAsync()
+    {
+        State.HasWatermark = true;
+        await WriteStateAsync();
+    }
+    
+    public Task<bool> HasWatermarkAsync()
+    {
+        return  Task.FromResult(State.HasWatermark);
+    }
+    
 }

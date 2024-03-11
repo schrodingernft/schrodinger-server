@@ -74,4 +74,11 @@ public class Image
 public class ImageOperation{
     public string salt { get; set; }
     public string image { get; set; }
-};
+}
+
+
+public class WatermarkInput
+{
+    public string sourceImage  { get; set; }
+    public string watermark  { get; set; }
+}

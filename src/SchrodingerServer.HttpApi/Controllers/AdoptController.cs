@@ -31,7 +31,7 @@ public class AdoptController : AbpController
         return await _adoptApplicationService.GetAdoptImageInfoAsync(input.AdoptId);
     }
     
-    [HttpGet("waterMarkImageInfo")]
+    [HttpPost("waterMarkImageInfo")]
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
         return await _adoptApplicationService.GetWaterMarkImageInfoAsync(input);

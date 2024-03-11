@@ -18,6 +18,7 @@ using Microsoft.OpenApi.Models;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
+using SchrodingerServer.Adopts;
 using SchrodingerServer.CoinGeckoApi;
 using StackExchange.Redis;
 using SchrodingerServer.Grains;
@@ -64,6 +65,7 @@ namespace SchrodingerServer
             Configure<TraitsOptions>(configuration.GetSection("Traits"));
             Configure<TransactionFeeOptions>(configuration.GetSection("TransactionFeeInfo"));
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+            Configure<AdoptImageOptions>(configuration.GetSection("AdoptImage"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

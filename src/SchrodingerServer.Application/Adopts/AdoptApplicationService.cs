@@ -90,9 +90,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        if (!images.Contains(input.Image)) throw new UserFriendlyException("Invalid adopt image");
+        // if (images.IsNullOrEmpty() || !images.Contains(input.Image))
+        // {
+        //     throw new UserFriendlyException("Invalid adopt image");
+        // }
+
         //TODO Need to save used image for checking next request.
-        var waterMarkImage = _adoptImageOptions.WaterMarkImages[_adoptImageOptions.Images.IndexOf(input.Image)];
+        var index = _adoptImageOptions.Images.IndexOf(input.Image);
+        var waterMarkImage = _adoptImageOptions.WaterMarkImages[index];
         return new GetWaterMarkImageInfoOutput
         {
             Image = waterMarkImage,

@@ -63,9 +63,9 @@ namespace SchrodingerServer
             var hostingEnvironment = context.Services.GetHostingEnvironment();
             Configure<ChainOptions>(configuration.GetSection("Chains"));
             Configure<TraitsOptions>(configuration.GetSection("Traits"));
+            Configure<AdoptImageOptions>(configuration.GetSection("AdoptImage"));
             Configure<TransactionFeeOptions>(configuration.GetSection("TransactionFeeInfo"));
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
-            Configure<AdoptImageOptions>(configuration.GetSection("AdoptImage"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

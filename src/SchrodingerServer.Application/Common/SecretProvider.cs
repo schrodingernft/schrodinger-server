@@ -60,7 +60,7 @@ public class SecretProvider : ISecretProvider, ITransientDependency
         };
 
         var resp = await _httpProvider.InvokeAsync<CommonResponseDto<SignResponseDto>>(HttpMethod.Post,
-            Uri(GetSecurityUri), 
+            Uri(GetSignatureUri), 
             body: JsonConvert.SerializeObject(signatureSend),
             header: SecurityServerHeader()
         );

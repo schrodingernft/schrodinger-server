@@ -1,0 +1,15 @@
+// the version of the language, use proto3 for contracts
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+
+option csharp_namespace = "Schrodinger";
+
+service SchrodingerContract {
+}
+message ConfirmInput {
+  aelf.Hash adopt_id = 1;
+  string image = 2;           // base64
+  bytes signature = 10000;    // signed by server
+}

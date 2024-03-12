@@ -18,6 +18,7 @@ public interface ISecretProvider
 {
     Task<string> GetSignatureAsync(string publicKey, Transaction transaction);
     Task<string> GetSecretWithCacheAsync(string key);
+    Task<string> GetSignatureFromHashAsync(string publicKey, Hash hash);
 }
 
 public class SecretProvider : ISecretProvider, ITransientDependency
@@ -68,6 +69,26 @@ public class SecretProvider : ISecretProvider, ITransientDependency
         AssertHelper.NotEmpty(resp!.Data?.Signature, "Signature response empty");
         return resp.Data!.Signature;
     }
+    
+    public async Task<string> GetSignatureFromHashAsync(string publicKey, Hash hash)
+    {
+        var signatureSend = new SendSignatureDto
+        {
+            PublicKey = publicKey,
+            HexMsg = hash.ToHex(),
+        };
+
+        var url = Uri(GetSignatureUri);
+        var resp = await _httpProvider.InvokeAsync<CommonResponseDto<SignResponseDto>>(HttpMethod.Post,
+            url, 
+            body: JsonConvert.SerializeObject(signatureSend),
+            header: SecurityServerHeader()
+        );
+        AssertHelper.IsTrue(resp?.Success ?? false, "Signature response failed");
+        AssertHelper.NotEmpty(resp!.Data?.Signature, "Signature response empty");
+        return resp.Data!.Signature;
+    }
+    
 
     
     /// <summary>

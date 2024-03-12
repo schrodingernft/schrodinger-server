@@ -66,6 +66,7 @@ namespace SchrodingerServer
             Configure<AdoptImageOptions>(configuration.GetSection("AdoptImage"));
             Configure<TransactionFeeOptions>(configuration.GetSection("TransactionFeeInfo"));
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+            Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

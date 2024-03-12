@@ -18,4 +18,5 @@ public class ChainOptions
     
     //TODO Need to remove
     public string PrivateKey { get; set; }
+    public string PublicKey { get; set; }
 }

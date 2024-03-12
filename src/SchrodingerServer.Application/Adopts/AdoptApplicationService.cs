@@ -40,10 +40,13 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly ChainOptions _chainOptions;
     private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
     private readonly IUserActionProvider _userActionProvider;
+    private readonly ISecretProvider _secretProvider;
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
-        IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider)
+        IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, 
+        IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider, 
+        ISecretProvider secretProvider)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -53,6 +56,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _adoptImageOptions = adoptImageOptions.CurrentValue;
         _cmsConfigOptions = cmsConfigOptions;
         _userActionProvider = userActionProvider;
+        _secretProvider = secretProvider;
     }
 
 
@@ -168,11 +172,16 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var waterMarkImage = _adoptImageOptions.WaterMarkImages[index];
 
         await _adoptImageService.SetWatermarkAsync(input.AdoptId);
-        
+
+
+        var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
+            waterMarkImage);
+
+        // var signature = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
         return new GetWaterMarkImageInfoOutput
         {
             Image = waterMarkImage,
-            Signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey),input.AdoptId, waterMarkImage)
+            Signature = signature
         };
     }
     
@@ -185,6 +194,17 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var dataHash = HashHelper.ComputeFrom(data);
         var signature = CryptoHelper.SignWithPrivateKey(privateKey, dataHash.ToByteArray());
         return signature.ToHex();
+    }
+    
+    private string GenerateSignatureWithSecretService(string adoptId, string image)
+    {
+        var data = new ConfirmInput {
+            AdoptId = Hash.LoadFromHex(adoptId),
+            Image = image
+        };
+        var dataHash = HashHelper.ComputeFrom(data);
+        var signature =  _secretProvider.GetSignatureFromHashAsync(_chainOptions.PublicKey, dataHash);
+        return signature.Result;
     }
 
     private async Task<List<string>> GetImagesAsync(string adoptId, int count)

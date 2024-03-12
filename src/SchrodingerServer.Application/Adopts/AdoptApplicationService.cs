@@ -72,36 +72,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         {
             return output;
         }
-        // var attribute = new Attribute
-        // {
-        //     Percent = "11.11",
-        //     TraitType = "Zodiac Signs",
-        //     Value = "Aries"
-        // };
-        //
-        // var attribute2 = new Attribute
-        // {
-        //     Percent = "11.11",
-        //     TraitType = "Zodiac Signs",
-        //     Value = "Taurus"
-        // };
-        // var attribute3 = new Attribute
-        // {
-        //     Percent = "11.11",
-        //     TraitType = "Zodiac Signs",
-        //     Value = "Gemini"
-        // };
-        // var attributes = new List<Attribute> { };
-        // attributes.Add(attribute);
-        // attributes.Add(attribute2);
-        // attributes.Add(attribute3);
-        // var adoptInfo = new AdoptInfo
-        // {
-        //     Attributes = attributes,
-        //     Generation = 2,
-        //     ImageCount = 2,
-        // };
-        
         // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
         //TODO need to use adoptId and Address insteadof adoptId
         var chainId = CommonConstant.MainChainId;

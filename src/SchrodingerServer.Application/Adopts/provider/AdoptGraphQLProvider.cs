@@ -40,7 +40,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
                             value,
                             percent
                           }
-                          adoptor,
+                          adopter,
                           imageCount,
                           gen
                 }
@@ -67,7 +67,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
                 Value = a.Value,
                 Percent = a.Percent
             }).ToList(),
-            Adoptor = adpotInfoDto.GetAdoptInfo.Adoptor,
+            Adopter = adpotInfoDto.GetAdoptInfo.Adopter,
             ImageCount = adpotInfoDto.GetAdoptInfo.ImageCount,
             Generation = adpotInfoDto.GetAdoptInfo.Gen
         };
@@ -89,7 +89,7 @@ public class AdpotInfoDto
     public string Issuer { get; set; }
     public string Owner { get; set; }
     public string Deployer { get; set; }
-    public string Adoptor { get; set; }
+    public string Adopter { get; set; }
     public string TokenName { get; set; }
 
     public List<Trait> Attributes { get; set; }

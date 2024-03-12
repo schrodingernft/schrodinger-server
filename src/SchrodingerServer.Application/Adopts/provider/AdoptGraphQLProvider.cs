@@ -27,7 +27,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
 
     public async Task<AdoptInfo> QueryAdoptInfoAsync(string adoptId)
     {
-        var adpotInfoDto = await _graphQlHelper.QueryAsync<AdpotInfoDto>(new GraphQLRequest
+        var adpotInfoDto = await _graphQlHelper.QueryAsync<AdoptInfoQuery>(new GraphQLRequest
         {
             Query =
                 @"query($adoptId:String){
@@ -49,7 +49,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
                 adoptId = adoptId
             }
         });
-        if (adpotInfoDto == null)
+        if (adpotInfoDto.GetAdoptInfo == null)
         {
             _logger.LogError("query adopt info failed, adoptId = {AdoptId}", adoptId);
             return null;
@@ -57,19 +57,25 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
 
         return new AdoptInfo()
         {
-            Symbol = adpotInfoDto.Symbol,
-            TokenName = adpotInfoDto.TokenName,
-            Attributes = adpotInfoDto.Attributes.Select(a => new Attribute()
+            Symbol = adpotInfoDto.GetAdoptInfo.Symbol,
+            TokenName = adpotInfoDto.GetAdoptInfo.TokenName,
+            Attributes = adpotInfoDto.GetAdoptInfo.Attributes.Select(a => new Attribute()
             {
                 TraitType = a.TraitType,
                 Value = a.Value,
                 Percent = a.Percent
             }).ToList(),
-            Adoptor = adpotInfoDto.Adoptor,
-            ImageCount = adpotInfoDto.ImageCount,
-            Generation = adpotInfoDto.Gen
+            Adoptor = adpotInfoDto.GetAdoptInfo.Adoptor,
+            ImageCount = adpotInfoDto.GetAdoptInfo.ImageCount,
+            Generation = adpotInfoDto.GetAdoptInfo.Gen
         };
     }
+}
+
+public class AdoptInfoQuery
+{
+    public AdpotInfoDto GetAdoptInfo { get; set; }
+
 }
 
 public class AdpotInfoDto

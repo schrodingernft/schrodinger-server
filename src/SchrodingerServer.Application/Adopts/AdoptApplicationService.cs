@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using AElf;
@@ -63,6 +64,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         
         // query traits from indexer
         var adoptInfo = await QueryAdoptInfoAsync(adoptId);
+        if (adoptInfo == null)
+        {
+            return output;
+        }
         // var attribute = new Attribute
         // {
         //     Percent = "11.11",
@@ -361,17 +366,4 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         return adoptId + "_" + aelfAddress;
     }
-
-    // private string GenerateContractSignature(string image)
-    // {
-    //     var data = new ImageOperation{
-    //         salt = _traitsOptions.CurrentValue.Salt,
-    //         image = image
-    //     };
-    //     var dataHash = HashHelper.ComputeFrom(data);
-    //     var signature = CryptoHelper.SignWithPrivatebKey(Encoding.UTF8.GetBytes(_traitsOptions.CurrentValue.Salt), dataHash.ToByteArray());
-    //     return signature.ToHex();
-    //
-    // }
-    
 }

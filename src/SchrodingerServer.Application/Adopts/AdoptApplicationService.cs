@@ -172,7 +172,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         //     throw new UserFriendlyException("Invalid adopt image");
         // }
         //
-        // var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
+        var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
         // if (adoptInfo == null)
         // {
         //     throw new UserFriendlyException("query adopt info fail");
@@ -194,7 +194,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
             waterMarkImage);
 
-        // var signature = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
+        var signature2 = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
+        
+        _logger.Info("signature with private key: {s1}, signature from security service  {s2}", signature, signature2);
+        
         return new GetWaterMarkImageInfoOutput
         {
             Image = waterMarkImage,

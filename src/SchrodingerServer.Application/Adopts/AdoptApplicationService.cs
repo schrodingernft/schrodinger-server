@@ -25,6 +25,7 @@ using Volo.Abp.Users;
 using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
+using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 
 namespace SchrodingerServer.Adopts;
 
@@ -112,11 +113,22 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         if (imageGenerationId == null)
         {
             // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
+            // var imageInfo = new GenerateImage { };
+            // foreach (Attribute attributeItem in adoptInfo.Attributes)
+            // {
+            //     var item = new Trait
+            //     {
+            //         name = attributeItem.TraitType,
+            //         value = attributeItem.Value
+            //     };
+            //     imageInfo.newTraits.Add(item);
+            // }
+            // var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
             await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
             return output;
         }
 
-        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount);
+        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount, imageGenerationId);
         // if (!requestId.IsNullOrEmpty())
         // {
         //    var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
@@ -187,7 +199,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.ToHex();
     }
 
-    private async Task<List<string>> GetImagesAsync(string adoptId, int count)
+    private async Task<List<string>> GetImagesAsync(string adoptId, int count, string requestId)
     {
         var images = await _adoptImageService.GetImagesAsync(adoptId);
         if (images != null)
@@ -195,7 +207,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             return images;
         } 
         // todo get  images from ai query and save them
-        
+        // var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+        // images = new List<string>();
+        // foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
+        // {
+        //     images.Add(imageItem.image);
+        // }
         images = new List<string>();
         var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
         for (int i = 0; i < count; i++)

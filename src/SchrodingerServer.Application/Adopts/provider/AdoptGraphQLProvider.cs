@@ -32,21 +32,21 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
             Query =
                 @"query($adpotId:String){
                     getAdpotInfo(input: {adpotId:$adpotId}){
-                          symbol
-                          tokenName
+                          symbol,
+                          tokenName,
                           attributes{
-                            traitType
-                            value
+                            traitType,
+                            value,
                             percent
                           }
-                          adoptor
-                          imageCount
+                          adoptor,
+                          imageCount,
                           gen
                 }
             }",
             Variables = new
             {
-                adoptId = adoptId
+                adoptId
             }
         });
         if (adpotInfoDto == null)

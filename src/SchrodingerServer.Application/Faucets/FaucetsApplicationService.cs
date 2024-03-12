@@ -30,10 +30,7 @@ public class FaucetsApplicationService : SchrodingerServerAppService, IFaucetsAp
         if (_faucetsOptions.CurrentValue.Closed) throw new UserFriendlyException("This faucet has been suspended.");
 
         var transferGrain = _clusterClient.GetGrain<IFaucetsGrain>(input.Address);
-        var result = await transferGrain.FaucetsTransfer(new FaucetsTransferGrainDto
-        {
-            Address = input.Address
-        });
+        var result = await transferGrain.FaucetsTransfer(new FaucetsTransferGrainDto { Address = input.Address });
 
         if (result.Success)
         {

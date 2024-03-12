@@ -1,4 +1,6 @@
 using AutoMapper;
+using SchrodingerServer.Grains.Grain.Faucets;
+using SchrodingerServer.Grains.State.Faucets;
 using SchrodingerServer.Grains.State.Users;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
@@ -12,6 +14,6 @@ public class SymbolMarketGrainsAutoMapperProfile : Profile
     {
         CreateMap<UserGrainDto, UserState>().ReverseMap();
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
-        
+        CreateMap<FaucetsState, FaucetsGrainDto>();
     }
 }

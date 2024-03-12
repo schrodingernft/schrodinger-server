@@ -20,6 +20,7 @@ using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
 using SchrodingerServer.Adopts;
 using SchrodingerServer.CoinGeckoApi;
+using SchrodingerServer.Faucets;
 using StackExchange.Redis;
 using SchrodingerServer.Grains;
 using SchrodingerServer.Middleware;
@@ -34,7 +35,7 @@ using Volo.Abp.BlobStoring;
 using Volo.Abp.BlobStoring.Aliyun;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
-using Volo.Abp.EventBus.RabbitMq;
+// using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.Swashbuckle;
@@ -52,7 +53,7 @@ namespace SchrodingerServer
         typeof(SchrodingerServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        typeof(AbpEventBusRabbitMqModule),
+        // typeof(AbpEventBusRabbitMqModule),
         typeof(AbpBlobStoringAliyunModule)
     )]
     public class SchrodingerServerHttpApiHostModule : AbpModule
@@ -66,6 +67,7 @@ namespace SchrodingerServer
             Configure<AdoptImageOptions>(configuration.GetSection("AdoptImage"));
             Configure<TransactionFeeOptions>(configuration.GetSection("TransactionFeeInfo"));
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+            Configure<FaucetsOptions>(configuration.GetSection("Faucets"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
@@ -123,7 +125,10 @@ namespace SchrodingerServer
 
         private void ConfigureConventionalControllers()
         {
-            Configure<AbpAspNetCoreMvcOptions>(options => { options.ConventionalControllers.Create(typeof(SchrodingerServerHttpApiModule).Assembly); });
+            Configure<AbpAspNetCoreMvcOptions>(options =>
+            {
+                options.ConventionalControllers.Create(typeof(SchrodingerServerHttpApiModule).Assembly);
+            });
         }
 
 

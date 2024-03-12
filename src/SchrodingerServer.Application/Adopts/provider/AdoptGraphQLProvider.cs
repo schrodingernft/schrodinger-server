@@ -30,8 +30,8 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
         var adpotInfoDto = await _graphQlHelper.QueryAsync<AdpotInfoDto>(new GraphQLRequest
         {
             Query =
-                @"query($adpotId:String){
-                    getAdpotInfo(input: {adpotId:$adpotId}){
+                @"query($adoptId:String){
+                    getAdoptInfo(input: {adoptId:$adoptId}){
                           symbol,
                           tokenName,
                           attributes{
@@ -46,7 +46,7 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
             }",
             Variables = new
             {
-                adoptId
+                adoptId = adoptId
             }
         });
         if (adpotInfoDto == null)

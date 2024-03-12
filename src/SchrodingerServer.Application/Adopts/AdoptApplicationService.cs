@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using AElf;
@@ -25,6 +26,7 @@ using Volo.Abp.Users;
 using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
+using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 
 namespace SchrodingerServer.Adopts;
 
@@ -65,36 +67,40 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var output = new GetAdoptImageInfoOutput();
         
         // query traits from indexer
-        // var adoptInfo = await QueryAdoptInfoAsync(adoptId);
-        var attribute = new Attribute
+        var adoptInfo = await QueryAdoptInfoAsync(adoptId);
+        if (adoptInfo == null)
         {
-            Percent = "11.11",
-            TraitType = "Zodiac Signs",
-            Value = "Aries"
-        };
-        
-        var attribute2 = new Attribute
-        {
-            Percent = "11.11",
-            TraitType = "Zodiac Signs",
-            Value = "Taurus"
-        };
-        var attribute3 = new Attribute
-        {
-            Percent = "11.11",
-            TraitType = "Zodiac Signs",
-            Value = "Gemini"
-        };
-        var attributes = new List<Attribute> { };
-        attributes.Add(attribute);
-        attributes.Add(attribute2);
-        attributes.Add(attribute3);
-        var adoptInfo = new AdoptInfo
-        {
-            Attributes = attributes,
-            Generation = 2,
-            ImageCount = 2,
-        };
+            return output;
+        }
+        // var attribute = new Attribute
+        // {
+        //     Percent = "11.11",
+        //     TraitType = "Zodiac Signs",
+        //     Value = "Aries"
+        // };
+        //
+        // var attribute2 = new Attribute
+        // {
+        //     Percent = "11.11",
+        //     TraitType = "Zodiac Signs",
+        //     Value = "Taurus"
+        // };
+        // var attribute3 = new Attribute
+        // {
+        //     Percent = "11.11",
+        //     TraitType = "Zodiac Signs",
+        //     Value = "Gemini"
+        // };
+        // var attributes = new List<Attribute> { };
+        // attributes.Add(attribute);
+        // attributes.Add(attribute2);
+        // attributes.Add(attribute3);
+        // var adoptInfo = new AdoptInfo
+        // {
+        //     Attributes = attributes,
+        //     Generation = 2,
+        //     ImageCount = 2,
+        // };
         
         // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
         //TODO need to use adoptId and Address insteadof adoptId
@@ -116,11 +122,22 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         if (imageGenerationId == null)
         {
             // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
+            // var imageInfo = new GenerateImage { };
+            // foreach (Attribute attributeItem in adoptInfo.Attributes)
+            // {
+            //     var item = new Trait
+            //     {
+            //         name = attributeItem.TraitType,
+            //         value = attributeItem.Value
+            //     };
+            //     imageInfo.newTraits.Add(item);
+            // }
+            // var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
             await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
             return output;
         }
 
-        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount);
+        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount, imageGenerationId);
         // if (!requestId.IsNullOrEmpty())
         // {
         //    var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
@@ -207,7 +224,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.Result;
     }
 
-    private async Task<List<string>> GetImagesAsync(string adoptId, int count)
+    private async Task<List<string>> GetImagesAsync(string adoptId, int count, string requestId)
     {
         var images = await _adoptImageService.GetImagesAsync(adoptId);
         if (images != null)
@@ -215,7 +232,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             return images;
         } 
         // todo get  images from ai query and save them
-        
+        // var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+        // images = new List<string>();
+        // foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
+        // {
+        //     images.Add(imageItem.image);
+        // }
         images = new List<string>();
         var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
         for (int i = 0; i < count; i++)
@@ -364,17 +386,4 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         return adoptId + "_" + aelfAddress;
     }
-
-    // private string GenerateContractSignature(string image)
-    // {
-    //     var data = new ImageOperation{
-    //         salt = _traitsOptions.CurrentValue.Salt,
-    //         image = image
-    //     };
-    //     var dataHash = HashHelper.ComputeFrom(data);
-    //     var signature = CryptoHelper.SignWithPrivatebKey(Encoding.UTF8.GetBytes(_traitsOptions.CurrentValue.Salt), dataHash.ToByteArray());
-    //     return signature.ToHex();
-    //
-    // }
-    
 }

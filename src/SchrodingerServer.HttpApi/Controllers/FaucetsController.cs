@@ -10,7 +10,7 @@ namespace SchrodingerServer.Controllers;
 [RemoteService]
 [Area("app")]
 [ControllerName("Faucets")]
-[Route("api/app/user/faucets")]
+[Route("api/app/faucets")]
 public class FaucetsController : AbpControllerBase
 {
     private readonly IFaucetsApplicationService _faucetsApplicationService;

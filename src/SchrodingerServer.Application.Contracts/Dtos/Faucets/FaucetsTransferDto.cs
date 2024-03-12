@@ -9,6 +9,6 @@ public class FaucetsTransferDto : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (!string.IsNullOrEmpty(Address)) yield return new ValidationResult($"Invalid address {Address}.");
+        if (string.IsNullOrEmpty(Address)) yield return new ValidationResult($"Invalid address {Address}.");
     }
 }

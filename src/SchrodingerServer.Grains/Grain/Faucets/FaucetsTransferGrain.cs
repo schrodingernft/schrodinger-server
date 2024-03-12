@@ -2,6 +2,7 @@ using AElf;
 using AElf.Client.Dto;
 using AElf.Client.Service;
 using AElf.Contracts.MultiToken;
+using AElf.CSharp.Core;
 using AElf.Types;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
@@ -67,7 +68,7 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
             var param = new TransferInput
             {
                 Symbol = symbol,
-                Amount = amount,
+                Amount = ((long)amount).Mul((long)Math.Pow(10, _faucetsOptions.CurrentValue.SymbolDecimal)),
                 To = Address.FromBase58(address)
             };
             State.TransactionId = (await SendTransactionAsync(chainId, await GenerateRawTransaction(MethodName.Transfer,
@@ -81,7 +82,7 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
             result.Data = _objectMapper.Map<FaucetsState, FaucetsGrainDto>(State);
             return result;
         }
-        catch (OverflowException)
+        catch (FormatException)
         {
             _logger.LogError("Invalid Address.");
             result.Message = FaucetsTransferMessage.InvalidAddressMessage;
@@ -91,7 +92,9 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
         catch (Exception e)
         {
             _logger.LogError(e, "Faucets transfer failed.");
-            throw;
+            result.Message = e.Message;
+            result.Success = false;
+            return result;
         }
     }
 
@@ -104,7 +107,7 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
                 Symbol = _faucetsOptions.CurrentValue.FaucetsTransferSymbol,
                 Owner = Address.FromBase58(_faucetsOptions.CurrentValue.ManagerAddress)
             }, chainId, _chainOptions.CurrentValue.ChainInfos[chainId].TokenContractAddress));
-        return balance.Balance > 0;
+        return balance.Balance > Math.Pow(10, _faucetsOptions.CurrentValue.SymbolDecimal);
     }
 
     private async Task<T> CallTransactionAsync<T>(string chainId, string rawTx) where T : class, IMessage<T>, new()

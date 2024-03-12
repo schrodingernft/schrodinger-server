@@ -15,7 +15,8 @@ public class ChainInfo
 public class FaucetsTransferOptions
 {
     public string ChainId { get; set; }
-    public int FaucetsTransferAmount { get; set; }
+    public int FaucetsTransferAmount { get; set; } = 1;
     public string FaucetsTransferSymbol { get; set; }
     public string ManagerAddress { get; set; }
+    public int SymbolDecimal { get; set; } = 8;
 }

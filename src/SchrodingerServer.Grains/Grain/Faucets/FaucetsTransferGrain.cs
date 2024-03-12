@@ -43,7 +43,8 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
             {
                 State.Id = address;
             }
-            else
+
+            if (!string.IsNullOrEmpty(State.TransactionId))
             {
                 _logger.LogWarning(FaucetsTransferMessage.TransferRestrictionsMessage);
                 result.Message = FaucetsTransferMessage.TransferRestrictionsMessage;

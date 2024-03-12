@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using SchrodingerServer.Common.GraphQL;
-using SchrodingerServer.Dtos.Adopts;
 using Volo.Abp.DependencyInjection;
+using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 
 namespace SchrodingerServer.Adopts.provider;
 
@@ -49,9 +50,10 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
                 adoptId = adoptId
             }
         });
-        if (adpotInfoDto.GetAdoptInfo == null)
+        if (adpotInfoDto == null || adpotInfoDto.GetAdoptInfo == null)
         {
             _logger.LogError("query adopt info failed, adoptId = {AdoptId}", adoptId);
+            throw new Exception("query adopt info failed, adoptId = " + adoptId);
             return null;
         }
 

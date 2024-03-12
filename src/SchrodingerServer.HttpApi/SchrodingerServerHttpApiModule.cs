@@ -2,6 +2,7 @@ using Localization.Resources.AbpUi;
 using Microsoft.Extensions.DependencyInjection;
 using SchrodingerServer.Localization;
 using Volo.Abp.Account;
+using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
 using Volo.Abp.Localization;
@@ -19,8 +20,8 @@ namespace SchrodingerServer;
     typeof(AbpPermissionManagementHttpApiModule),
     typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpFeatureManagementHttpApiModule),
-    typeof(AbpSettingManagementHttpApiModule)
-    )]
+    typeof(AbpAspNetCoreMvcModule)
+)]
 public class SchrodingerServerHttpApiModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
@@ -48,4 +49,3 @@ public class SchrodingerServerHttpApiModule : AbpModule
         });
     }
 }
-

@@ -80,7 +80,17 @@ public class ImageOperation{
 public class WatermarkInput
 {
     public string sourceImage  { get; set; }
-    public string watermark  { get; set; }
+    public WaterMark watermark  { get; set; }
+}
+
+public class WaterMark
+{
+    public string text  { get; set; }
+}
+
+public class WatermarkResponse
+{
+    public string processedImage  { get; set; }
 }
 
 public class GenerateImageFromAiRes

@@ -69,6 +69,7 @@ namespace SchrodingerServer
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
             Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
             Configure<FaucetsOptions>(configuration.GetSection("Faucets"));
+            Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

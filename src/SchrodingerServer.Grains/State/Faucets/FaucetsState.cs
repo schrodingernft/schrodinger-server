@@ -1,5 +1,3 @@
-using AElf.Client.Dto;
-
 namespace SchrodingerServer.Grains.State.Faucets;
 
 public class FaucetsState
@@ -9,4 +7,5 @@ public class FaucetsState
     public long Amount { get; set; }
     public string Symbol { get; set; }
     public string TransactionId { get; set; }
+    public bool Mined { get; set; }
 }

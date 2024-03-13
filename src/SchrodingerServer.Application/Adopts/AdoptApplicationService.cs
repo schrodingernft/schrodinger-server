@@ -200,6 +200,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         } 
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
+        _logger.LogInformation("TraitsActionProvider GetImagesAsync images null {requestId} {adoptId}", requestId, adoptId);
         if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
         {
             _logger.LogInformation("TraitsActionProvider GetImagesAsync aiQueryResponse.images null");
@@ -274,13 +275,13 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             }
             else
             {
-                _logger.LogError("TraitsActionProvider GenerateImageByAiAsync generate error");
+                _logger.LogError("TraitsActionProvider GenerateImageByAiAsync generate error {adoptId}", adoptId);
             }
             return "";
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "TraitsActionProvider GenerateImageByAiAsync generate exception");
+            _logger.LogError(e, "TraitsActionProvider GenerateImageByAiAsync generate exception {adoptId}", adoptId);
             return "";
         }
     }
@@ -300,12 +301,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         {
             string responseContent = await response.Content.ReadAsStringAsync();
             AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
-            _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success");
+            _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success {requestId}", requestId);
             return aiQueryResponse;
         }
         else
         {
-            _logger.LogError("TraitsActionProvider QueryImageInfoByAiAsync query not success");
+            _logger.LogError("TraitsActionProvider QueryImageInfoByAiAsync query not success {requestId}", requestId);
             return new AiQueryResponse{};
         }
     }

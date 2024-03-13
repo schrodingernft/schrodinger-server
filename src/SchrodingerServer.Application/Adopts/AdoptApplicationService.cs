@@ -92,7 +92,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         if (imageGenerationId == null)
         {
             // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
-            var imageInfo = new GenerateImage { };
+            var imageInfo = new GenerateImage
+            {
+                newAttributes = new List<Trait>{},
+                baseImage = new BaseImage
+                {
+                    attributes = new List<Trait>{}
+                }
+            };
             foreach (Attribute attributeItem in adoptInfo.Attributes)
             {
                 var item = new Trait

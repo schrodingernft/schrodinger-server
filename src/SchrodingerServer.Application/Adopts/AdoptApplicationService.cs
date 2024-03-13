@@ -273,26 +273,26 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             // imageInfo = new GenerateImage
             // {
             //     seed = "",
-            //     newTraits = new List<Trait>
+            //     newAttributes = new List<Trait>
             //     {
             //         new Trait
             //         {
-            //             name = "mouth",
+            //             traitType = "mouth",
             //             value = "bewitching"
             //         }
             //     },
             //     baseImage = new BaseImage
             //     {
-            //         traits = new List<Trait>
+            //         attributes = new List<Trait>
             //         {
             //             new Trait
             //             {
-            //                 name = "hat",
+            //                 traitType = "hat",
             //                 value = "alpine hat"
             //             },
             //             new Trait
             //             {
-            //                 name = "eye",
+            //                 traitType = "eye",
             //                 value = "is wearing 3d glasses"
             //             }
             //         }
@@ -312,7 +312,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsyncCheck generate success adopt id:" + adoptId);
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
-                return aiQueryResponse.resquestId;
+                // {"requestId":"MultiImageRequest_6e6ef61c-eec1-4583-85af-e85957b1e4ae"}
+                return aiQueryResponse.requestId;
             }
             else
             {

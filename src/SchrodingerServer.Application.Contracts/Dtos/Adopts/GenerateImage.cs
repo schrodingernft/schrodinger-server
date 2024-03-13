@@ -42,19 +42,19 @@ public class QueryImage
 public class GenerateImage
 {
     public string seed { get; set; }
-    public List<Trait> newTraits { get; set; }
+    public List<Trait> newAttributes { get; set; }
     public BaseImage baseImage { get; set; }
 }
 
 
 public class BaseImage
 {
-    public List<Trait> traits { get; set; }
+    public List<Trait> attributes { get; set; }
 }
 
 public class Trait
 {
-    public string name { get; set; }
+    public string traitType { get; set; }
     public string value { get; set; }
 }
 
@@ -85,5 +85,5 @@ public class WatermarkInput
 
 public class GenerateImageFromAiRes
 {
-    public string resquestId  { get; set; }
+    public string requestId  { get; set; }
 }

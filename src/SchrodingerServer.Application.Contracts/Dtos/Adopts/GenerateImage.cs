@@ -44,6 +44,8 @@ public class GenerateImage
     public string seed { get; set; }
     public List<Trait> newAttributes { get; set; }
     public BaseImage baseImage { get; set; }
+    
+    public int numImages { get; set; }
 }
 
 

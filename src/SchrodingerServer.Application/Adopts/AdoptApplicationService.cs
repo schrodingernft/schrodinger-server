@@ -64,6 +64,9 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetAdoptImageInfoOutput> GetAdoptImageInfoAsync(string adoptId)
     {
+        // await QueryImageInfoByAiAsync("MultiImageRequest_ec5fe1f1-2809-465c-8b77-fee30a1dfc98");
+        // var temp = new GenerateImage { };
+        // var test = GenerateImageByAiAsync(temp, "");
         var output = new GetAdoptImageInfoOutput();
         
         // query traits from indexer
@@ -98,7 +101,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 baseImage = new BaseImage
                 {
                     attributes = new List<Trait>{}
-                }
+                },
+                numImages = adoptInfo.ImageCount
             };
             foreach (Attribute attributeItem in adoptInfo.Attributes)
             {
@@ -271,6 +275,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             // imageInfo = new GenerateImage
             // {
             //     seed = "",
+            //     numImages = 2,
             //     newAttributes = new List<Trait>
             //     {
             //         new Trait

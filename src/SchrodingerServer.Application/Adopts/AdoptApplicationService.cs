@@ -113,7 +113,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             return output;
         }
 
-        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount, imageGenerationId);
+        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, imageGenerationId);
         return output;
     }
     
@@ -190,11 +190,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.Result;
     }
 
-    private async Task<List<string>> GetImagesAsync(string adoptId, int count, string requestId)
+    private async Task<List<string>> GetImagesAsync(string adoptId, string requestId)
     {
         var images = await _adoptImageService.GetImagesAsync(adoptId);
         if (images != null && images.Count !=0)
         {
+            _logger.LogInformation("TraitsActionProvider GetImagesAsync images null {requestId} {adoptId}", requestId, adoptId);
             return images;
         } 
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);

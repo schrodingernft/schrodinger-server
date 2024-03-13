@@ -103,6 +103,11 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             //     imageInfo.newTraits.Add(item);
             // }
             // var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
+            // if ("" != requestId)
+            // {
+            //     await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
+            // }
+            // return output;
             await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
             return output;
         }
@@ -306,7 +311,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 var responseString = await response.Content.ReadAsStringAsync();
                 _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsyncCheck generate success adopt id:" + adoptId);
                 // save adopt id and request id to grain
-                return responseString;
+                GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
+                return aiQueryResponse.resquestId;
             }
             else
             {

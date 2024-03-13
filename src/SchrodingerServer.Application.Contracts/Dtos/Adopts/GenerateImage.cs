@@ -82,3 +82,8 @@ public class WatermarkInput
     public string sourceImage  { get; set; }
     public string watermark  { get; set; }
 }
+
+public class GenerateImageFromAiRes
+{
+    public string resquestId  { get; set; }
+}

@@ -92,41 +92,32 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         if (imageGenerationId == null)
         {
             // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
-            // var imageInfo = new GenerateImage { };
-            // foreach (Attribute attributeItem in adoptInfo.Attributes)
-            // {
-            //     var item = new Trait
-            //     {
-            //         name = attributeItem.TraitType,
-            //         value = attributeItem.Value
-            //     };
-            //     imageInfo.newTraits.Add(item);
-            // }
-            // var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
-            // if ("" != requestId)
-            // {
-            //     await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
-            // }
-            // return output;
-            await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
+            var imageInfo = new GenerateImage
+            {
+                newAttributes = new List<Trait>{},
+                baseImage = new BaseImage
+                {
+                    attributes = new List<Trait>{}
+                }
+            };
+            foreach (Attribute attributeItem in adoptInfo.Attributes)
+            {
+                var item = new Trait
+                {
+                    traitType = attributeItem.TraitType,
+                    value = attributeItem.Value
+                };
+                imageInfo.newAttributes.Add(item);
+            }
+            var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
+            if ("" != requestId)
+            {
+                await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
+            }
             return output;
         }
 
         output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount, imageGenerationId);
-        // if (!requestId.IsNullOrEmpty())
-        // {
-        //    var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
-        //    var salt = _traitsOptions.CurrentValue.Salt;
-        //    res.images = aiQueryResponse;
-        // }
-        // else
-        // {
-        //     // generate image by ai
-        //     requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
-        //     // save to grain
-        //     await _traitsService.SetImageGenerationIdAsync(adoptId, requestId);
-        // }
-
         return output;
     }
     
@@ -207,24 +198,28 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private async Task<List<string>> GetImagesAsync(string adoptId, int count, string requestId)
     {
         var images = await _adoptImageService.GetImagesAsync(adoptId);
-        if (images != null)
+        if (images != null && images.Count !=0)
         {
             return images;
         } 
         // todo get  images from ai query and save them
-        // var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
-        // images = new List<string>();
-        // foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
-        // {
-        //     images.Add(imageItem.image);
-        // }
+        var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
-        var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
-        for (int i = 0; i < count; i++)
+        if (aiQueryResponse == null || aiQueryResponse.images.Count == 0)
         {
-            images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]); // todo mack
-            index++;
+            return images;
         }
+        foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
+        {
+            images.Add(imageItem.image);
+        }
+        // images = new List<string>();
+        // var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
+        // for (int i = 0; i < count; i++)
+        // {
+        //     images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]); // todo mack
+        //     index++;
+        // }
         await _adoptImageService.SetImagesAsync(adoptId, images);
         return images;
     }

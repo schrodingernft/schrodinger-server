@@ -197,11 +197,11 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         {
             return images;
         } 
-        // todo get  images from ai query and save them
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
-        if (aiQueryResponse == null || aiQueryResponse.images.Count == 0)
+        if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
         {
+            _logger.LogInformation("TraitsActionProvider GetImagesAsync aiQueryResponse.images null");
             return images;
         }
         foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
@@ -266,20 +266,20 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsyncCheck generate success adopt id:" + adoptId);
+                _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId);
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
                 return aiQueryResponse.requestId;
             }
             else
             {
-                _logger.LogError("TraitsActionProvider GenerateImageByAiAsyncCheck generate error");
+                _logger.LogError("TraitsActionProvider GenerateImageByAiAsync generate error");
             }
             return "";
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "TraitsActionProvider GenerateImageByAiAsyncCheck generate exception");
+            _logger.LogError(e, "TraitsActionProvider GenerateImageByAiAsync generate exception");
             return "";
         }
     }

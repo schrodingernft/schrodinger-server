@@ -115,8 +115,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
             }
             return output;
-            await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
-            return output;
         }
 
         output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount, imageGenerationId);
@@ -205,7 +203,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         // todo get  images from ai query and save them
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
-        if (images.Count == 0)
+        if (aiQueryResponse == null || aiQueryResponse.images.Count == 0)
         {
             return images;
         }

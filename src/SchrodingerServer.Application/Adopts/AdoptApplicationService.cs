@@ -98,7 +98,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 baseImage = new BaseImage
                 {
                     attributes = new List<Trait>{}
-                }
+                },
+                numImages = adoptInfo.ImageCount
             };
             foreach (Attribute attributeItem in adoptInfo.Attributes)
             {

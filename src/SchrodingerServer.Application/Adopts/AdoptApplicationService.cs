@@ -191,13 +191,17 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private async Task<List<string>> GetImagesAsync(string adoptId, int count, string requestId)
     {
         var images = await _adoptImageService.GetImagesAsync(adoptId);
-        if (images != null)
+        if (images != null && images.Count !=0)
         {
             return images;
         } 
         // todo get  images from ai query and save them
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
+        if (images.Count == 0)
+        {
+            return images;
+        }
         foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
         {
             images.Add(imageItem.image);

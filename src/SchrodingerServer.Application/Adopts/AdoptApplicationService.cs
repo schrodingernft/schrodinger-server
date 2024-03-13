@@ -64,19 +64,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetAdoptImageInfoOutput> GetAdoptImageInfoAsync(string adoptId)
     {
-        // await QueryImageInfoByAiAsync("MultiImageRequest_ec5fe1f1-2809-465c-8b77-fee30a1dfc98");
-        // var temp = new GenerateImage { };
-        // var test = GenerateImageByAiAsync(temp, "");
         var output = new GetAdoptImageInfoOutput();
-        
-        // query traits from indexer
         var adoptInfo = await QueryAdoptInfoAsync(adoptId);
         if (adoptInfo == null)
         {
             return output;
         }
-        // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
-        //TODO need to use adoptId and Address insteadof adoptId
         var chainId = CommonConstant.MainChainId;
         if (_cmsConfigOptions.CurrentValue.ConfigMap.TryGetValue("curChain", out var curChain))
         {
@@ -94,7 +87,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         if (imageGenerationId == null)
         {
-            // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
             var imageInfo = new GenerateImage
             {
                 newAttributes = new List<Trait>{},
@@ -216,13 +208,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         {
             images.Add(imageItem.image);
         }
-        // images = new List<string>();
-        // var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
-        // for (int i = 0; i < count; i++)
-        // {
-        //     images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]); // todo mack
-        //     index++;
-        // }
         await _adoptImageService.SetImagesAsync(adoptId, images);
         return images;
     }
@@ -271,37 +256,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         try
         {
-            // todo remove
-            // imageInfo = new GenerateImage
-            // {
-            //     seed = "",
-            //     numImages = 2,
-            //     newAttributes = new List<Trait>
-            //     {
-            //         new Trait
-            //         {
-            //             traitType = "mouth",
-            //             value = "bewitching"
-            //         }
-            //     },
-            //     baseImage = new BaseImage
-            //     {
-            //         attributes = new List<Trait>
-            //         {
-            //             new Trait
-            //             {
-            //                 traitType = "hat",
-            //                 value = "alpine hat"
-            //             },
-            //             new Trait
-            //             {
-            //                 traitType = "eye",
-            //                 value = "is wearing 3d glasses"
-            //             }
-            //         }
-            //     }
-            // };
-
             using var httpClient = new HttpClient();
             var jsonString = ConvertObjectToJsonString(imageInfo);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
@@ -315,7 +269,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsyncCheck generate success adopt id:" + adoptId);
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
-                // {"requestId":"MultiImageRequest_6e6ef61c-eec1-4583-85af-e85957b1e4ae"}
                 return aiQueryResponse.requestId;
             }
             else
@@ -333,7 +286,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     
     private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)
     {
-        // requestId = "363408ba-4f7f-4a9b-8503-77df25b60203"; // todo remove
         var queryImage = new QueryImage
         {
             requestId = requestId 
@@ -348,8 +300,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             string responseContent = await response.Content.ReadAsStringAsync();
             AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
             _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success");
-            // todo image 字段加密
-            // GenerateContractSignature 下面接口
             return aiQueryResponse;
         }
         else

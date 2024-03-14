@@ -157,12 +157,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         await _adoptImageService.SetWatermarkAsync(input.AdoptId);
         
-        var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
-            waterMarkImage);
-
         var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
-        
-        _logger.Info("signature with private key: {s1}, signature from security service  {signatureWithSecretService}", signature, signatureWithSecretService);
+        _logger.Info("signature from security service  {signatureWithSecretService}", signatureWithSecretService);
         
         return new GetWaterMarkImageInfoOutput
         {

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SchrodingerServer.Application.Contracts\SchrodingerServer.Application.Contracts.csproj" />
+    <ProjectReference Include="..\SchrodingerServer.Application\SchrodingerServer.Application.csproj" />
   </ItemGroup>
 
   

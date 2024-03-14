@@ -18,6 +18,7 @@ using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
+using SchrodingerServer.Ipfs;
 using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
@@ -43,12 +44,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
     private readonly IUserActionProvider _userActionProvider;
     private readonly ISecretProvider _secretProvider;
+    private readonly IIpfsAppService _ipfsAppService;
+    
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
         IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, 
         IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider, 
-        ISecretProvider secretProvider)
+        ISecretProvider secretProvider, IIpfsAppService ipfsAppService)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -59,6 +62,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _cmsConfigOptions = cmsConfigOptions;
         _userActionProvider = userActionProvider;
         _secretProvider = secretProvider;
+        _ipfsAppService = ipfsAppService;
     }
 
 
@@ -125,44 +129,54 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
         _logger.Info("GetWaterMarkImageInfoAsync, {req}", JsonConvert.SerializeObject(input));
-        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
-        {
-            _logger.Info("has already been watermarked, {id}", input.AdoptId);
-            throw new UserFriendlyException("has already been watermarked");
-        }
-        
-        var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
-        
-        if (images.IsNullOrEmpty() || !images.Contains(input.Image))
-        {
-            throw new UserFriendlyException("Invalid adopt image");
-        }
-        
-        var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
-        _logger.Info("QueryAdoptInfoAsync, {adoptInfo}", JsonConvert.SerializeObject(adoptInfo));
-        if (adoptInfo == null)
-        {
-            throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
-        }
+        // if (_adoptImageService.HasWatermark(input.AdoptId).Result)
+        // {
+        //     _logger.Info("has already been watermarked, {id}", input.AdoptId);
+        //     throw new UserFriendlyException("has already been watermarked");
+        // }
+        //
+        // var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
+        // _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
+        //
+        // if (images.IsNullOrEmpty() || !images.Contains(input.Image))
+        // {
+        //     throw new UserFriendlyException("Invalid adopt image");
+        // }
+        //
+        // var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
+        // _logger.Info("QueryAdoptInfoAsync, {adoptInfo}", JsonConvert.SerializeObject(adoptInfo));
+        // if (adoptInfo == null)
+        // {
+        //     throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
+        // }
         
         var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
         {
             sourceImage = input.Image,
             watermark = new WaterMark
             {
-                text = adoptInfo.Symbol
+                text = "TXT"
             }
         });
 
+        if (waterMarkImage == "")
+        {
+            _logger.Info("waterMarkImage empty");
+            throw new UserFriendlyException("waterMarkImage empty");
+        }
+
+        string waterImageHash = await _ipfsAppService.Upload( waterMarkImage, input.AdoptId);
+        
         await _adoptImageService.SetWatermarkAsync(input.AdoptId);
         
-        var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
-            waterMarkImage);
-
-        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
+        // upload to ipfs
         
-        _logger.Info("signature with private key: {s1}, signature from security service  {signatureWithSecretService}", signature, signatureWithSecretService);
+        // var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
+        //     waterMarkImage);
+
+        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, waterImageHash);
+        
+        // _logger.Info("signature with private key: {s1}, signature from security service  {signatureWithSecretService}", signature, signatureWithSecretService);
         
         return new GetWaterMarkImageInfoOutput
         {

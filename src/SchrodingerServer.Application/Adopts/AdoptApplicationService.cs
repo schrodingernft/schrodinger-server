@@ -64,6 +64,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetAdoptImageInfoOutput> GetAdoptImageInfoAsync(string adoptId)
     {
+        _logger.Info("GetAdoptImageInfoAsync, {req}", adoptId);
         var output = new GetAdoptImageInfoOutput();
         var adoptInfo = await QueryAdoptInfoAsync(adoptId);
         if (adoptInfo == null)
@@ -105,7 +106,9 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 };
                 imageInfo.newAttributes.Add(item);
             }
+            _logger.LogInformation("GenerateImageByAiAsync Begin. imageInfo: {info} adoptId: {adoptId} ", JsonConvert.SerializeObject(adoptInfo), adoptId);
             var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
+            _logger.LogInformation("GenerateImageByAiAsync Finish. requestId: {requestId} ",  requestId);
             if ("" != requestId)
             {
                 await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
@@ -198,9 +201,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             _logger.LogInformation("TraitsActionProvider GetImagesAsync images null {requestId} {adoptId}", requestId, adoptId);
             return images;
         } 
+        _logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId} adoptId: {adoptId} ", requestId, adoptId);
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
-        _logger.LogInformation("TraitsActionProvider GetImagesAsync images null {requestId} {adoptId}", requestId, adoptId);
+        _logger.LogInformation("QueryImageInfoByAiAsync Finish. resp: {resp}",  JsonConvert.SerializeObject(aiQueryResponse));
         if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
         {
             _logger.LogInformation("TraitsActionProvider GetImagesAsync aiQueryResponse.images null");

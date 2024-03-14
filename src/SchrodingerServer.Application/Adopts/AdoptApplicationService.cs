@@ -129,33 +129,33 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
         _logger.Info("GetWaterMarkImageInfoAsync, {req}", JsonConvert.SerializeObject(input));
-        // if (_adoptImageService.HasWatermark(input.AdoptId).Result)
-        // {
-        //     _logger.Info("has already been watermarked, {id}", input.AdoptId);
-        //     throw new UserFriendlyException("has already been watermarked");
-        // }
-        //
-        // var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        // _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
-        //
-        // if (images.IsNullOrEmpty() || !images.Contains(input.Image))
-        // {
-        //     throw new UserFriendlyException("Invalid adopt image");
-        // }
-        //
-        // var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
-        // _logger.Info("QueryAdoptInfoAsync, {adoptInfo}", JsonConvert.SerializeObject(adoptInfo));
-        // if (adoptInfo == null)
-        // {
-        //     throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
-        // }
+        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
+        {
+            _logger.Info("has already been watermarked, {id}", input.AdoptId);
+            throw new UserFriendlyException("has already been watermarked");
+        }
+        
+        var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
+        _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
+        
+        if (images.IsNullOrEmpty() || !images.Contains(input.Image))
+        {
+            throw new UserFriendlyException("Invalid adopt image");
+        }
+        
+        var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
+        _logger.Info("QueryAdoptInfoAsync, {adoptInfo}", JsonConvert.SerializeObject(adoptInfo));
+        if (adoptInfo == null)
+        {
+            throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
+        }
         
         var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
         {
             sourceImage = input.Image,
             watermark = new WaterMark
             {
-                text = "TXT"
+                text = adoptInfo.Symbol
             }
         });
 

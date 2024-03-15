@@ -104,10 +104,15 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         IMessage param)
     {
         var address = ContractAddress(chainId, contractName);
-        return await SendTransactionAsync(chainId, senderPublicKey, address, methodName, param);
+        return await SendTransactionAsync(chainId, senderPublicKey, address, methodName, param.ToByteString());
     }
 
-    public async Task<(Hash transactionId, Transaction transaction)> SendTransactionAsync(string chainId, string senderPublicKey, string toAddress, string methodName, IMessage param)
+    public async Task<(Hash transactionId, Transaction transaction)> SendTransactionAsync(string chainId, string senderPublicKey, string toAddress, string methodName, string param)
+    {
+        return await SendTransactionAsync(chainId, senderPublicKey, toAddress, methodName, ByteString.FromBase64(param));
+    }
+    
+    private async Task<(Hash transactionId, Transaction transaction)> SendTransactionAsync(string chainId, string senderPublicKey, string toAddress, string methodName, ByteString param)
     {
         var client = Client(chainId);
         var status = await client.GetChainStatusAsync();
@@ -120,7 +125,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
             From = Address.FromPublicKey(ByteArrayHelper.HexStringToByteArray(senderPublicKey)),
             To = Address.FromBase58(toAddress),
             MethodName = methodName,
-            Params = param.ToByteString(),
+            Params = param,
             RefBlockNumber = height,
             RefBlockPrefix = ByteString.CopyFrom(Hash.LoadFromHex(blockHash).Value.Take(4).ToArray())
         };

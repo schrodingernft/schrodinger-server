@@ -21,6 +21,8 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
                     src.CaAddressSide.Select(kv => new UserAddress { ChainId = kv.Key, Address = kv.Value })))
             .ReverseMap();
         CreateMap<ContractInvokeEto, ContractInvokeIndex>();
-        CreateMap<HolderDailyChangeDto, ContractInvokeIndex>();
+        CreateMap<HolderDailyChangeDto, HolderBalanceIndex>()
+            .ForMember(des => des.BizDate, opt
+                => opt.MapFrom(source => source.Date));
     }
 }

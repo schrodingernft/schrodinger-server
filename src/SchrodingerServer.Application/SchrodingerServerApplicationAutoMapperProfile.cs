@@ -17,8 +17,6 @@ public class SchrodingerServerApplicationAutoMapperProfile : Profile
         CreateMap<UserSourceInput, UserGrainDto>().ReverseMap();
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<FaucetsGrainDto, FaucetsTransferResultDto>();
-        CreateMap<ContractInvokeGrainDto, ContractInvokeEto>()
-            .ForMember(des => des.Param, opt
-                => opt.MapFrom(source => JsonFormatter.Default.Format(source.Param)));
+        CreateMap<ContractInvokeGrainDto, ContractInvokeEto>().ReverseMap();
     }
 }

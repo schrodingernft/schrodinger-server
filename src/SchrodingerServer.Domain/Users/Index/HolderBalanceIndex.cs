@@ -7,6 +7,8 @@ namespace SchrodingerServer.Users.Index;
 
 public class HolderBalanceIndex : SchrodingerEntity<string>, IIndexBuild
 {
+    [Keyword] public string ChainId { get; set; }
+
     [Keyword] public string Address { get; set; }
     
     [Keyword] public string BizDate { get; set; }

@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
-using Nest;
 using SchrodingerServer.Common;
+using SchrodingerServer.Points.Provider;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Index;
 using Volo.Abp.DependencyInjection;
@@ -22,15 +21,14 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
     private const int MaxBatchSize = 10;
     private readonly ILogger<PointAssemblyTransactionService> _logger;
     private readonly IPointSettleService _pointSettleService;
-    private readonly INESTRepository<PointDailyRecordIndex, string> _pointDailyRecordIndexRepository;
-
+    private readonly IPointDailyRecordProvider _pointDailyRecordProvider;
+    
     public PointAssemblyTransactionService(IPointSettleService pointSettleService,
-        INESTRepository<PointDailyRecordIndex, string> pointDailyRecordIndexRepository,
-        ILogger<PointAssemblyTransactionService> logger)
+        ILogger<PointAssemblyTransactionService> logger, IPointDailyRecordProvider pointDailyRecordProvider)
     {
         _pointSettleService = pointSettleService;
-        _pointDailyRecordIndexRepository = pointDailyRecordIndexRepository;
         _logger = logger;
+        _pointDailyRecordProvider = pointDailyRecordProvider;
     }
 
     public async Task AssembleAsync(string chainId, string bizDate)
@@ -39,7 +37,7 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
         List<PointDailyRecordIndex> pointDailyRecords;
         do
         {
-            pointDailyRecords = await GetPointDailyRecordsAsync(chainId, bizDate, skipCount);
+            pointDailyRecords = await _pointDailyRecordProvider.GetPointDailyRecordsAsync(chainId, bizDate, skipCount);
             _logger.LogInformation(
                 "GetPointDailyRecords chainId:{chainId} bizDate:{bizDate}  skipCount: {skipCount} count: {count}",
                 chainId, bizDate, skipCount, pointDailyRecords?.Count);
@@ -80,23 +78,8 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
             skipCount += pointDailyRecords.Count;
         } while (!pointDailyRecords.IsNullOrEmpty());
     }
-
-    private async Task<List<PointDailyRecordIndex>> GetPointDailyRecordsAsync(string chainId, string bizDate,
-        int skipCount)
-    {
-        var mustQuery = new List<Func<QueryContainerDescriptor<PointDailyRecordIndex>, QueryContainer>>();
-
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.BizDate).Value(bizDate)));
-
-        QueryContainer Filter(QueryContainerDescriptor<PointDailyRecordIndex> f) =>
-            f.Bool(b => b.Must(mustQuery));
-
-        var tuple = await _pointDailyRecordIndexRepository.GetSortListAsync(Filter, skip: skipCount);
-        return tuple.Item2;
-    }
-
-    public static List<List<PointDailyRecordIndex>> SplitList(List<PointDailyRecordIndex> records, int n)
+    
+    private static List<List<PointDailyRecordIndex>> SplitList(List<PointDailyRecordIndex> records, int n)
     {
         return records
             .Select((item, index) => new { item, index })

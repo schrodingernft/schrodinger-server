@@ -124,7 +124,33 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, imageGenerationId);
         return output;
     }
-    
+
+    public async Task<bool> IsOverLoadedAsync()
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var isOverLoaded = _traitsOptions.CurrentValue.IsOverLoadedUrl;
+            var response = await httpClient.GetAsync(_traitsOptions.CurrentValue.IsOverLoadedUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseString = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("IsOverLoadedAsync get result Success");
+                var resp = JsonConvert.DeserializeObject<IsOverLoadedResponse>(responseString);
+                return resp.isOverLoaded;
+            }
+            else
+            {
+                _logger.LogError("IsOverLoadedAsync get result Success fail, {resp}", response.ToString());
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "IsOverLoadedAsync get result Success fail error, {err}", e.ToString());
+            return true;
+        }
+    }
     
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
@@ -160,6 +186,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             }
         });
         _logger.LogInformation("GetWatermarkImageAsync : {info} ",  JsonConvert.SerializeObject(waterMarkInfo));
+
 
         if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {

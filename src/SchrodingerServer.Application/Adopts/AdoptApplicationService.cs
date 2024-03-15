@@ -130,10 +130,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("IsOverLoadedAsync Get Watermark Image Success");
-                
+                _logger.LogInformation("IsOverLoadedAsync get result Success");
                 var resp = JsonConvert.DeserializeObject<IsOverLoadedResponse>(responseString);
-               
                 return resp.isOverLoaded;
             }
             else

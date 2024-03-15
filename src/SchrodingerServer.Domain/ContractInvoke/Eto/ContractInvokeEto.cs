@@ -1,6 +1,5 @@
 using System;
 using Google.Protobuf;
-using SchrodingerServer.Common;
 using Volo.Abp.EventBus;
 
 namespace SchrodingerServer.ContractInvoke.Eto;

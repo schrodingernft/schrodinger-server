@@ -16,7 +16,7 @@ using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.ObjectMapping;
 using UserPoints = Schrodinger.UserPoints;
 
-namespace SchrodingerServer.Users;
+namespace SchrodingerServer.Points;
 
 public interface IPointSettleService
 {
@@ -55,7 +55,7 @@ public class PointSettleService : IPointSettleService, ISingletonDependency
             .Select(item => new UserPoints
             {
                 UserAddress = Address.FromBase58(item.Address),
-                UserPoints_ = DecimalHelper.ConvertToLong(item.PointAmount, 0)
+                UserPoints_ = DecimalHelper.ConvertToLong(item.PointAmount, 8)
             }).ToList();
         var batchSettleInput = new BatchSettleInput()
         {

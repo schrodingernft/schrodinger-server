@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -14,6 +15,7 @@ using Newtonsoft.Json;
 using Orleans.Runtime;
 using Schrodinger;
 using SchrodingerServer.Adopts.provider;
+using SchrodingerServer.AwsS3;
 using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common;
 using SchrodingerServer.Dtos.Adopts;
@@ -46,13 +48,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly IUserActionProvider _userActionProvider;
     private readonly ISecretProvider _secretProvider;
     private readonly IIpfsAppService _ipfsAppService;
+    private readonly AwsS3Client _awsS3Client;
     
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
         IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, 
         IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider, 
-        ISecretProvider secretProvider, IIpfsAppService ipfsAppService)
+        ISecretProvider secretProvider, IIpfsAppService ipfsAppService, AwsS3Client awsS3Client)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -64,6 +67,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _userActionProvider = userActionProvider;
         _secretProvider = secretProvider;
         _ipfsAppService = ipfsAppService;
+        _awsS3Client = awsS3Client;
     }
 
 
@@ -203,6 +207,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
         var hash = "ipfs://" + waterImageHash;
         
+        // uploadToS3
+        var s3Url = await uploadToS3Async(base64String, waterImageHash);
+        _logger.LogInformation("upload to s3, url:{url}", s3Url);
+        
         await _adoptImageService.SetImageHashAsync(input.AdoptId, hash);
 
         var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, hash, waterMarkInfo.resized);
@@ -216,6 +224,21 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(resp));
         
         return resp;
+    }
+
+    private async Task<string> uploadToS3Async(string base64String, string fileName)
+    {
+        try
+        {
+            byte[] imageBytes = Convert.FromBase64String(base64String);
+            var stream = new MemoryStream(imageBytes);
+            return await _awsS3Client.UpLoadFileForNFTAsync(stream, fileName);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "upload to s3 error, {err}", e.ToString());
+            return string.Empty;
+        }
     }
     
     private string GenerateSignature(byte[] privateKey, string adoptId, string image)

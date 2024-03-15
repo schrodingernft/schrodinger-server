@@ -7,4 +7,6 @@ public class AdoptImageInfoState
     public List<string> Images { get; set; }
     
     public bool HasWatermark { get; set; }
+    
+    public string ImageHash { get; set; }
 }

@@ -18,6 +18,7 @@ using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
+using SchrodingerServer.Ipfs;
 using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
@@ -26,6 +27,7 @@ using Volo.Abp.Users;
 using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
+using AdoptInfo = SchrodingerServer.Adopts.provider.AdoptInfo;
 using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 
 namespace SchrodingerServer.Adopts;
@@ -43,12 +45,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
     private readonly IUserActionProvider _userActionProvider;
     private readonly ISecretProvider _secretProvider;
+    private readonly IIpfsAppService _ipfsAppService;
+    
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
         IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, 
         IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider, 
-        ISecretProvider secretProvider)
+        ISecretProvider secretProvider, IIpfsAppService ipfsAppService)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -59,6 +63,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _cmsConfigOptions = cmsConfigOptions;
         _userActionProvider = userActionProvider;
         _secretProvider = secretProvider;
+        _ipfsAppService = ipfsAppService;
     }
 
 
@@ -158,10 +163,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         }
         
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
         
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
         {
+            _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
         }
         
@@ -172,7 +177,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
         }
         
-        var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
+        var waterMarkInfo = await GetWatermarkImageAsync(new WatermarkInput()
         {
             sourceImage = input.Image,
             watermark = new WaterMark
@@ -180,16 +185,34 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 text = adoptInfo.Symbol
             }
         });
+        _logger.LogInformation("GetWatermarkImageAsync : {info} ",  JsonConvert.SerializeObject(waterMarkInfo));
 
-        await _adoptImageService.SetWatermarkAsync(input.AdoptId);
+
+        if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
+        {
+            throw new UserFriendlyException("waterMarkImage empty");
+        }
+
+        var stringArray = waterMarkInfo.processedImage.Split(",");
+        if (stringArray.Length < 2)
+        {
+            _logger.LogInformation("invalid waterMarkInfo");
+            throw new UserFriendlyException("invalid waterMarkInfo");
+        }
         
-        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
-        _logger.Info("signature from security service  {signatureWithSecretService}", signatureWithSecretService);
+        var base64String = stringArray[1].Trim();
+        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        var hash = "ipfs://" + waterImageHash;
+        
+        await _adoptImageService.SetImageHashAsync(input.AdoptId, hash);
+
+        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, hash, waterMarkInfo.resized);
         
         return new GetWaterMarkImageInfoOutput
         {
-            Image = waterMarkImage,
-            Signature = signatureWithSecretService
+            Image = waterMarkInfo.resized,
+            Signature = signatureWithSecretService,
+            ImageUri = hash
         };
     }
     
@@ -204,11 +227,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.ToHex();
     }
     
-    private string GenerateSignatureWithSecretService(string adoptId, string image)
+    private string GenerateSignatureWithSecretService(string adoptId, string hash, string image)
     {
         var data = new ConfirmInput {
             AdoptId = Hash.LoadFromHex(adoptId),
-            Image = image
+            Image = image,
+            ImageUri = hash 
         };
         var dataHash = HashHelper.ComputeFrom(data);
         var signature =  _secretProvider.GetSignatureFromHashAsync(_chainOptions.PublicKey, dataHash);
@@ -245,7 +269,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return await _adoptGraphQlProvider.QueryAdoptInfoAsync(adoptId);
     }
     
-    private async Task<string> GetWatermarkImageAsync(WatermarkInput input)
+    private async Task<WatermarkResponse> GetWatermarkImageAsync(WatermarkInput input)
     {
         try
         {
@@ -263,18 +287,18 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 
                 var resp = JsonConvert.DeserializeObject<WatermarkResponse>(responseString);
                
-                return resp.processedImage;
+                return resp;
             }
             else
             {
                 _logger.LogError("Get Watermark Image Success fail, {resp}", response.ToString());
             }
-            return "";
+            return null;
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Get Watermark Image Success fail error, {err}", e.ToString());
-            return "";
+            return null;
         }
     }
     

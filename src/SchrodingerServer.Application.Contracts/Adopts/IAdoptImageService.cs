@@ -13,5 +13,7 @@ public interface IAdoptImageService
     Task SetImagesAsync(string adoptId,List<string> images);
 
     Task SetWatermarkAsync(string adoptId);
-    Task<bool>  HasWatermark(string adoptId);
+    Task<bool> HasWatermark(string adoptId);
+    
+    Task SetImageHashAsync(string adoptId, string hash);
 }

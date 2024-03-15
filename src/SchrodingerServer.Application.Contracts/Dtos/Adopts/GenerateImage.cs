@@ -93,6 +93,7 @@ public class WaterMark
 public class WatermarkResponse
 {
     public string processedImage  { get; set; }
+    public string resized { get; set; }
 }
 
 public class IsOverLoadedResponse

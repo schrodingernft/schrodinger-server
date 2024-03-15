@@ -70,6 +70,7 @@ namespace SchrodingerServer
             Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
             Configure<FaucetsOptions>(configuration.GetSection("Faucets"));
             Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+            Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

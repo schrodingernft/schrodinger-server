@@ -129,7 +129,7 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
             var fileContent = new ByteArrayContent(imageBytes);
             
             fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
-            content.Add(fileContent, "file", "image2");
+            content.Add(fileContent, "file", name);
             
             var url = _options.CurrentValue.PinFileUrl;
             var request = new HttpRequestMessage(HttpMethod.Post, url);

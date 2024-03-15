@@ -5,5 +5,6 @@ public enum ContractInvokeStatus
     ToBeCreated,
     Pending,
     Failed,
-    Success
+    Success,
+    FinalFailed
 }

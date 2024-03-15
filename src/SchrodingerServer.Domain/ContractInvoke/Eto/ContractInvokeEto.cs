@@ -17,7 +17,7 @@ public class ContractInvokeEto
     public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
     public string Sender { get; set; }
-    public IMessage Param { get; set; }
+    public string Param { get; set; }
     public string TransactionId { get; set; }
     public string Status { get; set; }
     public string TransactionStatus { get; set; }

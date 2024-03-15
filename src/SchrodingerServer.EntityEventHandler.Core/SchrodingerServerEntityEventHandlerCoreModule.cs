@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SchrodingerServer.EntityEventHandler.Core.Options;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Modularity;
 
@@ -12,7 +13,6 @@ namespace SchrodingerServer.EntityEventHandler.Core
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            context.Services.AddSingleton<IHostedService, InitJobsService>();
             Configure<AbpAutoMapperOptions>(options =>
             {
                 options.AddMaps<SchrodingerServerEntityEventHandlerCoreModule>();

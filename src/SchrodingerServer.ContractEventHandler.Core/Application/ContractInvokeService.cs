@@ -80,8 +80,7 @@ public class ContractInvokeService : IContractInvokeService, ISingletonDependenc
             return;
         }
 
-        var syncTxEtoData =
-            _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeEto>(result.Data);
+        var syncTxEtoData =  _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeEto>(result.Data);
 
         await _distributedEventBus.PublishAsync(syncTxEtoData);
     }

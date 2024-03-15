@@ -4,14 +4,15 @@ namespace SchrodingerServer.Options;
 
 public class PointTradeOptions
 {
-    public string ChainId { get; set; }
-    
-    public string ContractAddress { get; set; }
+    public Dictionary<string, ChainInfo> ChainInfos { get; set; } = new();
 
-    public string ContractMethod { get; set; }
-    
     //key is point name
     public Dictionary<string, PointInfo> PointMapping { get; set; } = new();
+    
+    public ChainInfo GetChainInfo(string chainId)
+    {
+        return ChainInfos.TryGetValue(chainId, out var chainInfo) ? chainInfo : null;
+    }
     
     public string GetActionName(string pointName)
     {
@@ -19,9 +20,16 @@ public class PointTradeOptions
     }
 }
 
+public class ChainInfo
+{
+    public string SchrodingerContractAddress { get; set; }
+
+    public string ContractMethod { get; set; }
+}
+
 public class PointInfo
 {
     public string ActionName { get; set; }
-    
+
     public string ConditionalExp { get; set; }
 }

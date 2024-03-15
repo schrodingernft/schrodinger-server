@@ -7,6 +7,7 @@ using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Orleans;
@@ -17,6 +18,7 @@ using SchrodingerServer.EntityEventHandler.Core;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using SchrodingerServer.Grains;
 using SchrodingerServer.MongoDB;
+using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
@@ -41,6 +43,7 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
         ConfigureTokenCleanupService();
         var configuration = context.Services.GetConfiguration();
         Configure<WorkerOptions>(configuration.GetSection("WorkerOptions"));
+        Configure<PointTradeOptions>(configuration.GetSection("PointTradeOptions"));
         ConfigureHangfire(context, configuration);
         context.Services.AddHostedService<SchrodingerServerHostedService>();
         context.Services.AddSingleton<IClusterClient>(o =>
@@ -65,6 +68,8 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
                 .Build();
         });
         ConfigureEsIndexCreation();
+        
+        context.Services.AddSingleton<IHostedService, InitJobsService>();
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {

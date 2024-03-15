@@ -11,21 +11,17 @@ public class ContractInvokeGrainDto
     public string BizId { get; set; }
 
     public string BizType { get; set; }
-
-    public string ContractName { get; set; }
     public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
     public string Sender { get; set; }
     public IMessage Param { get; set; }
     public string TransactionId { get; set; }
     public string Status { get; set; }
-
     public string TransactionStatus { get; set; }
 
     public string Message { get; set; }
 
     public long BlockHeight { get; set; }
-
     public int RetryCount { get; set; }
 
     public DateTime CreateTime { get; set; }

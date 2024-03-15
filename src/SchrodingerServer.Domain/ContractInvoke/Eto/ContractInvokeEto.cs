@@ -1,4 +1,5 @@
 using System;
+using Google.Protobuf;
 using SchrodingerServer.Common;
 using Volo.Abp.EventBus;
 
@@ -14,23 +15,17 @@ public class ContractInvokeEto
     public string BizId { get; set; }
 
     public string BizType { get; set; }
-
-    public string ContractName { get; set; }
-
+    public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
-
     public string Sender { get; set; }
-
-    public string Param { get; set; }
-
+    public IMessage Param { get; set; }
     public string TransactionId { get; set; }
-    
     public string Status { get; set; }
+    public string TransactionStatus { get; set; }
 
-    public TransactionStatus TransactionStatus { get; set; }
+    public string Message { get; set; }
 
-    public string TransactionResult { get; set; }
-
+    public long BlockHeight { get; set; }
     public int RetryCount { get; set; }
 
     public DateTime CreateTime { get; set; }

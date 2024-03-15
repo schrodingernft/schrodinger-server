@@ -11,5 +11,6 @@ service SchrodingerContract {
 message ConfirmInput {
   aelf.Hash adopt_id = 1;
   string image = 2;           // base64
+  string imageUri = 3;
   bytes signature = 10000;    // signed by server
 }

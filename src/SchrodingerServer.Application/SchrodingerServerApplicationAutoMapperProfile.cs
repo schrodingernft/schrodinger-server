@@ -1,4 +1,5 @@
 using AutoMapper;
+using Google.Protobuf;
 using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.Dtos.Faucets;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
@@ -16,6 +17,8 @@ public class SchrodingerServerApplicationAutoMapperProfile : Profile
         CreateMap<UserSourceInput, UserGrainDto>().ReverseMap();
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<FaucetsGrainDto, FaucetsTransferResultDto>();
-        CreateMap<ContractInvokeGrainDto, ContractInvokeEto>();
+        CreateMap<ContractInvokeGrainDto, ContractInvokeEto>()
+            .ForMember(des => des.Param, opt
+                => opt.MapFrom(source => JsonFormatter.Default.Format(source.Param)));
     }
 }

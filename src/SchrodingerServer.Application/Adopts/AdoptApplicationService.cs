@@ -27,6 +27,7 @@ using Volo.Abp.Users;
 using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
+using AdoptInfo = SchrodingerServer.Adopts.provider.AdoptInfo;
 using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 
 namespace SchrodingerServer.Adopts;
@@ -136,10 +137,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         }
         
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
         
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
         {
+            _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
         }
         
@@ -150,7 +151,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
         }
         
-        var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
+        var waterMarkInfo = await GetWatermarkImageAsync(new WatermarkInput()
         {
             sourceImage = input.Image,
             watermark = new WaterMark
@@ -158,30 +159,33 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 text = adoptInfo.Symbol
             }
         });
+        _logger.LogInformation("GetWatermarkImageAsync : {info} ",  JsonConvert.SerializeObject(waterMarkInfo));
 
-        if (waterMarkImage == "")
+        if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {
-            _logger.Info("waterMarkImage empty");
             throw new UserFriendlyException("waterMarkImage empty");
         }
 
-        string waterImageHash = await _ipfsAppService.Upload( waterMarkImage, input.AdoptId);
+        var stringArray = waterMarkInfo.processedImage.Split(",");
+        if (stringArray.Length < 2)
+        {
+            _logger.LogInformation("invalid waterMarkInfo");
+            throw new UserFriendlyException("invalid waterMarkInfo");
+        }
         
-        await _adoptImageService.SetWatermarkAsync(input.AdoptId);
+        var base64String = stringArray[1].Trim();
+        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        var hash = "ipfs://" + waterImageHash;
         
-        // upload to ipfs
-        
-        // var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
-        //     waterMarkImage);
+        await _adoptImageService.SetImageHashAsync(input.AdoptId, hash);
 
-        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, waterImageHash);
-        
-        // _logger.Info("signature with private key: {s1}, signature from security service  {signatureWithSecretService}", signature, signatureWithSecretService);
+        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, hash, waterMarkInfo.resized);
         
         return new GetWaterMarkImageInfoOutput
         {
-            Image = waterMarkImage,
-            Signature = signatureWithSecretService
+            Image = waterMarkInfo.resized,
+            Signature = signatureWithSecretService,
+            ImageUri = hash
         };
     }
     
@@ -196,11 +200,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.ToHex();
     }
     
-    private string GenerateSignatureWithSecretService(string adoptId, string image)
+    private string GenerateSignatureWithSecretService(string adoptId, string hash, string image)
     {
         var data = new ConfirmInput {
             AdoptId = Hash.LoadFromHex(adoptId),
-            Image = image
+            Image = image,
+            ImageUri = hash 
         };
         var dataHash = HashHelper.ComputeFrom(data);
         var signature =  _secretProvider.GetSignatureFromHashAsync(_chainOptions.PublicKey, dataHash);
@@ -237,7 +242,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return await _adoptGraphQlProvider.QueryAdoptInfoAsync(adoptId);
     }
     
-    private async Task<string> GetWatermarkImageAsync(WatermarkInput input)
+    private async Task<WatermarkResponse> GetWatermarkImageAsync(WatermarkInput input)
     {
         try
         {
@@ -255,18 +260,18 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 
                 var resp = JsonConvert.DeserializeObject<WatermarkResponse>(responseString);
                
-                return resp.processedImage;
+                return resp;
             }
             else
             {
                 _logger.LogError("Get Watermark Image Success fail, {resp}", response.ToString());
             }
-            return "";
+            return null;
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Get Watermark Image Success fail error, {err}", e.ToString());
-            return "";
+            return null;
         }
     }
     

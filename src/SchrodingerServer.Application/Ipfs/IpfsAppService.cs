@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
@@ -98,6 +99,44 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
         
             request.Content = new StringContent(jsonString, Encoding.UTF8, "application/json");
 
+            var client = new HttpClient();
+        
+            var response = await client.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("UploadIpfs Success, name: {name} resp: {resp}", name, response.ToString());
+                var responseString = await response.Content.ReadAsStringAsync();
+                var resp = JsonConvert.DeserializeObject<IpfsResponse>(responseString);
+                return resp.IpfsHash;
+            }
+    
+            _logger.LogError("UploadIpfs Success fail, name: {name}, resp: {resp}", name, response.ToString());
+            return "";
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "UploadIpfs Success error, name: {name}, err: {err}", name, e.ToString());
+            return "";
+        }
+    }
+    
+    public async Task<string> UploadFile(string base64String, string name)
+    {
+        try
+        {
+            var content = new MultipartFormDataContent();
+            byte[] imageBytes = Convert.FromBase64String(base64String);
+            var fileContent = new ByteArrayContent(imageBytes);
+            
+            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
+            content.Add(fileContent, "file", "image2");
+            
+            var url = _options.CurrentValue.PinFileUrl;
+            var request = new HttpRequestMessage(HttpMethod.Post, url);
+        
+            request.Headers.Add("Authorization", _options.CurrentValue.Token);
+            request.Content = content;
+            
             var client = new HttpClient();
         
             var response = await client.SendAsync(request);

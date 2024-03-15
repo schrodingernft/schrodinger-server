@@ -37,7 +37,7 @@ public class AdoptController : AbpController
         return await _adoptApplicationService.GetWaterMarkImageInfoAsync(input);
     }
     
-    [HttpPost("isOverLoaded")]
+    [HttpGet("isOverLoaded")]
     public async Task<bool> IsOverLoaded()
     {
         return await _adoptApplicationService.IsOverLoadedAsync();

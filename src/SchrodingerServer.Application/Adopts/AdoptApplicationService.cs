@@ -209,10 +209,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         
         // uploadToS3
         var s3Url = await uploadToS3Async(base64String, waterImageHash);
-        if (s3Url == string.Empty)
-        {
-            _logger.LogInformation("uploadToS3Async Fail");
-        }
+        _logger.LogInformation("upload to s3, url:{url}", s3Url);
         
         await _adoptImageService.SetImageHashAsync(input.AdoptId, hash);
 
@@ -231,9 +228,17 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     private async Task<string> uploadToS3Async(string base64String, string fileName)
     {
-        byte[] imageBytes = Convert.FromBase64String(base64String);
-        var stream = new MemoryStream(imageBytes);
-        return await _awsS3Client.UpLoadFileForNFTAsync(stream, fileName);
+        try
+        {
+            byte[] imageBytes = Convert.FromBase64String(base64String);
+            var stream = new MemoryStream(imageBytes);
+            return await _awsS3Client.UpLoadFileForNFTAsync(stream, fileName);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "upload to s3 error, {err}", e.ToString());
+            return string.Empty;
+        }
     }
     
     private string GenerateSignature(byte[] privateKey, string adoptId, string image)

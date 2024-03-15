@@ -187,7 +187,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         });
         _logger.LogInformation("GetWatermarkImageAsync : {info} ",  JsonConvert.SerializeObject(waterMarkInfo));
 
-
         if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {
             throw new UserFriendlyException("waterMarkImage empty");
@@ -208,12 +207,15 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, hash, waterMarkInfo.resized);
         
-        return new GetWaterMarkImageInfoOutput
+        var resp = new GetWaterMarkImageInfoOutput
         {
             Image = waterMarkInfo.resized,
             Signature = signatureWithSecretService,
             ImageUri = hash
         };
+        _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(resp));
+        
+        return resp;
     }
     
     private string GenerateSignature(byte[] privateKey, string adoptId, string image)

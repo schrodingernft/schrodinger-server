@@ -49,6 +49,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.ContractE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.ContractEventHandler.Core", "src\SchrodingerServer.ContractEventHandler.Core\SchrodingerServer.ContractEventHandler.Core.csproj", "{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Background", "src\SchrodingerServer.Background\SchrodingerServer.Background.csproj", "{B91CC1AC-11E6-41E6-B693-1697D257A42B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -139,6 +141,10 @@ Global
 		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -165,6 +171,7 @@ Global
 		{15EC2829-4A84-4299-B812-92BCC9E88130} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{5B2028BA-DC38-4311-8EE5-3E85760526ED} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{B91CC1AC-11E6-41E6-B693-1697D257A42B} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}

@@ -9,6 +9,10 @@
     <ItemGroup>
         <PackageReference Include="Volo.Abp.Core" Version="7.0.2" />
         <PackageReference Include="Volo.Abp.ObjectMapping" Version="7.0.0" />
+        <PackageReference Include="Hangfire.Core" Version="1.8.3" />
+        <PackageReference Include="Volo.Abp.BackgroundJobs.Hangfire" Version="7.0.0" />
+        <PackageReference Include="Hangfire.Mongo" Version="1.7.1" />
+
     </ItemGroup>
     
     <ItemGroup>

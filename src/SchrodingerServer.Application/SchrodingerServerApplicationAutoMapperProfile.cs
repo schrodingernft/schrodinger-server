@@ -1,5 +1,7 @@
 using AutoMapper;
+using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.Dtos.Faucets;
+using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Grains.Grain.Faucets;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
@@ -14,5 +16,6 @@ public class SchrodingerServerApplicationAutoMapperProfile : Profile
         CreateMap<UserSourceInput, UserGrainDto>().ReverseMap();
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<FaucetsGrainDto, FaucetsTransferResultDto>();
+        CreateMap<ContractInvokeGrainDto, ContractInvokeEto>();
     }
 }

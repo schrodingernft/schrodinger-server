@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using SchrodingerServer.EntityEventHandler.Core.Options;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Modularity;
 

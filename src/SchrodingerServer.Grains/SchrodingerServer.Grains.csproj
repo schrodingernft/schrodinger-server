@@ -38,10 +38,12 @@
         <Orleans_CodeGenInputs Remove="Grain\NFTInfo\INftInfoExtensionGrain.cs" />
         <Orleans_CodeGenInputs Remove="Grain\NFTInfo\NftCollectionExtensionGrainDto.cs" />
         <Orleans_CodeGenInputs Remove="Grain\NFTInfo\NftInfoExtensionGrainDto.cs" />
+        <Orleans_CodeGenInputs Remove="State\ContractHandle\ContractInvokeState.cs" />
     </ItemGroup>
     
     <ItemGroup>
       <ProjectReference Include="..\SchrodingerServer.Application.Contracts\SchrodingerServer.Application.Contracts.csproj" />
+      <ProjectReference Include="..\SchrodingerServer.Domain.Shared\SchrodingerServer.Domain.Shared.csproj" />
     </ItemGroup>
 
 

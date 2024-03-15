@@ -17,25 +17,6 @@ using Volo.Abp.Threading;
 
 namespace SchrodingerServer.Common.AElfSdk;
 
-public interface IContractProvider
-{
-    
-    Task<(Hash transactionId, Transaction transaction)> CreateCallTransactionAsync(string chainId,
-        string contractName, string methodName, IMessage param);
-    
-    Task<(Hash transactionId, Transaction transaction)> CreateTransactionAsync(string chainId, string senderPublicKey,
-        string contractName, string methodName,
-        IMessage param);
-
-    string ContractAddress(string chainId, string contractName);
-    
-    // Task SendTransactionAsync(string chainId, Transaction transaction);
-
-    Task<T> CallTransactionAsync<T>(string chainId, Transaction transaction) where T : class;
-
-    Task<TransactionResultDto> QueryTransactionResultAsync(string transactionId, string chainId);
-}
-
 public class ContractProvider : IContractProvider, ISingletonDependency
 {
     private readonly Dictionary<string, AElfClient> _clients = new();
@@ -84,7 +65,6 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         return _clients[chainId];
     }
 
-    
     public string ContractAddress(string chainId, string contractName)
     {
         _ = _chainOptions.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo);
@@ -124,6 +104,11 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         IMessage param)
     {
         var address = ContractAddress(chainId, contractName);
+        return await SendTransactionAsync(chainId, senderPublicKey, address, methodName, param);
+    }
+
+    public async Task<(Hash transactionId, Transaction transaction)> SendTransactionAsync(string chainId, string senderPublicKey, string toAddress, string methodName, IMessage param)
+    {
         var client = Client(chainId);
         var status = await client.GetChainStatusAsync();
         var height = status.BestChainHeight;
@@ -133,7 +118,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
         var transaction = new Transaction
         {
             From = Address.FromPublicKey(ByteArrayHelper.HexStringToByteArray(senderPublicKey)),
-            To = Address.FromBase58(address),
+            To = Address.FromBase58(toAddress),
             MethodName = methodName,
             Params = param.ToByteString(),
             RefBlockNumber = height,
@@ -146,7 +131,7 @@ public class ContractProvider : IContractProvider, ISingletonDependency
 
         return (transaction.GetHash(), transaction);
     }
-
+    
     public async Task<T> CallTransactionAsync<T>(string chainId, Transaction transaction) where T : class
     {
         var client = Client(chainId);

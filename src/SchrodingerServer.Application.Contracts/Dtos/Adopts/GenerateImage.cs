@@ -95,6 +95,11 @@ public class WatermarkResponse
     public string processedImage  { get; set; }
 }
 
+public class IsOverLoadedResponse
+{
+    public bool isOverLoaded  { get; set; }
+}
+
 public class GenerateImageFromAiRes
 {
     public string requestId  { get; set; }

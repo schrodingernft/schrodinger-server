@@ -1,5 +1,6 @@
 using System.Linq;
 using AutoMapper;
+using Google.Protobuf;
 using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.ContractInvoke.Index;
 using SchrodingerServer.Users;
@@ -19,6 +20,8 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
                 opt => opt.MapFrom(src =>
                     src.CaAddressSide.Select(kv => new UserAddress { ChainId = kv.Key, Address = kv.Value })))
             .ReverseMap();
-        CreateMap<ContractInvokeEto, ContractInvokeIndex>();
+        CreateMap<ContractInvokeEto, ContractInvokeIndex>()
+            .ForMember(des => des.Param, opt
+                => opt.MapFrom(source => JsonFormatter.Default.Format(source.Param)));
     }
 }

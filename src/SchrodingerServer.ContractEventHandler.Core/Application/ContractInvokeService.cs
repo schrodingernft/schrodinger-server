@@ -46,7 +46,7 @@ public class ContractInvokeService : IContractInvokeService, ISingletonDependenc
     {
         var mustNotQuery = new List<Func<QueryContainerDescriptor<ContractInvokeIndex>, QueryContainer>>()
         {
-            q => q.Match(m => m.Field(f => f.Status).Query(Status.Success.ToString())),
+           // q => q.Match(m => m.Field(f => f.Status).Query(Status.Success.ToString())),
         };
 
         QueryContainer Filter(QueryContainerDescriptor<ContractInvokeIndex> f) =>

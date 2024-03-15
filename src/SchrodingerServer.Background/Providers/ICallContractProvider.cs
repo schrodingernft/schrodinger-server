@@ -9,6 +9,7 @@ using Orleans;
 using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Options;
+using SchrodingerServer.Points;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Index;

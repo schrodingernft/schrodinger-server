@@ -26,6 +26,7 @@ using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.Threading;
 using Polly;
+using SchrodingerServer.Points;
 using SchrodingerServer.Users;
 
 namespace SchrodingerServer.Background;

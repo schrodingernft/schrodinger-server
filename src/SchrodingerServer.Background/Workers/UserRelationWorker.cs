@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SchrodingerServer.Background.Services;
 using SchrodingerServer.Options;
+using SchrodingerServer.Points;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
 using Volo.Abp.BackgroundWorkers;

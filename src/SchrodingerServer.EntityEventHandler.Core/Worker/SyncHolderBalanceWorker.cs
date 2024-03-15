@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans;
 using Schrodinger;
 using SchrodingerServer.EntityEventHandler.Core.Options;
-using SchrodingerServer.Symbol.Index;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Index;
 using Volo.Abp.DependencyInjection;
@@ -24,7 +24,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
     private readonly IHolderBalanceProvider _holderBalanceProvider;
     private readonly INESTRepository<HolderBalanceIndex, string> _holderBalanceIndexRepository;
     private readonly IOptionsMonitor<WorkerOptions> _workerOptionsMonitor;
-
+    
     private const int MaxResultCount = 800;
 
     public SyncHolderBalanceWorker(ILogger<SyncHolderBalanceWorker> logger,
@@ -69,22 +69,8 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
             var list = new List<HolderBalanceIndex>();
             await _holderBalanceIndexRepository.BulkAddOrUpdateAsync(list);
             
-            //Packaged transactions in batches
-            
-            //id: batchDate + actionName
-            var pointNameGroup = list
-                .GroupBy(balance => balance.PointName) 
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.ToList()
-                );
-            
-            
-            
-            
         } while (!dailyChanges.IsNullOrEmpty());
 
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} end...", chainId);
     }
-
 }

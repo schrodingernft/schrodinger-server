@@ -1,5 +1,8 @@
 using System;
 using AElf.Indexing.Elasticsearch.Options;
+using GraphQL.Client.Abstractions;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.Newtonsoft;
 using Hangfire;
 using Hangfire.Mongo;
 using Hangfire.Mongo.CosmosDB;
@@ -45,6 +48,7 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
         Configure<WorkerOptions>(configuration.GetSection("WorkerOptions"));
         Configure<PointTradeOptions>(configuration.GetSection("PointTradeOptions"));
         ConfigureHangfire(context, configuration);
+        ConfigureGraphQl(context, configuration);
         context.Services.AddHostedService<SchrodingerServerHostedService>();
         context.Services.AddSingleton<IClusterClient>(o =>
         {
@@ -95,7 +99,7 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
         Configure<TokenCleanupOptions>(x => x.IsCleanupEnabled = false);
     }
     
-        private void ConfigureHangfire(ServiceConfigurationContext context, IConfiguration configuration)
+    private void ConfigureHangfire(ServiceConfigurationContext context, IConfiguration configuration)
     {
         var mongoType = configuration["Hangfire:MongoType"];
         var connectionString = configuration["Hangfire:ConnectionString"];
@@ -143,5 +147,12 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
             opt.Queues = new[] { "default", "notDefault" };
         });
     }
-
+     
+    private void ConfigureGraphQl(ServiceConfigurationContext context,
+        IConfiguration configuration)
+    {
+        context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
+            new NewtonsoftJsonSerializer()));
+        context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
+    }
 }

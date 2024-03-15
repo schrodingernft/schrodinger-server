@@ -19,7 +19,7 @@ public class ContractInvokeIndex : SchrodingerEntity<Guid>, IIndexBuild
     
     [Keyword] public string Sender { get; set; }
     
-    public IMessage Param { get; set; }
+    [Keyword] public string Param { get; set; }
     
     [Keyword] public string TransactionId { get; set; }
     [Keyword] public string Status { get; set; } 

@@ -43,9 +43,12 @@
     <ContractReference Include="..\..\protobuf\token_contract.proto">
       <Link>Protobuf\Proto\token_contract.proto</Link>
     </ContractReference>
-    <CommonMessage Include="..\..\protobuf\schrodinger_contract.proto">
+    <ContractReference Include="..\..\protobuf\schrodinger_contract.proto">
       <Link>Protobuf\Proto\schrodinger_contract.proto</Link>
-    </CommonMessage>
+    </ContractReference>
+    <ContractReference Include="..\..\protobuf\acs12.proto">
+      <Link>Protobuf\Proto\acs12.proto</Link>
+    </ContractReference>
   </ItemGroup>
 
 </Project>

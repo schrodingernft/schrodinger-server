@@ -8,6 +8,7 @@ using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using SchrodingerServer.Common.ApplicationHandler;
 using SchrodingerServer.Grains.Grain.ApplicationHandler;
 using Volo.Abp.ObjectMapping;
 using SchrodingerServer.Grains.State.Faucets;

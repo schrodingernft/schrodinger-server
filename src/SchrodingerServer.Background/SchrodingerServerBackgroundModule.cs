@@ -26,6 +26,7 @@ using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.Threading;
 using Polly;
+using SchrodingerServer.Users;
 
 namespace SchrodingerServer.Background;
 
@@ -46,11 +47,13 @@ public class SchrodingerServerBackgroundModule : AbpModule
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<SchrodingerServerBackgroundModule>(); });
 
         var configuration = context.Services.GetConfiguration();
+        Configure<PointTradeOptions>(configuration.GetSection("PointTradeOptions"));
         Configure<ZealyUserOptions>(configuration.GetSection("ZealyUser"));
         Configure<UpdateScoreOptions>(configuration.GetSection("UpdateScore"));
         Configure<ZealyScoreOptions>(configuration.GetSection("ZealyScore"));
 
         context.Services.AddHostedService<SchrodingerServerHostService>();
+        context.Services.AddSingleton<IPointSettleService, PointSettleService>();
         context.Services.AddHttpClient();
         ConfigureHangfire(context, configuration);
         ConfigureZealyClient(context, configuration);
@@ -90,7 +93,8 @@ public class SchrodingerServerBackgroundModule : AbpModule
                 CommonConstant.ZealyApiKeyName, configuration["Zealy:ApiKey"]);
         }).AddTransientHttpErrorPolicy(policyBuilder =>
             policyBuilder.WaitAndRetryAsync(
-                3, retryNumber => TimeSpan.FromMilliseconds(50)));;
+                3, retryNumber => TimeSpan.FromMilliseconds(50)));
+        ;
     }
 
     private void ConfigureHangfire(ServiceConfigurationContext context, IConfiguration configuration)
@@ -141,14 +145,14 @@ public class SchrodingerServerBackgroundModule : AbpModule
     {
         context.AddBackgroundWorkerAsync<UserRelationWorker>();
         InitRecurringJob(context.ServiceProvider);
-        //StartOrleans(context.ServiceProvider);
+        StartOrleans(context.ServiceProvider);
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
-        //StopOrleans(context.ServiceProvider);
+        StopOrleans(context.ServiceProvider);
     }
-    
+
     private static void InitRecurringJob(IServiceProvider serviceProvider)
     {
         var jobsService = serviceProvider.GetRequiredService<IInitJobsService>();

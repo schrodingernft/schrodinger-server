@@ -10,6 +10,7 @@ using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
 using SchrodingerServer.ContractEventHandler.Core;
 using SchrodingerServer.ContractEventHandler.Core.Options;
+using SchrodingerServer.ContractEventHandler.Core.Worker;
 using SchrodingerServer.Grains;
 using SchrodingerServer.MongoDB;
 using StackExchange.Redis;
@@ -63,6 +64,7 @@ namespace SchrodingerServer.ContractEventHandler
 
         public override void OnApplicationInitialization(ApplicationInitializationContext context)
         {
+            context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
             StartOrleans(context.ServiceProvider);
          }
 

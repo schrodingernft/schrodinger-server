@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Hangfire;
@@ -6,7 +7,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
 using SchrodingerServer.Common;
+using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Options;
+using SchrodingerServer.Users;
+using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Index;
 using Volo.Abp.DependencyInjection;
 
@@ -19,7 +23,7 @@ public interface ICallContractProvider
 
 public class CallContractProvider : ICallContractProvider, ISingletonDependency
 {
-    private readonly IClusterClient _clusterClient;
+    private readonly IPointSettleService _pointSettleService;
     private readonly INESTRepository<ZealyUserXpRecordIndex, string> _zealyUserXpRecordRepository;
     private readonly INESTRepository<ZealyUserXpIndex, string> _zealyUserXpRepository;
     private readonly ZealyScoreOptions _options;
@@ -27,27 +31,43 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
 
     public CallContractProvider(INESTRepository<ZealyUserXpRecordIndex, string> zealyUserXpRecordRepository,
         IOptionsSnapshot<ZealyScoreOptions> options, INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository,
-        ILogger<CallContractProvider> logger)
+        ILogger<CallContractProvider> logger, IPointSettleService pointSettleService)
     {
         _zealyUserXpRecordRepository = zealyUserXpRecordRepository;
         _zealyUserXpRepository = zealyUserXpRepository;
         _logger = logger;
+        _pointSettleService = pointSettleService;
         _options = options.Value;
     }
 
     [AutomaticRetry(Attempts = 5, DelaysInSeconds = new[] { 10 })]
     public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, decimal xp)
     {
-        var grainId = "";
-        // var grain = _clusterClient.GetGrain<object>(grainId);
-        // grain.CreateAsync();
+        var bizId = Guid.NewGuid() + DateTime.UtcNow.ToString("yyyy-MM-dd");
+        
+        var pointSettleDto = new PointSettleDto()
+        {
+            ChainId = "tDVV",
+            BizId = bizId,
+            PointName = "XPSGR-4",
+            UserPointsInfos = new List<UserPointInfo>()
+            {
+                new UserPointInfo()
+                {
+                    Address = zealyUserXp.Address,
+                    PointAmount = zealyUserXp.Xp * _options.Coefficient
+                }
+            }
+        };
 
-        // create success
+        await _pointSettleService.BatchSettleAsync(pointSettleDto);
+
+        var recordId = $"{bizId}:{zealyUserXp.Id}";
 
         // update record
         var record = new ZealyUserXpRecordIndex
         {
-            Id = grainId,
+            Id = recordId,
             CreateTime = DateTime.UtcNow,
             Xp = xp,
             Amount = xp * _options.Coefficient,
@@ -57,7 +77,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         };
 
         await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
-        BackgroundJob.Schedule(() => SearchAsync(record, zealyUserXp), TimeSpan.FromSeconds(10));
+        // BackgroundJob.Schedule(() => SearchAsync(record, zealyUserXp), TimeSpan.FromSeconds(150));
 
         _logger.LogInformation("in create: {time}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
     }
@@ -74,7 +94,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         //}
         //
 
-        record.Status = "";//TransactionStatusType.Success.ToString();
+        record.Status = ""; //TransactionStatusType.Success.ToString();
         record.UpdateTime = DateTime.UtcNow;
 
         zealyUserXp.LastXp = zealyUserXp.Xp;

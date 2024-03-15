@@ -13,7 +13,7 @@ public class ZealyUserXpRecordIndex : SchrodingerEntity<string>, IIndexBuild
     public decimal Xp { get; set; }
     // xp * coefficient
     public decimal Amount { get; set; }
-    public string TransactionId { get; set; }
+    public string BizId { get; set; }
     public string Status { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }

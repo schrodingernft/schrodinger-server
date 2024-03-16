@@ -70,6 +70,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
             CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Xp = xp,
             Amount = xp * _options.Coefficient,
+            BizId = bizId,
             Status = ContractInvokeStatus.Pending.ToString(),
             UserId = zealyUserXp.Id,
             Address = zealyUserXp.Address

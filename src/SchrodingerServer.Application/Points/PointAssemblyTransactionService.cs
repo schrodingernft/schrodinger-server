@@ -76,7 +76,7 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
                         }).ToList()
                     };
                     
-                    _logger.LogInformation("ToBatchSettle bizId {bizId} addressList {}", bizId, 
+                    _logger.LogInformation("ToBatchSettle bizId {bizId} addressList {addressList}", bizId, 
                         tradeList.Select(item => item.Address).ToList());
 
                     await _pointSettleService.BatchSettleAsync(pointSettleDto);

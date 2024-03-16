@@ -96,15 +96,7 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
 
         // mapping index
         var users = GetUserIndices(response.Items);
-        // add or update
-        //await _zealyUserRepository.BulkAddOrUpdateAsync(users);
-
-        //for test
-        foreach (var user in users)
-        {
-            await _zealyUserRepository.AddOrUpdateAsync(user);
-        }
-        //
+        await _zealyUserRepository.BulkAddOrUpdateAsync(users);
 
         await SetCursorInfoAsync(new ReviewsCursorInfo
         {

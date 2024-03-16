@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Orleans;
 using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.Points;
@@ -48,6 +49,12 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
 
         foreach (var (pointName, pointInfo) in _pointTradeOptions.CurrentValue.PointMapping)
         {
+
+            if (pointInfo.ConditionalExp.IsNullOrEmpty())
+            {
+                continue;
+            }
+
             var match = Regex.Match(dto.Symbol, pointInfo.ConditionalExp);
 
             if (!match.Success)

@@ -33,29 +33,32 @@ public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependenc
     }
 
 
-    public async Task<List<HolderDailyChangeDto>> GetHolderDailyChangeListAsync(string chainId, string bizDate,
+    public async Task<List<HolderDailyChangeDto>> GetHolderDailyChangeListAsync(string chainId, string date,
         int skipCount, int maxResultCount)
     {
-        var graphQlResponse = await _graphQlHelper.QueryAsync<IndexerHolderDailyChanges>(new GraphQLRequest
+        var graphQlResponse = await _graphQlHelper.QueryAsync<IndexerHolderDailyChangeDto>(new GraphQLRequest
         {
-            Query = @"query($chainId:String!,$bizDate:String!,$skipCount:Int!,$maxResultCount:Int!){
-            dataList:getSchrodingerHolderDailyChangeList(input: {chainId:$chainId,date:$bizDate,skipCount:$skipCount,maxResultCount:$maxResultCount})
+            Query = @"query($chainId:String!,$date:String!,$skipCount:Int!,$maxResultCount:Int!){
+            getSchrodingerHolderDailyChangeList(input: {chainId:$chainId,date:$date,skipCount:$skipCount,maxResultCount:$maxResultCount})
             {
+               data {
                 address,
                 symbol,
                 date,
                 changeAmount,
                 balance
+                },
+                totalCount
             }}",
             Variables = new
             {
                 chainId,
-                bizDate,
+                date,
                 skipCount,
                 maxResultCount
             }
         });
-        return graphQlResponse?.DataList ?? new List<HolderDailyChangeDto>();
+        return graphQlResponse?.GetSchrodingerHolderDailyChangeList.Data;
     }
 
     public async Task<Dictionary<string, HolderBalanceIndex>> GetPreHolderBalanceAsync(string chainId, string bizDate,

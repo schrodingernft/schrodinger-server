@@ -18,4 +18,9 @@ public class IdGenerateHelper
     {
         return GetId(chainId, bizDate, pointName, address);
     }
+    
+    public static string GetHolderBalanceId(string chainId, string bizDate, string symbol, string address)
+    {
+        return GetId(chainId, bizDate, symbol, address);
+    }
 }

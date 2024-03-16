@@ -1,13 +1,18 @@
 using System.Collections.Generic;
-using SchrodingerServer.Common;
 
 namespace SchrodingerServer.Users.Index;
 
-public class IndexerHolderDailyChanges : IndexerCommonResult<IndexerHolderDailyChanges>
-{
-    public long TotalRecordCount { get; set; }
 
-    public List<HolderDailyChangeDto> DataList { get; set; }
+public class IndexerHolderDailyChangeDto
+{
+    public IndexerHolderDailyChanges GetSchrodingerHolderDailyChangeList { get; set; }
+}
+
+public class IndexerHolderDailyChanges
+{
+    public long TotalCount { get; set; }
+
+    public List<HolderDailyChangeDto> Data { get; set; } = new();
 }
 
 public class HolderDailyChangeDto

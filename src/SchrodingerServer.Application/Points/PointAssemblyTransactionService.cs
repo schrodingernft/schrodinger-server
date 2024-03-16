@@ -51,19 +51,20 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
                     group => group.Key,
                     group => group.ToList()
                 );
-
-
+            
             foreach (var (pointName, records) in assemblyDict)
             {
+                //Every pointName，Split batches to send transactions
                 var batchList = SplitList(records, MaxBatchSize);
 
                 foreach (var tradeList in batchList)
                 {
+                    var bizId = IdGenerateHelper.GetPointBizId(chainId, bizDate, pointName, Guid.NewGuid().ToString());
                     var pointSettleDto = new PointSettleDto
                     {
                         ChainId = chainId,
                         PointName = pointName,
-                        BizId = IdGenerateHelper.GetPointBizId(chainId, bizDate, pointName, Guid.NewGuid().ToString()),
+                        BizId = bizId,
                         UserPointsInfos = tradeList.Select(item => new UserPointInfo
                         {
                             Address = item.Address,

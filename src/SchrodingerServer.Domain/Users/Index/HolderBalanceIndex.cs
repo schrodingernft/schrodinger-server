@@ -13,6 +13,8 @@ public class HolderBalanceIndex : SchrodingerEntity<string>, IIndexBuild
     
     [Keyword] public string BizDate { get; set; }
     
+    [Keyword] public string Symbol { get; set; }
+    
     public long Balance { get; set; }
     
     public DateTime ChangeTime { get; set; }

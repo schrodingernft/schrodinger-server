@@ -51,6 +51,15 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
         var bizIds = records.Select(t => t.BizId).Distinct().ToList();
 
+        
+        // fix , need to remove
+        for (var i = 0; i < bizIds.Count; i++)
+        {
+            var ids = bizIds[i].Split(':');
+            bizIds[i] = ids[0];
+        }
+        //
+
         // get transaction from trans
         var contractInfos = await GetContractInvokeTxByIdsAsync(bizIds);
         foreach (var record in records)

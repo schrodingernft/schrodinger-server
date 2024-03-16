@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Background.Services;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Threading;
@@ -16,7 +15,7 @@ public class XpScoreResultWorker : AsyncPeriodicBackgroundWorkerBase
     {
         _xpScoreResultService = xpScoreResultService;
         _logger = logger;
-        timer.Period = 10  * 1000;
+        timer.Period = 100  * 1000;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)

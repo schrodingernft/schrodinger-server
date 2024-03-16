@@ -160,18 +160,36 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
         _logger.Info("GetWaterMarkImageInfoAsync, {req}", JsonConvert.SerializeObject(input));
-        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
-        {
-            _logger.Info("has already been watermarked, {id}", input.AdoptId);
-            throw new UserFriendlyException("has already been watermarked");
-        }
-        
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
         
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
         {
             _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
+        }
+        
+        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
+        {
+            var info = await _adoptImageService.GetWatermarkImageInfoAsync(input.AdoptId);
+            _logger.Info("GetWatermarkImageInfo from grain, info:{}", JsonConvert.SerializeObject(info));
+
+            if (info.ImageUri == "" || info.ResizedImage == "")
+            {
+                _logger.Info("Invalid watermark info, uri:{}, resizeImage", info.ImageUri, info.ResizedImage);
+                throw new UserFriendlyException("Invalid watermark info");
+            }
+            
+            var signature = GenerateSignatureWithSecretService(input.AdoptId, info.ImageUri, info.ResizedImage);
+        
+            var response = new GetWaterMarkImageInfoOutput
+            {
+                Image = info.ResizedImage,
+                Signature = signature,
+                ImageUri = info.ImageUri
+            };
+            
+            _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(response));
+            return response;
         }
         
         var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
@@ -205,21 +223,21 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         
         var base64String = stringArray[1].Trim();
         string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
-        var hash = "ipfs://" + waterImageHash;
+        var uri = "ipfs://" + waterImageHash;
         
         // uploadToS3
         var s3Url = await uploadToS3Async(base64String, waterImageHash);
         _logger.LogInformation("upload to s3, url:{url}", s3Url);
         
-        await _adoptImageService.SetImageHashAsync(input.AdoptId, hash);
+        await _adoptImageService.SetWatermarkImageInfoAsync(input.AdoptId, uri, waterMarkInfo.resized, input.Image);
 
-        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, hash, waterMarkInfo.resized);
+        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, uri, waterMarkInfo.resized);
         
         var resp = new GetWaterMarkImageInfoOutput
         {
             Image = waterMarkInfo.resized,
             Signature = signatureWithSecretService,
-            ImageUri = hash
+            ImageUri = uri
         };
         _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(resp));
         
@@ -252,12 +270,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.ToHex();
     }
     
-    private string GenerateSignatureWithSecretService(string adoptId, string hash, string image)
+    private string GenerateSignatureWithSecretService(string adoptId, string uri, string image)
     {
         var data = new ConfirmInput {
             AdoptId = Hash.LoadFromHex(adoptId),
             Image = image,
-            ImageUri = hash 
+            ImageUri = uri 
         };
         var dataHash = HashHelper.ComputeFrom(data);
         var signature =  _secretProvider.GetSignatureFromHashAsync(_chainOptions.PublicKey, dataHash);

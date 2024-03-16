@@ -24,8 +24,11 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 {
     private readonly ILogger<ZealyScoreService> _logger;
     private readonly IUserRelationService _userRelationService;
+
     private readonly IZealyProvider _zealyProvider;
-    private readonly ZealyClientProxyProvider _zealyClientProxyProvider;
+
+    //private readonly ZealyClientProxyProvider _zealyClientProxyProvider;
+    private readonly IZealyClientProvider _zealyClientProxyProvider;
     private readonly INESTRepository<ZealyUserXpIndex, string> _zealyUserXpRepository;
     private readonly ICallContractProvider _contractProvider;
     private readonly ZealyScoreOptions _options;
@@ -33,7 +36,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
-        IZealyProvider zealyProvider, ZealyClientProxyProvider zealyClientProxyProvider,
+        IZealyProvider zealyProvider, IZealyClientProvider zealyClientProxyProvider,
         INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
         IOptionsSnapshot<ZealyScoreOptions> options)
     {
@@ -48,8 +51,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     public async Task UpdateScoreAsync()
     {
-        _logger.LogInformation("update zealy score recurring job execute, time:{time}",
-            DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+        _logger.LogInformation("begin update zealy score recurring job");
         // update user
         await _userRelationService.AddUserRelationAsync();
 
@@ -59,7 +61,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         await HandleUserScoreAsync();
         // ...
 
-        Console.WriteLine("ZealyScoreService execute...");
+        _logger.LogInformation("finish update zealy score recurring job");
     }
 
     private async Task GetUsersAsync(List<ZealyUserIndex> userIndices,
@@ -128,6 +130,8 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     {
         // get total score from user
         var uri = CommonConstant.GetUserUri + $"/{user.Id}";
+
+        _logger.LogInformation("get user info, uri:{uri}", uri);
         var response = await _zealyClientProxyProvider.GetAsync<ZealyUserDto>(uri);
 
         var xp = 0m;

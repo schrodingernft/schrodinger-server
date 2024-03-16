@@ -42,7 +42,8 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
     public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore, decimal xp)
     {
         var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
-
+        _logger.LogInformation("begin create, bizId:{bizId}", bizId);
+        
         var pointSettleDto = new PointSettleDto()
         {
             ChainId = _options.ChainId,
@@ -77,7 +78,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
         // BackgroundJob.Schedule(() => SearchAsync(record, zealyUserXp, xpScore), TimeSpan.FromSeconds(150));
 
-        _logger.LogInformation("in create, bizId:{bizId}", bizId);
+        _logger.LogInformation("end create, bizId:{bizId}", bizId);
     }
 
     private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp,

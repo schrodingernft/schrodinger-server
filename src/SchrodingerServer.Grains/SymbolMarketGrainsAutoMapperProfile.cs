@@ -1,4 +1,6 @@
 using AutoMapper;
+using SchrodingerServer.Dtos.Adopts;
+using SchrodingerServer.Grains.Grain.Traits;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Grains.Grain.Faucets;
 using SchrodingerServer.Grains.Grain.Points;
@@ -19,6 +21,7 @@ public class SymbolMarketGrainsAutoMapperProfile : Profile
         CreateMap<UserGrainDto, UserState>().ReverseMap();
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<FaucetsState, FaucetsGrainDto>();
+        CreateMap<AdoptImageInfoState, WaterImageGrainInfoDto>();
         CreateMap<ContractInvokeGrainDto, ContractInvokeState>().ReverseMap();;
         CreateMap<PointDailyRecordGrainDto, PointDailyRecordState>().ReverseMap();;
     }

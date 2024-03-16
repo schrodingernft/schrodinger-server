@@ -7,3 +7,11 @@ public class GetWaterMarkImageInfoOutput
     public string Signature { get; set; }
     public string ImageUri { get; set; }
 }
+
+
+public class WaterImageGrainInfoDto
+{
+    public string ResizedImage { get; set; }
+    
+    public string ImageUri { get; set; }
+} 

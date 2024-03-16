@@ -40,13 +40,14 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
     [AutomaticRetry(Attempts = 5, DelaysInSeconds = new[] { 10 })]
     public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, decimal xp)
     {
-        var bizId = Guid.NewGuid() + DateTime.UtcNow.ToString("yyyy-MM-dd");
-        
+        //var bizId = Guid.NewGuid() + "-" + DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
+
         var pointSettleDto = new PointSettleDto()
         {
-            ChainId = "tDVW",
+            ChainId = _options.ChainId,
             BizId = bizId,
-            PointName = "XPSGR-4",
+            PointName = _options.PointName,
             UserPointsInfos = new List<UserPointInfo>()
             {
                 new UserPointInfo()
@@ -82,6 +83,8 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
     [AutomaticRetry(Attempts = 100, DelaysInSeconds = new[] { 10 })]
     private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp)
     {
+        // todo: get transaction status and update record
+        
         record.Status = ""; //TransactionStatusType.Success.ToString();
         record.UpdateTime = DateTime.UtcNow;
 

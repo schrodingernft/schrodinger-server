@@ -12,7 +12,9 @@ public class PointDailyRecordGrainDto
     
     public string Address { get; set; }
     
-    public long PointAmount { get; set; }
+    public decimal PointAmount { get; set; }
     
     public DateTime CreateTime { get; set; }
+    
+    public DateTime UpdateTime { get; set; }
 }

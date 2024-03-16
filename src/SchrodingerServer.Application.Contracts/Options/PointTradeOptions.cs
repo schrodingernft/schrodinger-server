@@ -32,4 +32,8 @@ public class PointInfo
     public string ActionName { get; set; }
 
     public string ConditionalExp { get; set; }
+    
+    public decimal? Factor { get; set; }
+    
+    public bool NeedMultiplyPrice { get; set; }
 }

@@ -19,7 +19,7 @@ public class SymbolMarketGrainsAutoMapperProfile : Profile
         CreateMap<UserGrainDto, UserState>().ReverseMap();
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<FaucetsState, FaucetsGrainDto>();
-        CreateMap<ContractInvokeGrainDto, ContractInvokeState>();
-        CreateMap<PointDailyRecordGrainDto, PointDailyRecordState>();
+        CreateMap<ContractInvokeGrainDto, ContractInvokeState>().ReverseMap();;
+        CreateMap<PointDailyRecordGrainDto, PointDailyRecordState>().ReverseMap();;
     }
 }

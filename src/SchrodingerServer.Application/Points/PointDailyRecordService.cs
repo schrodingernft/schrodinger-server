@@ -1,4 +1,3 @@
-using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ namespace SchrodingerServer.Points;
 
 public interface IPointDailyRecordService
 {
-    Task HandlePointDailyChangeAsync(string chainId, HolderDailyChangeDto dto);
+    Task HandlePointDailyChangeAsync(string chainId, HolderDailyChangeDto dto, decimal? symbolPrice);
 }
 
 public class PointDailyRecordService : IPointDailyRecordService, ISingletonDependency
@@ -40,7 +39,7 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
         _pointTradeOptions = pointTradeOptions;
     }
 
-    public async Task HandlePointDailyChangeAsync(string chainId, HolderDailyChangeDto dto)
+    public async Task HandlePointDailyChangeAsync(string chainId, HolderDailyChangeDto dto, decimal? symbolPrice)
     {
         if (dto == null)
         {
@@ -62,12 +61,11 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
                 PointName = pointName,
                 BizDate = dto.Date,
                 Address = dto.Address,
-                PointAmount = dto.ChangeAmount,
-                CreateTime = DateTime.UtcNow
+                PointAmount = CalcPointAmount(dto.ChangeAmount, symbolPrice, pointInfo)
             };
-            input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName , input.Address);
+            input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName, input.Address);
             var pointDailyRecordGrain = _clusterClient.GetGrain<IPointDailyRecordGrain>(input.Id);
-            var result = await pointDailyRecordGrain.CreateAsync(input);
+            var result = await pointDailyRecordGrain.UpdateAsync(input);
             if (!result.Success)
             {
                 _logger.LogError(
@@ -78,5 +76,23 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
             await _distributedEventBus.PublishAsync(
                 _objectMapper.Map<PointDailyRecordGrainDto, PointDailyRecordEto>(result.Data));
         }
+    }
+
+
+    private decimal CalcPointAmount(decimal amount, decimal? symbolPrice, PointInfo pointInfo)
+    {
+        if (pointInfo.Factor == null)
+        {
+            return amount;
+        }
+
+        var pointAmount = (decimal)(amount * pointInfo.Factor);
+
+        if (pointInfo.NeedMultiplyPrice && symbolPrice !=null)
+        {
+            return (decimal)(pointAmount * symbolPrice);
+        }
+
+        return pointAmount;
     }
 }

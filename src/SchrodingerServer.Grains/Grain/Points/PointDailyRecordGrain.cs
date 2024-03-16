@@ -1,16 +1,23 @@
 using Orleans;
 using SchrodingerServer.Grains.State.Points;
+using Volo.Abp.ObjectMapping;
 
 namespace SchrodingerServer.Grains.Grain.Points;
 
 public interface IPointDailyRecordGrain : IGrainWithStringKey
 {
-    Task<GrainResultDto<PointDailyRecordGrainDto>> CreateAsync(PointDailyRecordGrainDto input);
+    Task<GrainResultDto<PointDailyRecordGrainDto>> UpdateAsync(PointDailyRecordGrainDto input);
 }
 
 public class PointDailyRecordGrain : Grain<PointDailyRecordState>, IPointDailyRecordGrain
 {
-    
+    private readonly IObjectMapper _objectMapper;
+
+    public PointDailyRecordGrain(IObjectMapper objectMapper)
+    {
+        _objectMapper = objectMapper;
+    }
+
     public override async Task OnActivateAsync()
     {
         await ReadStateAsync();
@@ -22,9 +29,24 @@ public class PointDailyRecordGrain : Grain<PointDailyRecordState>, IPointDailyRe
         await WriteStateAsync();
         await base.OnDeactivateAsync();
     }
-    
-    public Task<GrainResultDto<PointDailyRecordGrainDto>> CreateAsync(PointDailyRecordGrainDto input)
+
+    public async Task<GrainResultDto<PointDailyRecordGrainDto>> UpdateAsync(PointDailyRecordGrainDto input)
     {
-        throw new NotImplementedException();
+        State = _objectMapper.Map<PointDailyRecordGrainDto, PointDailyRecordState>(input);
+        if (State.Id.IsNullOrEmpty())
+        {
+            State.Id = this.GetPrimaryKey().ToString();
+            State.CreateTime = DateTime.UtcNow;
+        }
+        //accumulated points amount
+        State.PointAmount += input.PointAmount;
+        State.UpdateTime = DateTime.UtcNow;
+        await WriteStateAsync();
+
+        return new GrainResultDto<PointDailyRecordGrainDto>
+        {
+            Success = true,
+            Data = _objectMapper.Map<PointDailyRecordState, PointDailyRecordGrainDto>(State)
+        };
     }
 }

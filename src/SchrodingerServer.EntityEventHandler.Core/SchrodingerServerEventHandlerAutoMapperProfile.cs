@@ -24,5 +24,6 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
         CreateMap<HolderDailyChangeDto, HolderBalanceIndex>()
             .ForMember(des => des.BizDate, opt
                 => opt.MapFrom(source => source.Date));
+        CreateMap<PointDailyRecordEto, PointDailyRecordIndex>();
     }
 }

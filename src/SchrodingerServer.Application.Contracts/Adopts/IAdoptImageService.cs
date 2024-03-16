@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SchrodingerServer.Dtos.Adopts;
 
 namespace SchrodingerServer.Adopts;
 
@@ -14,6 +15,8 @@ public interface IAdoptImageService
 
     Task SetWatermarkAsync(string adoptId);
     Task<bool> HasWatermark(string adoptId);
-    
-    Task SetImageHashAsync(string adoptId, string hash);
+
+    Task SetWatermarkImageInfoAsync(string adoptId, string imageUri, string resizedImage, string selectedImage);
+
+    Task<WaterImageGrainInfoDto> GetWatermarkImageInfoAsync(string adoptId);
 }

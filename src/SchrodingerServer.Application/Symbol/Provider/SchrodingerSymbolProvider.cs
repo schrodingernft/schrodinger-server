@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GraphQL;
+using SchrodingerServer.Common;
 using SchrodingerServer.Common.GraphQL;
 using Volo.Abp.DependencyInjection;
 
@@ -24,12 +25,15 @@ public class SchrodingerSymbolProvider : ISchrodingerSymbolProvider, ISingletonD
     public async Task<List<SchrodingerSymbolDto>> GetSchrodingerSymbolList(
         int skipCount, int maxResultCount)
     {
-        var graphQlResponse = await _graphQlHelper.QueryAsync<SchrodingerSymbolListDto>(new GraphQLRequest
+        var graphQlResponse = await _graphQlHelper.QueryAsync<GetSchrodingerSymbolList>(new GraphQLRequest
         {
             Query = @"query($skipCount:Int!,$maxResultCount:Int!){
             data:getSchrodingerSymbolList(input: {skipCount:$skipCount,maxResultCount:$maxResultCount})
             {
-                symbol
+                totalCount,     
+                data{
+                    symbol
+                }
             }}",
             Variables = new
             {
@@ -37,10 +41,15 @@ public class SchrodingerSymbolProvider : ISchrodingerSymbolProvider, ISingletonD
                 maxResultCount
             }
         });
-        return graphQlResponse?.Data ?? new List<SchrodingerSymbolDto>();
+        return graphQlResponse?.Data.Data ?? new List<SchrodingerSymbolDto>();
     }
 }
 
+public class GetSchrodingerSymbolList : IndexerCommonResult<SchrodingerSymbolListDto>
+{
+    public SchrodingerSymbolListDto Data { get; set; }
+    
+}
 public class SchrodingerSymbolListDto
 {
     public SchrodingerSymbolListDto(long totalCount, List<SchrodingerSymbolDto> data)

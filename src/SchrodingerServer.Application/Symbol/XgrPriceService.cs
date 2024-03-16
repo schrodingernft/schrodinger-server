@@ -77,7 +77,10 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
                     symbolDayPriceIndexList.Add(symbolDayPriceIndex);
                 }
             }
-            await _symbolDayPriceProvider.SaveSymbolDayPriceIndex(symbolDayPriceIndexList);
+            if (symbolDayPriceIndexList.Count > 0)
+            {
+                await _symbolDayPriceProvider.SaveSymbolDayPriceIndex(symbolDayPriceIndexList);
+            }
         }
        
     }

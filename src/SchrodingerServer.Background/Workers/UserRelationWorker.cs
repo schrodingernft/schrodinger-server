@@ -30,14 +30,14 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
         _userRelationService = userRelationService;
         _logger = logger;
         _pointSettleService = pointSettleService;
-        timer.Period = options.Value.Period  * 1000;
+        timer.Period = options.Value.Period * 1000;
         //timer.Period = options.Value.Period * 60 * 1000;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         var bizId = Guid.NewGuid() + DateTime.UtcNow.ToString("yyyy-MM-dd");
-        
+
         var pointSettleDto = new PointSettleDto()
         {
             ChainId = "tDVW",
@@ -47,12 +47,12 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
             {
                 new UserPointInfo()
                 {
-                    Address = "2bKypZR1eiCtgSb9XxjTic1e4wGySKGkRCP5KtE3ZGzhQdJxZt",
-                    PointAmount = 1.8888m
+                    Address = "2GmpGegBTsjDmoVxu1n4nZvxezyc9GKVQCzWYm193iivncv7GU",
+                    PointAmount = 1 * 0.383m
                 }
             }
         };
-        
+
         await _pointSettleService.BatchSettleAsync(pointSettleDto);
         _logger.LogInformation("execute UserRelationWorker, data:{data}", JsonConvert.SerializeObject(pointSettleDto));
 

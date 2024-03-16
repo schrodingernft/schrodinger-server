@@ -124,6 +124,12 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
     private async Task HandlePendingAsync()
     {
         //To Get Transaction Result
+        if (State.TransactionId.IsNullOrEmpty())
+        {
+            await HandleFailedAsync();
+            return;
+        }
+
         var txResult = await GetTxResultAsync(State.ChainId, State.TransactionId);
 
         if (txResult.Status != TransactionState.Mined)

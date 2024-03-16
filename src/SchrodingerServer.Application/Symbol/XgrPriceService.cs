@@ -117,7 +117,7 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
                 if (listingDto != null && listingDto.TotalCount > 0)
                 {
                     var tokenPrice = listingDto.Items[0].Prices;
-                    var symbolUsdPrice = await _tokenPriceProvider.GetPriceAsync(listingDto.Items[0].PurchaseToken.Symbol);
+                    var symbolUsdPrice = await _tokenPriceProvider.GetPriceByCacheAsync(listingDto.Items[0].PurchaseToken.Symbol);
                     usdPrice = tokenPrice* symbolUsdPrice;
                 }
             }

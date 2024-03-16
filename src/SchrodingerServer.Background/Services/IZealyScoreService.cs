@@ -128,7 +128,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
-        if (user.Address != "2AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
+        if (user.Address != "12AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
         {
             return;
         }

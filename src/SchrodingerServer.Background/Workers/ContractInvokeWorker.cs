@@ -3,12 +3,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SchrodingerServer.ContractEventHandler.Core.Application;
-using SchrodingerServer.ContractEventHandler.Core.Options;
+using SchrodingerServer.Background.Services;
+using SchrodingerServer.Options;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Threading;
 
-namespace SchrodingerServer.ContractEventHandler.Core.Worker;
+namespace SchrodingerServer.Background.Workers;
 
 public class ContractInvokeWorker : AsyncPeriodicBackgroundWorkerBase
 {

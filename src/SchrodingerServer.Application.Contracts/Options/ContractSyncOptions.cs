@@ -1,4 +1,4 @@
-namespace SchrodingerServer.ContractEventHandler.Core.Options;
+namespace SchrodingerServer.Options;
 
 public class ContractSyncOptions
 {

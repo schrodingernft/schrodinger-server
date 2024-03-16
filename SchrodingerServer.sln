@@ -45,10 +45,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Orleans.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.AuthServer", "src\SchrodingerServer.AuthServer\SchrodingerServer.AuthServer.csproj", "{15EC2829-4A84-4299-B812-92BCC9E88130}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.ContractEventHandler", "src\SchrodingerServer.ContractEventHandler\SchrodingerServer.ContractEventHandler.csproj", "{5B2028BA-DC38-4311-8EE5-3E85760526ED}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.ContractEventHandler.Core", "src\SchrodingerServer.ContractEventHandler.Core\SchrodingerServer.ContractEventHandler.Core.csproj", "{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Background", "src\SchrodingerServer.Background\SchrodingerServer.Background.csproj", "{B91CC1AC-11E6-41E6-B693-1697D257A42B}"
 EndProject
 Global
@@ -133,14 +129,6 @@ Global
 		{15EC2829-4A84-4299-B812-92BCC9E88130}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15EC2829-4A84-4299-B812-92BCC9E88130}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{15EC2829-4A84-4299-B812-92BCC9E88130}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5B2028BA-DC38-4311-8EE5-3E85760526ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5B2028BA-DC38-4311-8EE5-3E85760526ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5B2028BA-DC38-4311-8EE5-3E85760526ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5B2028BA-DC38-4311-8EE5-3E85760526ED}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -169,8 +157,6 @@ Global
 		{74955BF7-7037-4E9B-A744-321DB9C7283A} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{0E98561B-9F55-448A-B1D4-777A7F27FC13} = {04DBDB01-70F4-4E06-B468-8F87850B22BE}
 		{15EC2829-4A84-4299-B812-92BCC9E88130} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
-		{5B2028BA-DC38-4311-8EE5-3E85760526ED} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
-		{A55F468C-4CAA-4E78-9F07-4E3C3F058C04} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

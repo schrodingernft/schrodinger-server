@@ -52,6 +52,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         Configure<ZealyUserOptions>(configuration.GetSection("ZealyUser"));
         Configure<UpdateScoreOptions>(configuration.GetSection("UpdateScore"));
         Configure<ZealyScoreOptions>(configuration.GetSection("ZealyScore"));
+        Configure<ContractSyncOptions>(configuration.GetSection("Sync"));
 
         context.Services.AddHostedService<SchrodingerServerHostService>();
         context.Services.AddSingleton<IPointSettleService, PointSettleService>();
@@ -145,6 +146,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
         context.AddBackgroundWorkerAsync<UserRelationWorker>();
+        context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
         InitRecurringJob(context.ServiceProvider);
         StartOrleans(context.ServiceProvider);
     }

@@ -16,7 +16,7 @@ public class PointAssemblyTransactionWorker : AsyncPeriodicBackgroundWorkerBase
         base(timer, serviceScopeFactory)
     {
         _pointAssemblyTransactionService = pointAssemblyTransactionService;
-        Timer.Period = 1000 * 86400;
+        Timer.Period = 1000 * 3;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)

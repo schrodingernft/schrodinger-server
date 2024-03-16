@@ -3,7 +3,7 @@ using AElf.Indexing.Elasticsearch;
 using Nest;
 using SchrodingerServer.Entities;
 
-namespace SchrodingerServer.Users.Index;
+namespace SchrodingerServer.Zealy;
 
 public class ZealyUserIndex : SchrodingerEntity<string>, IIndexBuild
 {

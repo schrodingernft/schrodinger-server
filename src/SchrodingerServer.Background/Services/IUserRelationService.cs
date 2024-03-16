@@ -11,7 +11,7 @@ using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
 using SchrodingerServer.Options;
-using SchrodingerServer.Users.Index;
+using SchrodingerServer.Zealy;
 using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
+using SchrodingerServer.Options;
 using SchrodingerServer.Points.Provider;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Index;
@@ -18,17 +20,19 @@ public interface IPointAssemblyTransactionService
 
 public class PointAssemblyTransactionService : IPointAssemblyTransactionService, ISingletonDependency
 {
-    private const int MaxBatchSize = 10;
+    private readonly IOptionsMonitor<PointTradeOptions> _pointTradeOptions;
     private readonly ILogger<PointAssemblyTransactionService> _logger;
     private readonly IPointSettleService _pointSettleService;
     private readonly IPointDailyRecordProvider _pointDailyRecordProvider;
     
     public PointAssemblyTransactionService(IPointSettleService pointSettleService,
-        ILogger<PointAssemblyTransactionService> logger, IPointDailyRecordProvider pointDailyRecordProvider)
+        ILogger<PointAssemblyTransactionService> logger, IPointDailyRecordProvider pointDailyRecordProvider, 
+        IOptionsMonitor<PointTradeOptions> pointTradeOptions)
     {
         _pointSettleService = pointSettleService;
         _logger = logger;
         _pointDailyRecordProvider = pointDailyRecordProvider;
+        _pointTradeOptions = pointTradeOptions;
     }
 
     public async Task AssembleAsync(string chainId, string bizDate)
@@ -55,7 +59,7 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
             foreach (var (pointName, records) in assemblyDict)
             {
                 //Every pointName，Split batches to send transactions
-                var batchList = SplitList(records, MaxBatchSize);
+                var batchList = SplitList(records, _pointTradeOptions.CurrentValue.MaxBatchSize);
 
                 foreach (var tradeList in batchList)
                 {
@@ -71,6 +75,9 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
                             PointAmount = item.PointAmount
                         }).ToList()
                     };
+                    
+                    _logger.LogInformation("ToBatchSettle bizId {bizId} addressList {}", bizId, 
+                        tradeList.Select(item => item.Address).ToList());
 
                     await _pointSettleService.BatchSettleAsync(pointSettleDto);
                 }

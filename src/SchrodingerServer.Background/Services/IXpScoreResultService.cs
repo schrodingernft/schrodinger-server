@@ -55,8 +55,18 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         // fix , need to remove
         for (var i = 0; i < bizIds.Count; i++)
         {
-            var ids = bizIds[i].Split(':');
-            bizIds[i] = ids[0];
+            try
+            {
+                if (bizIds[i].Contains(':'))
+                {
+                    var ids = bizIds[i].Split(':');
+                    bizIds[i] = ids[0];
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e,"error");
+            }
         }
         //
 

@@ -23,11 +23,11 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
 {
     private readonly IZealyProvider _zealyProvider;
     private readonly ILogger<XpScoreResultService> _logger;
-    private readonly INESTRepository<ContractInvokeIndex, Guid> _contractInvokeIndexRepository;
+    private readonly INESTRepository<ContractInvokeIndex, string> _contractInvokeIndexRepository;
     private const int FetchPendingCount = 10;
 
     public XpScoreResultService(IZealyProvider zealyProvider, ILogger<XpScoreResultService> logger,
-        INESTRepository<ContractInvokeIndex, Guid> contractInvokeIndexRepository)
+        INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository)
     {
         _zealyProvider = zealyProvider;
         _logger = logger;

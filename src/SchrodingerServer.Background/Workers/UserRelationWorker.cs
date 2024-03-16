@@ -36,25 +36,25 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
-        var bizId = Guid.NewGuid() + DateTime.UtcNow.ToString("yyyy-MM-dd");
-
-        var pointSettleDto = new PointSettleDto()
-        {
-            ChainId = "tDVW",
-            BizId = bizId,
-            PointName = "XPSGR-4",
-            UserPointsInfos = new List<UserPointInfo>()
-            {
-                new UserPointInfo()
-                {
-                    Address = "2GmpGegBTsjDmoVxu1n4nZvxezyc9GKVQCzWYm193iivncv7GU",
-                    PointAmount = 1 * 0.383m
-                }
-            }
-        };
-
-        await _pointSettleService.BatchSettleAsync(pointSettleDto);
-        _logger.LogInformation("execute UserRelationWorker, data:{data}", JsonConvert.SerializeObject(pointSettleDto));
+        // var bizId = Guid.NewGuid() + DateTime.UtcNow.ToString("yyyy-MM-dd");
+        //
+        // var pointSettleDto = new PointSettleDto()
+        // {
+        //     ChainId = "tDVW",
+        //     BizId = bizId,
+        //     PointName = "XPSGR-4",
+        //     UserPointsInfos = new List<UserPointInfo>()
+        //     {
+        //         new UserPointInfo()
+        //         {
+        //             Address = "2GmpGegBTsjDmoVxu1n4nZvxezyc9GKVQCzWYm193iivncv7GU",
+        //             PointAmount = 1 * 0.383m
+        //         }
+        //     }
+        // };
+        //
+        // await _pointSettleService.BatchSettleAsync(pointSettleDto);
+        // _logger.LogInformation("execute UserRelationWorker, data:{data}", JsonConvert.SerializeObject(pointSettleDto));
 
 
         _logger.LogInformation("begin execute UserRelationWorker.");

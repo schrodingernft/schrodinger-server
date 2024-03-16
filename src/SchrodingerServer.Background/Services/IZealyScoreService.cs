@@ -27,8 +27,8 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private readonly IZealyProvider _zealyProvider;
 
-    private readonly IZealyClientProxyProvider _zealyClientProxyProvider;
-    //private readonly IZealyClientProvider _zealyClientProxyProvider;
+    //private readonly IZealyClientProxyProvider _zealyClientProxyProvider;
+    private readonly IZealyClientProvider _zealyClientProxyProvider;
     private readonly INESTRepository<ZealyUserXpIndex, string> _zealyUserXpRepository;
     private readonly ICallContractProvider _contractProvider;
     private readonly ZealyScoreOptions _options;
@@ -36,7 +36,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
-        IZealyProvider zealyProvider, IZealyClientProxyProvider zealyClientProxyProvider,
+        IZealyProvider zealyProvider, IZealyClientProvider zealyClientProxyProvider,
         INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
         IOptionsSnapshot<ZealyScoreOptions> options)
     {
@@ -128,6 +128,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
+        if (user.Address != "2AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
+        {
+            return;
+        }
         // get total score from user
         var uri = CommonConstant.GetUserUri + $"/{user.Id}";
 

@@ -24,14 +24,14 @@ public interface IContractInvokeService
 
 public class ContractInvokeService : IContractInvokeService, ISingletonDependency
 {
-    private readonly INESTRepository<ContractInvokeIndex, Guid> _contractInvokeIndexRepository;
+    private readonly INESTRepository<ContractInvokeIndex, string> _contractInvokeIndexRepository;
     private readonly ILogger<ContractInvokeService> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IObjectMapper _objectMapper;
     private readonly IDistributedEventBus _distributedEventBus;
 
     public ContractInvokeService(
-        INESTRepository<ContractInvokeIndex, Guid> contractInvokeIndexRepository,
+        INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository,
         ILogger<ContractInvokeService> logger, IClusterClient clusterClient, IObjectMapper objectMapper,
         IDistributedEventBus distributedEventBus)
     {
@@ -46,7 +46,8 @@ public class ContractInvokeService : IContractInvokeService, ISingletonDependenc
     {
         var mustNotQuery = new List<Func<QueryContainerDescriptor<ContractInvokeIndex>, QueryContainer>>()
         {
-           // q => q.Match(m => m.Field(f => f.Status).Query(Status.Success.ToString())),
+            q => q.Match(m 
+                => m.Field(f => f.Status).Query(Status.Success.ToString())),
         };
 
         QueryContainer Filter(QueryContainerDescriptor<ContractInvokeIndex> f) =>

@@ -19,12 +19,14 @@ using Orleans.Providers.MongoDB.Configuration;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core;
 using SchrodingerServer.EntityEventHandler.Core.Options;
+using SchrodingerServer.EntityEventHandler.Core.Worker;
 using SchrodingerServer.Grains;
 using SchrodingerServer.MongoDB;
 using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict.Tokens;
@@ -79,6 +81,8 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
     {
         var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
         AsyncHelper.RunSync(async ()=> await client.Connect());
+        
+        context.AddBackgroundWorkerAsync<PointAssemblyTransactionWorker>();
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)

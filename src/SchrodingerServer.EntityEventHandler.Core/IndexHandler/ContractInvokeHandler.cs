@@ -13,11 +13,11 @@ namespace SchrodingerServer.EntityEventHandler.Core.IndexHandler;
 
 public class ContractInvokeHandler : IDistributedEventHandler<ContractInvokeEto>, ITransientDependency
 {
-    private readonly INESTRepository<ContractInvokeIndex, Guid> _repository;
+    private readonly INESTRepository<ContractInvokeIndex, string> _repository;
     private readonly IObjectMapper _objectMapper;
     private readonly ILogger<ContractInvokeHandler> _logger;
 
-    public ContractInvokeHandler(INESTRepository<ContractInvokeIndex, Guid> repository, 
+    public ContractInvokeHandler(INESTRepository<ContractInvokeIndex, string> repository, 
         IObjectMapper objectMapper, 
         ILogger<ContractInvokeHandler> logger)
     {

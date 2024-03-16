@@ -1,12 +1,11 @@
 using System;
 using AElf.Indexing.Elasticsearch;
-using Google.Protobuf;
 using Nest;
 using SchrodingerServer.Entities;
 
 namespace SchrodingerServer.ContractInvoke.Index;
 
-public class ContractInvokeIndex : SchrodingerEntity<Guid>, IIndexBuild
+public class ContractInvokeIndex : SchrodingerEntity<string>, IIndexBuild
 {
     [Keyword] public string ChainId { get; set; }
     [Keyword] public string BizId { get; set; }

@@ -10,7 +10,7 @@ namespace SchrodingerServer.ContractEventHandler.Core
         public ContractEventHandlerAutoMapperProfile()
         {
             CreateMap<ContractInvokeIndex, ContractInvokeEto>();
-           // CreateMap<ContractInvokeEto, ContractInvokeGrainDto>().ReverseMap();
+            CreateMap<ContractInvokeEto, ContractInvokeGrainDto>().ReverseMap();
         }
     }
 }

@@ -45,13 +45,15 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
 
     public async Task<GrainResultDto<ContractInvokeGrainDto>> CreateAsync(ContractInvokeGrainDto input)
     {
-        if (State.Id == string.Empty)
-        {
-            State.Id = Guid.NewGuid().ToString();
-        }
-
         State = _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeState>(input);
-        
+        if (State.Id.IsNullOrEmpty())
+        {
+            State.Id = input.BizId;
+        }
+        State.Status = ContractInvokeStatus.ToBeCreated.ToString();
+        State.CreateTime = DateTime.UtcNow;
+        State.UpdateTime = DateTime.UtcNow;
+
         await WriteStateAsync();
         
         _logger.LogInformation(

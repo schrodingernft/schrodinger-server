@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using SchrodingerServer.Points;
@@ -56,11 +57,16 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         if (bizDate.IsNullOrEmpty())
         {
             //TODO use block time
-            bizDate = DateTime.UtcNow.ToString(TimeHelper.Pattern);
+            bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);
         }
 
         //TODO control repeat execute
-
+        var chainIds = _workerOptionsMonitor.CurrentValue.ChainIds;
+        if (chainIds.IsNullOrEmpty())
+        {
+            _logger.LogError("SyncHolderBalanceWorker chainIds has no config...");
+            return;
+        }
         foreach (var chainId in _workerOptionsMonitor.CurrentValue.ChainIds)
         {
             await HandleHolderDailyChangeAsync(chainId, bizDate);

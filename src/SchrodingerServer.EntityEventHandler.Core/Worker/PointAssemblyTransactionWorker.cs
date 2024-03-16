@@ -1,28 +1,32 @@
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SchrodingerServer.Points;
-using Volo.Abp.BackgroundWorkers;
-using Volo.Abp.Threading;
+using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.EntityEventHandler.Core.Worker;
 
-public class PointAssemblyTransactionWorker : AsyncPeriodicBackgroundWorkerBase
+public interface IPointAssemblyTransactionWorker
+{
+    Task Invoke();
+}
+
+public class PointAssemblyTransactionWorker : IPointAssemblyTransactionWorker, ISingletonDependency
 {
     private readonly IPointAssemblyTransactionService _pointAssemblyTransactionService;
+    private readonly ILogger<PointAssemblyTransactionWorker> _logger;
 
-    public PointAssemblyTransactionWorker(AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory, 
-        IPointAssemblyTransactionService pointAssemblyTransactionService) :
-        base(timer, serviceScopeFactory)
+    public PointAssemblyTransactionWorker(IPointAssemblyTransactionService pointAssemblyTransactionService,
+        ILogger<PointAssemblyTransactionWorker> logger)
     {
         _pointAssemblyTransactionService = pointAssemblyTransactionService;
-        Timer.Period = 1000 * 3;
+        _logger = logger;
     }
 
-    protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
+
+    public async Task Invoke()
     {
-        Logger.LogInformation("Executing point assembly transaction job");
-        
+        _logger.LogInformation("Executing point assembly transaction job start");
+
         await _pointAssemblyTransactionService.AssembleAsync("tDVW", "20240315");
     }
 }

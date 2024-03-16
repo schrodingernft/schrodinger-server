@@ -31,6 +31,9 @@ public class InitJobsService : BackgroundService
         {
             _recurringJobs.AddOrUpdate<ISyncHolderBalanceWorker>("ISyncHolderBalanceWorker",
                 x => x.Invoke(), _workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("ISyncHolderBalanceWorker")?.Cron ?? WorkerOptions.DefaultCron);
+            
+            _recurringJobs.AddOrUpdate<IPointAssemblyTransactionWorker>("IPointAssemblyTransactionWorker",
+                x => x.Invoke(), _workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("IPointAssemblyTransactionWorker")?.Cron ?? WorkerOptions.DefaultCron);
         }
         catch (Exception e)
         {

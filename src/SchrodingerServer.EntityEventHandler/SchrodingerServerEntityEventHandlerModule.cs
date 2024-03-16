@@ -81,8 +81,6 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
     {
         var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
         AsyncHelper.RunSync(async ()=> await client.Connect());
-        
-        context.AddBackgroundWorkerAsync<PointAssemblyTransactionWorker>();
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)

@@ -8,14 +8,14 @@ using Microsoft.Extensions.Options;
 using SchrodingerServer.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Users.Dto;
-using SchrodingerServer.Users.Index;
+using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Background.Providers;
 
 public interface ICallContractProvider
 {
-    Task CreateAsync(ZealyUserXpIndex zealyUserXp, decimal xp);
+    Task CreateAsync(ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore, decimal xp);
 }
 
 public class CallContractProvider : ICallContractProvider, ISingletonDependency
@@ -38,7 +38,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
     }
 
     [AutomaticRetry(Attempts = 5, DelaysInSeconds = new[] { 10 })]
-    public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, decimal xp)
+    public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore, decimal xp)
     {
         //var bizId = Guid.NewGuid() + "-" + DateTime.UtcNow.ToString("yyyy-MM-dd");
         var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
@@ -53,7 +53,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
                 new UserPointInfo()
                 {
                     Address = zealyUserXp.Address,
-                    PointAmount = zealyUserXp.Xp * _options.Coefficient
+                    PointAmount = xp * _options.Coefficient
                 }
             }
         };
@@ -75,16 +75,20 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         };
 
         await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
-        // BackgroundJob.Schedule(() => SearchAsync(record, zealyUserXp), TimeSpan.FromSeconds(150));
+        // BackgroundJob.Schedule(() => SearchAsync(record, zealyUserXp, xpScore), TimeSpan.FromSeconds(150));
 
         _logger.LogInformation("in create: {time}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
     }
-
-    [AutomaticRetry(Attempts = 100, DelaysInSeconds = new[] { 10 })]
-    private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp)
+    
+    private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore)
     {
         // todo: get transaction status and update record
-        
+
+        if (xpScore != null)
+        {
+            // ...
+            zealyUserXp.UseRepairTime = xpScore.UpdateTime;
+        }
         record.Status = ""; //TransactionStatusType.Success.ToString();
         record.UpdateTime = DateTime.UtcNow;
 

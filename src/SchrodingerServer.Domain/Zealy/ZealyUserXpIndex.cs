@@ -3,7 +3,7 @@ using AElf.Indexing.Elasticsearch;
 using Nest;
 using SchrodingerServer.Entities;
 
-namespace SchrodingerServer.Users.Index;
+namespace SchrodingerServer.Zealy;
 
 public class ZealyUserXpIndex : SchrodingerEntity<string>, IIndexBuild
 {
@@ -11,6 +11,7 @@ public class ZealyUserXpIndex : SchrodingerEntity<string>, IIndexBuild
     [Keyword] public string Address { get; set; }
     public decimal LastXp { get; set; }
     public decimal Xp { get; set; }
+    public long UseRepairTime { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
     public DateTime HandleXpTime { get; set; }

@@ -4,9 +4,11 @@ using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.Dtos.Faucets;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Grains.Grain.Faucets;
+using SchrodingerServer.ScoreRepair.Dtos;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Eto;
+using SchrodingerServer.Zealy;
 
 namespace SchrodingerServer;
 
@@ -18,5 +20,11 @@ public class SchrodingerServerApplicationAutoMapperProfile : Profile
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<FaucetsGrainDto, FaucetsTransferResultDto>();
         CreateMap<ContractInvokeGrainDto, ContractInvokeEto>().ReverseMap();
+
+        CreateMap<UpdateXpScoreRepairDataDto, ZealyXpScoreIndex>()
+            .ForMember(t => t.Id, m => m.MapFrom(f => f.UserId));
+
+        CreateMap<ZealyXpScoreIndex, XpScoreRepairDataDto>()
+            .ForMember(t => t.UserId, m => m.MapFrom(f => f.Id));
     }
 }

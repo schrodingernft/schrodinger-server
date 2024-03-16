@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Hangfire;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
-using SchrodingerServer.Users.Index;
+using SchrodingerServer.Options;
+using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Background.Services;
@@ -26,11 +28,14 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private readonly ZealyClientProxyProvider _zealyClientProxyProvider;
     private readonly INESTRepository<ZealyUserXpIndex, string> _zealyUserXpRepository;
     private readonly ICallContractProvider _contractProvider;
+    private readonly ZealyScoreOptions _options;
     private List<ZealyUserXpIndex> _zealyUserXps = new();
+    private List<ZealyXpScoreIndex> _zealyXpScores = new();
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
         IZealyProvider zealyProvider, ZealyClientProxyProvider zealyClientProxyProvider,
-        INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider)
+        INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
+        IOptionsSnapshot<ZealyScoreOptions> options)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -38,6 +43,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _zealyUserXpRepository = zealyUserXpRepository;
         _contractProvider = contractProvider;
+        _options = options.Value;
     }
 
     public async Task UpdateScoreAsync()
@@ -63,7 +69,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
             await _zealyProvider.GetUsersAsync(skipCount, maxResultCount);
         userIndices.AddRange(users);
 
-        if (users.Count < maxResultCount)
+        if (users.IsNullOrEmpty() || users.Count < maxResultCount)
         {
             return;
         }
@@ -75,11 +81,11 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private async Task GetUserXpsAsync(List<ZealyUserXpIndex> userIndices,
         int skipCount, int maxResultCount)
     {
-        var users =
+        var userXps =
             await _zealyProvider.GetUserXpsAsync(skipCount, maxResultCount);
-        userIndices.AddRange(users);
+        userIndices.AddRange(userXps);
 
-        if (users.Count < maxResultCount)
+        if (userXps.IsNullOrEmpty() || userXps.Count < maxResultCount)
         {
             return;
         }
@@ -88,11 +94,28 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         await GetUserXpsAsync(userIndices, skipCount, maxResultCount);
     }
 
+    private async Task GetXpScoresAsync(List<ZealyXpScoreIndex> xpScoreIndices,
+        int skipCount, int maxResultCount)
+    {
+        var xpScores =
+            await _zealyProvider.GetXpScoresAsync(skipCount, maxResultCount);
+        xpScoreIndices.AddRange(xpScores);
+
+        if (xpScores.IsNullOrEmpty() || xpScores.Count < maxResultCount)
+        {
+            return;
+        }
+
+        skipCount += maxResultCount;
+        await GetXpScoresAsync(xpScoreIndices, skipCount, maxResultCount);
+    }
+
     private async Task HandleUserScoreAsync()
     {
         var users = new List<ZealyUserIndex>();
-        await GetUsersAsync(users, 0, 1000);
-        await GetUserXpsAsync(_zealyUserXps, 0, 1000);
+        await GetUsersAsync(users, 0, _options.FetchCount);
+        await GetUserXpsAsync(_zealyUserXps, 0, _options.FetchCount);
+        await GetXpScoresAsync(_zealyXpScores, 0, _options.FetchCount);
 
         //List<Task> tasks = new List<Task>();
         foreach (var user in users)
@@ -107,9 +130,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var uri = CommonConstant.GetUserUri + $"/{user.Id}";
         var response = await _zealyClientProxyProvider.GetAsync<ZealyUserDto>(uri);
 
-        var userXp = _zealyUserXps.FirstOrDefault(t => t.Id == user.Id);
-
         var xp = 0m;
+        var userXp = _zealyUserXps.FirstOrDefault(t => t.Id == user.Id);
+        var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
+
         if (userXp == null)
         {
             userXp = new ZealyUserXpIndex()
@@ -119,18 +143,23 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
                 CreateTime = DateTime.UtcNow
             };
 
-            xp = response.Xp;
+            xp = userXpScore == null ? response.Xp : userXpScore.ActualScore;
         }
         else
         {
-            xp = response.Xp - userXp.Xp;
-        }
+            var repairScore = 0m;
+            if (userXp.UseRepairTime != userXpScore.UpdateTime)
+            {
+                repairScore = userXpScore.ActualScore - userXpScore.RawScore;
+            }
 
+            xp = response.Xp - userXp.Xp + repairScore;
+        }
 
         if (xp > 0)
         {
             // contract xp
-            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, xp));
+            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, userXpScore, xp));
         }
         else
         {

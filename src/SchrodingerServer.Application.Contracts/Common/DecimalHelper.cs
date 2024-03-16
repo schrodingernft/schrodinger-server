@@ -16,4 +16,10 @@ public class DecimalHelper
         var multiplier = (long)Math.Pow(10, places);
         return (long)(num * multiplier);
     }
+    
+    public static decimal Divide(decimal amount, int decimals)
+    {
+        return amount / (decimal)Math.Pow(10, decimals);
+    }
+    
 }

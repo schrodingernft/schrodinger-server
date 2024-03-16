@@ -68,7 +68,8 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
                 PointName = pointName,
                 BizDate = dto.Date,
                 Address = dto.Address,
-                PointAmount = CalcPointAmount(dto.ChangeAmount, symbolPrice, pointInfo)
+                PointAmount = DecimalHelper
+                    .Divide(CalcPointAmount(dto.ChangeAmount, symbolPrice, pointInfo), 8)
             };
             input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName, input.Address);
             var pointDailyRecordGrain = _clusterClient.GetGrain<IPointDailyRecordGrain>(input.Id);

@@ -8,6 +8,7 @@ public static class TimeHelper
 {
     public const string DefaultPattern = "yyyy-MM-dd HH:mm:ss";
     public const string DatePattern = "yyyy-MM-dd";
+    public const string Pattern = "yyyyMMdd";
     public const string UtcPattern = "yyyy-MM-ddTHH:mm:ss.fffffffZ";
     
     public static DateTime GetDateTimeFromTimeStamp(long timeStamp)
@@ -107,5 +108,10 @@ public static class TimeHelper
     {
         return new DateTimeOffset(dateTime).ToUnixTimeSeconds();
     }
-    
+
+    public static string GetDateStrAddDays(string dateString, int value)
+    {
+        var dateTime = DateTime.ParseExact(dateString, Pattern, CultureInfo.InvariantCulture);
+        return dateTime.AddDays(value).ToString(Pattern);
+    }
 }

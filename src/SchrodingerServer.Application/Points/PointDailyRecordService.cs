@@ -18,7 +18,7 @@ namespace SchrodingerServer.Points;
 
 public interface IPointDailyRecordService
 {
-    Task HandlePointDailyChange(string chainId, HolderDailyChangeDto dto);
+    Task HandlePointDailyChangeAsync(string chainId, HolderDailyChangeDto dto);
 }
 
 public class PointDailyRecordService : IPointDailyRecordService, ISingletonDependency
@@ -40,7 +40,7 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
         _pointTradeOptions = pointTradeOptions;
     }
 
-    public async Task HandlePointDailyChange(string chainId, HolderDailyChangeDto dto)
+    public async Task HandlePointDailyChangeAsync(string chainId, HolderDailyChangeDto dto)
     {
         if (dto == null)
         {

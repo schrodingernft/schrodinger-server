@@ -16,7 +16,7 @@ public interface IContractProvider
     
     Task<(Hash transactionId, Transaction transaction)> SendTransactionAsync(string chainId, string senderPublicKey,
         string toAddress, string methodName,
-        IMessage param);
+        string param);
     
     string ContractAddress(string chainId, string contractName);
     

@@ -15,6 +15,7 @@ public static class CommonConstant
     public const string MainChainId = "AELF";
     public const string TDVVChainId = "tDVV";
     public const string TDVWChainId = "tDVW";
+    public const string Separator = "-";
     
     public const string ZealyClientName = "Zealy";
     public const string ZealyApiKeyName = "x-api-key";

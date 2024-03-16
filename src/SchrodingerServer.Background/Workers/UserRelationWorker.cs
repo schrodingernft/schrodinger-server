@@ -56,8 +56,8 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
 
         await _pointSettleService.BatchSettleAsync(pointSettleDto);
         _logger.LogInformation("execute UserRelationWorker, data:{data}", JsonConvert.SerializeObject(pointSettleDto));
-        // _logger.LogInformation("begin execute UserRelationWorker.");
-        // await _userRelationService.AddUserRelationAsync();
-        // _logger.LogInformation("finish execute UserRelationWorker.");
+        _logger.LogInformation("begin execute UserRelationWorker.");
+        await _userRelationService.AddUserRelationAsync();
+        _logger.LogInformation("finish execute UserRelationWorker.");
     }
 }

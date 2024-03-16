@@ -5,12 +5,8 @@ using AElf.Indexing.Elasticsearch;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Orleans;
-using SchrodingerServer.Common;
-using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Options;
 using SchrodingerServer.Points;
-using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Index;
 using Volo.Abp.DependencyInjection;
@@ -48,7 +44,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         
         var pointSettleDto = new PointSettleDto()
         {
-            ChainId = "tDVV",
+            ChainId = "tDVW",
             BizId = bizId,
             PointName = "XPSGR-4",
             UserPointsInfos = new List<UserPointInfo>()
@@ -86,15 +82,6 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
     [AutomaticRetry(Attempts = 100, DelaysInSeconds = new[] { 10 })]
     private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp)
     {
-        // var grainId = record.Id;
-        // var grain = _clusterClient.GetGrain<object>(grainId);
-
-        // if(grainResult.success)
-        //{
-        //  update record, update xp
-        //}
-        //
-
         record.Status = ""; //TransactionStatusType.Success.ToString();
         record.UpdateTime = DateTime.UtcNow;
 

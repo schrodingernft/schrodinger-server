@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -64,9 +65,9 @@ namespace SchrodingerServer.ContractEventHandler
 
         public override void OnApplicationInitialization(ApplicationInitializationContext context)
         {
-            context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
             StartOrleans(context.ServiceProvider);
-         }
+            context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
+        }
 
         public override void OnApplicationShutdown(ApplicationShutdownContext context)
         {

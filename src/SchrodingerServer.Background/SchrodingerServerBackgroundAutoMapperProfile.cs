@@ -10,6 +10,6 @@ public class SchrodingerServerBackgroundAutoMapperProfile : Profile
 {
     public SchrodingerServerBackgroundAutoMapperProfile()
     {
-        CreateMap<ContractInvokeGrainDto, ContractInvokeEto>();
+       // CreateMap<ContractInvokeGrainDto, ContractInvokeEto>();
     }
 }

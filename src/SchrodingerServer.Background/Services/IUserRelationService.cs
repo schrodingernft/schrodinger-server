@@ -71,6 +71,8 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
         catch (Exception e)
         {
             _logger.LogError(e, "add zealy user error.");
+            
+            //todo: retry logic
         }
     }
 

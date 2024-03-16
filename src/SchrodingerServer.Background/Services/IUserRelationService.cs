@@ -24,14 +24,15 @@ public interface IUserRelationService
 
 public class UserRelationService : IUserRelationService, ISingletonDependency
 {
-    private readonly IZealyClientProxyProvider _zealyClientProxyProvider;
+    //private readonly IZealyClientProxyProvider _zealyClientProxyProvider;
+    private readonly IZealyClientProvider _zealyClientProxyProvider;
     private readonly ILogger<UserRelationService> _logger;
     private readonly INESTRepository<ZealyUserIndex, string> _zealyUserRepository;
     private readonly IDistributedCache<ReviewsCursorInfo> _distributedCache;
     private readonly ZealyUserOptions _options;
     private int _retryCount = 0;
 
-    public UserRelationService(IZealyClientProxyProvider zealyClientProxyProvider,
+    public UserRelationService(IZealyClientProvider zealyClientProxyProvider,
         ILogger<UserRelationService> logger,
         INESTRepository<ZealyUserIndex, string> zealyUserRepository,
         IDistributedCache<ReviewsCursorInfo> distributedCache,

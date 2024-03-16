@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using AElf.Types;
 using Google.Protobuf;
@@ -71,7 +72,7 @@ public class PointSettleService : IPointSettleService, ISingletonDependency
             ContractAddress = chainInfo.SchrodingerContractAddress,
             ContractMethod = chainInfo.ContractMethod,
             Param = batchSettleInput.ToByteString().ToBase64(),
-            ParamJson = JsonFormatter.Default.Format(batchSettleInput)
+            ParamJson = JsonSerializer.Serialize(dto)
         };
         var contractInvokeGrain = _clusterClient.GetGrain<IContractInvokeGrain>(dto.BizId);
         var result = await contractInvokeGrain.CreateAsync(input);

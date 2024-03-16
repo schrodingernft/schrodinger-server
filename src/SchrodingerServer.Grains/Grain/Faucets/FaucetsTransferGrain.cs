@@ -45,7 +45,7 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
                 State.Id = address;
             }
 
-            if (!string.IsNullOrEmpty(State.TransactionId))
+            if (State.Mined)
             {
                 _logger.LogWarning(FaucetsTransferMessage.TransferRestrictionsMessage);
                 result.Message = FaucetsTransferMessage.TransferRestrictionsMessage;
@@ -54,6 +54,27 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
             }
 
             var chainId = _faucetsOptions.CurrentValue.ChainId;
+            if (!string.IsNullOrEmpty(State.TransactionId))
+            {
+                var txResult = await _blockchainClientFactory.GetClient(chainId)
+                    .GetTransactionResultAsync(State.TransactionId);
+                switch (txResult.Status)
+                {
+                    case "PENDING":
+                        _logger.LogWarning(FaucetsTransferMessage.TransferPendingMessage);
+                        result.Message = FaucetsTransferMessage.TransferPendingMessage;
+                        result.Success = false;
+                        return result;
+                    case "MINED":
+                        State.Mined = true;
+                        await WriteStateAsync();
+                        _logger.LogWarning(FaucetsTransferMessage.TransferRestrictionsMessage);
+                        result.Message = FaucetsTransferMessage.TransferRestrictionsMessage;
+                        result.Success = false;
+                        return result;
+                }
+            }
+
             var symbol = _faucetsOptions.CurrentValue.FaucetsTransferSymbol;
             var amount = _faucetsOptions.CurrentValue.FaucetsTransferAmount;
 
@@ -111,6 +132,9 @@ public class FaucetsTransferGrain : Grain<FaucetsState>, IFaucetsGrain
             }, chainId, _chainOptions.CurrentValue.ChainInfos[chainId].TokenContractAddress));
         return balance.Balance > Math.Pow(10, _faucetsOptions.CurrentValue.SymbolDecimal);
     }
+
+    private async Task<bool> IsTransferMined(string chainId, string txId)
+        => (await _blockchainClientFactory.GetClient(chainId).GetTransactionResultAsync(txId)).Status == "MINED";
 
     private async Task<T> CallTransactionAsync<T>(string chainId, string rawTx) where T : class, IMessage<T>, new()
     {

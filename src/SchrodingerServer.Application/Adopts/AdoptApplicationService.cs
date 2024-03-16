@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 using AElf;
@@ -11,16 +13,24 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Orleans.Runtime;
+using Schrodinger;
 using SchrodingerServer.Adopts.provider;
+using SchrodingerServer.AwsS3;
+using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
+using SchrodingerServer.Ipfs;
 using SchrodingerServer.Options;
-using SchrodingerServer.Users;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
-using ConfirmInput = Schrodinger.ConfirmInput;
+using Volo.Abp.Users;
+using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
+using SchrodingerServer.Users;
+using SchrodingerServer.Users.Dto;
+using AdoptInfo = SchrodingerServer.Adopts.provider.AdoptInfo;
+using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 
 namespace SchrodingerServer.Adopts;
 
@@ -37,12 +47,15 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
     private readonly IUserActionProvider _userActionProvider;
     private readonly ISecretProvider _secretProvider;
+    private readonly IIpfsAppService _ipfsAppService;
+    private readonly AwsS3Client _awsS3Client;
+    
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
         IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, 
         IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider, 
-        ISecretProvider secretProvider)
+        ISecretProvider secretProvider, IIpfsAppService ipfsAppService, AwsS3Client awsS3Client)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -53,21 +66,20 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _cmsConfigOptions = cmsConfigOptions;
         _userActionProvider = userActionProvider;
         _secretProvider = secretProvider;
+        _ipfsAppService = ipfsAppService;
+        _awsS3Client = awsS3Client;
     }
 
 
     public async Task<GetAdoptImageInfoOutput> GetAdoptImageInfoAsync(string adoptId)
     {
+        _logger.Info("GetAdoptImageInfoAsync, {req}", adoptId);
         var output = new GetAdoptImageInfoOutput();
-        
-        // query traits from indexer
         var adoptInfo = await QueryAdoptInfoAsync(adoptId);
         if (adoptInfo == null)
         {
             return output;
         }
-        // query from grain if adopt id and request id not exist generate image and save  adopt id and request id to grain if exist query result from ai interface
-        //TODO need to use adoptId and Address insteadof adoptId
         var chainId = CommonConstant.MainChainId;
         if (_cmsConfigOptions.CurrentValue.ConfigMap.TryGetValue("curChain", out var curChain))
         {
@@ -85,45 +97,64 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         if (imageGenerationId == null)
         {
-            // query  request id from ai generate image and save  adopt id and request id to grain if exist query result from ai interface todo imageGenerationId
-            // var imageInfo = new GenerateImage { };
-            // foreach (Attribute attributeItem in adoptInfo.Attributes)
-            // {
-            //     var item = new Trait
-            //     {
-            //         name = attributeItem.TraitType,
-            //         value = attributeItem.Value
-            //     };
-            //     imageInfo.newTraits.Add(item);
-            // }
-            // var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
-            // if ("" != requestId)
-            // {
-            //     await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
-            // }
-            // return output;
-            await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), Guid.NewGuid().ToString());
+            var imageInfo = new GenerateImage
+            {
+                newAttributes = new List<Trait>{},
+                baseImage = new BaseImage
+                {
+                    attributes = new List<Trait>{}
+                },
+                numImages = adoptInfo.ImageCount
+            };
+            foreach (Attribute attributeItem in adoptInfo.Attributes)
+            {
+                var item = new Trait
+                {
+                    traitType = attributeItem.TraitType,
+                    value = attributeItem.Value
+                };
+                imageInfo.newAttributes.Add(item);
+            }
+            _logger.LogInformation("GenerateImageByAiAsync Begin. imageInfo: {info} adoptId: {adoptId} ", JsonConvert.SerializeObject(adoptInfo), adoptId);
+            var requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
+            _logger.LogInformation("GenerateImageByAiAsync Finish. requestId: {requestId} ",  requestId);
+            if ("" != requestId)
+            {
+                await _adoptImageService.SetImageGenerationIdAsync(JoinAdoptIdAndAelfAddress(adoptId, aelfAddress), requestId);
+            }
             return output;
         }
 
-        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, adoptInfo.ImageCount, imageGenerationId);
-        // if (!requestId.IsNullOrEmpty())
-        // {
-        //    var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
-        //    var salt = _traitsOptions.CurrentValue.Salt;
-        //    res.images = aiQueryResponse;
-        // }
-        // else
-        // {
-        //     // generate image by ai
-        //     requestId = await GenerateImageByAiAsync(imageInfo, adoptId);
-        //     // save to grain
-        //     await _traitsService.SetImageGenerationIdAsync(adoptId, requestId);
-        // }
-
+        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, imageGenerationId);
         return output;
     }
-    
+
+    public async Task<bool> IsOverLoadedAsync()
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var isOverLoaded = _traitsOptions.CurrentValue.IsOverLoadedUrl;
+            var response = await httpClient.GetAsync(_traitsOptions.CurrentValue.IsOverLoadedUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseString = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("IsOverLoadedAsync get result Success");
+                var resp = JsonConvert.DeserializeObject<IsOverLoadedResponse>(responseString);
+                return resp.isOverLoaded;
+            }
+            else
+            {
+                _logger.LogError("IsOverLoadedAsync get result Success fail, {resp}", response.ToString());
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "IsOverLoadedAsync get result Success fail error, {err}", e.ToString());
+            return true;
+        }
+    }
     
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
@@ -135,43 +166,79 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             throw new UserFriendlyException("has already been watermarked");
         }
         
-        // var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        // if (images.IsNullOrEmpty() || !images.Contains(input.Image))q
-        // {
-        //     throw new UserFriendlyException("Invalid adopt image");
-        // }
-        //
-        var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
-        // if (adoptInfo == null)
-        // {
-        //     throw new UserFriendlyException("query adopt info fail");
-        // }
-        //
-        // var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
-        // {
-        //     sourceImage = input.Image,
-        //     watermark = adoptInfo.Symbol
-        // });
+        var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
         
-        
-        var index = _adoptImageOptions.Images.IndexOf(input.Image);
-        var waterMarkImage = _adoptImageOptions.WaterMarkImages[index];
-
-        await _adoptImageService.SetWatermarkAsync(input.AdoptId);
-
-
-        var signature = GenerateSignature(ByteArrayHelper.HexStringToByteArray(_chainOptions.PrivateKey), input.AdoptId,
-            waterMarkImage);
-
-        var signature2 = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
-        
-        _logger.Info("signature with private key: {s1}, signature from security service  {s2}", signature, signature2);
-        
-        return new GetWaterMarkImageInfoOutput
+        if (images.IsNullOrEmpty() || !images.Contains(input.Image))
         {
-            Image = waterMarkImage,
-            Signature = signature
+            _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
+            throw new UserFriendlyException("Invalid adopt image");
+        }
+        
+        var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
+        _logger.Info("QueryAdoptInfoAsync, {adoptInfo}", JsonConvert.SerializeObject(adoptInfo));
+        if (adoptInfo == null)
+        {
+            throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
+        }
+        
+        var waterMarkInfo = await GetWatermarkImageAsync(new WatermarkInput()
+        {
+            sourceImage = input.Image,
+            watermark = new WaterMark
+            {
+                text = adoptInfo.Symbol
+            }
+        });
+        _logger.LogInformation("GetWatermarkImageAsync : {info} ",  JsonConvert.SerializeObject(waterMarkInfo));
+
+        if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
+        {
+            throw new UserFriendlyException("waterMarkImage empty");
+        }
+
+        var stringArray = waterMarkInfo.processedImage.Split(",");
+        if (stringArray.Length < 2)
+        {
+            _logger.LogInformation("invalid waterMarkInfo");
+            throw new UserFriendlyException("invalid waterMarkInfo");
+        }
+        
+        var base64String = stringArray[1].Trim();
+        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        var hash = "ipfs://" + waterImageHash;
+        
+        // uploadToS3
+        var s3Url = await uploadToS3Async(base64String, waterImageHash);
+        _logger.LogInformation("upload to s3, url:{url}", s3Url);
+        
+        await _adoptImageService.SetImageHashAsync(input.AdoptId, hash);
+
+        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, hash, waterMarkInfo.resized);
+        
+        var resp = new GetWaterMarkImageInfoOutput
+        {
+            Image = waterMarkInfo.resized,
+            Signature = signatureWithSecretService,
+            ImageUri = hash
         };
+        _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(resp));
+        
+        return resp;
+    }
+
+    private async Task<string> uploadToS3Async(string base64String, string fileName)
+    {
+        try
+        {
+            byte[] imageBytes = Convert.FromBase64String(base64String);
+            var stream = new MemoryStream(imageBytes);
+            return await _awsS3Client.UpLoadFileForNFTAsync(stream, fileName);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "upload to s3 error, {err}", e.ToString());
+            return string.Empty;
+        }
     }
     
     private string GenerateSignature(byte[] privateKey, string adoptId, string image)
@@ -185,37 +252,38 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.ToHex();
     }
     
-    private string GenerateSignatureWithSecretService(string adoptId, string image)
+    private string GenerateSignatureWithSecretService(string adoptId, string hash, string image)
     {
         var data = new ConfirmInput {
             AdoptId = Hash.LoadFromHex(adoptId),
-            Image = image
+            Image = image,
+            ImageUri = hash 
         };
         var dataHash = HashHelper.ComputeFrom(data);
         var signature =  _secretProvider.GetSignatureFromHashAsync(_chainOptions.PublicKey, dataHash);
         return signature.Result;
     }
 
-    private async Task<List<string>> GetImagesAsync(string adoptId, int count, string requestId)
+    private async Task<List<string>> GetImagesAsync(string adoptId, string requestId)
     {
         var images = await _adoptImageService.GetImagesAsync(adoptId);
-        if (images != null)
+        if (images != null && images.Count !=0)
         {
+            _logger.LogInformation("TraitsActionProvider GetImagesAsync images null {requestId} {adoptId}", requestId, adoptId);
             return images;
         } 
-        // todo get  images from ai query and save them
-        // var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
-        // images = new List<string>();
-        // foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
-        // {
-        //     images.Add(imageItem.image);
-        // }
+        _logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId} adoptId: {adoptId} ", requestId, adoptId);
+        var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
         images = new List<string>();
-        var index = RandomHelper.GetRandom(_adoptImageOptions.Images.Count); // todo mock
-        for (int i = 0; i < count; i++)
+        _logger.LogInformation("QueryImageInfoByAiAsync Finish. resp: {resp}",  JsonConvert.SerializeObject(aiQueryResponse));
+        if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
         {
-            images.Add(_adoptImageOptions.Images[index % _adoptImageOptions.Images.Count]); // todo mack
-            index++;
+            _logger.LogInformation("TraitsActionProvider GetImagesAsync aiQueryResponse.images null");
+            return images;
+        }
+        foreach (Dtos.TraitsDto.Image imageItem in aiQueryResponse.images)
+        {
+            images.Add(imageItem.image);
         }
         await _adoptImageService.SetImagesAsync(adoptId, images);
         return images;
@@ -226,7 +294,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return await _adoptGraphQlProvider.QueryAdoptInfoAsync(adoptId);
     }
     
-    private async Task<string> GetWatermarkImageAsync(WatermarkInput input)
+    private async Task<WatermarkResponse> GetWatermarkImageAsync(WatermarkInput input)
     {
         try
         {
@@ -241,19 +309,21 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             {
                 var responseString = await response.Content.ReadAsStringAsync();
                 _logger.LogInformation("Get Watermark Image Success");
+                
+                var resp = JsonConvert.DeserializeObject<WatermarkResponse>(responseString);
                
-                return responseString;
+                return resp;
             }
             else
             {
                 _logger.LogError("Get Watermark Image Success fail, {resp}", response.ToString());
             }
-            return "";
+            return null;
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Get Watermark Image Success fail error, {err}", e.ToString());
-            return "";
+            return null;
         }
     }
     
@@ -263,36 +333,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         try
         {
-            // todo remove
-            // imageInfo = new GenerateImage
-            // {
-            //     seed = "",
-            //     newTraits = new List<Trait>
-            //     {
-            //         new Trait
-            //         {
-            //             name = "mouth",
-            //             value = "bewitching"
-            //         }
-            //     },
-            //     baseImage = new BaseImage
-            //     {
-            //         traits = new List<Trait>
-            //         {
-            //             new Trait
-            //             {
-            //                 name = "hat",
-            //                 value = "alpine hat"
-            //             },
-            //             new Trait
-            //             {
-            //                 name = "eye",
-            //                 value = "is wearing 3d glasses"
-            //             }
-            //         }
-            //     }
-            // };
-
             using var httpClient = new HttpClient();
             var jsonString = ConvertObjectToJsonString(imageInfo);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
@@ -303,27 +343,26 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsyncCheck generate success adopt id:" + adoptId);
+                _logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId);
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
-                return aiQueryResponse.resquestId;
+                return aiQueryResponse.requestId;
             }
             else
             {
-                _logger.LogError("TraitsActionProvider GenerateImageByAiAsyncCheck generate error");
+                _logger.LogError("TraitsActionProvider GenerateImageByAiAsync generate error {adoptId}", adoptId);
             }
             return "";
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "TraitsActionProvider GenerateImageByAiAsyncCheck generate exception");
+            _logger.LogError(e, "TraitsActionProvider GenerateImageByAiAsync generate exception {adoptId}", adoptId);
             return "";
         }
     }
     
     private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)
     {
-        // requestId = "363408ba-4f7f-4a9b-8503-77df25b60203"; // todo remove
         var queryImage = new QueryImage
         {
             requestId = requestId 
@@ -337,14 +376,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         {
             string responseContent = await response.Content.ReadAsStringAsync();
             AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
-            _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success");
-            // todo image 字段加密
-            // GenerateContractSignature 下面接口
+            _logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success {requestId}", requestId);
             return aiQueryResponse;
         }
         else
         {
-            _logger.LogError("TraitsActionProvider QueryImageInfoByAiAsync query not success");
+            _logger.LogError("TraitsActionProvider QueryImageInfoByAiAsync query not success {requestId}", requestId);
             return new AiQueryResponse{};
         }
     }

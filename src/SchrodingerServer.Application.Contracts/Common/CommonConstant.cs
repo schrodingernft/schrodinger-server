@@ -6,7 +6,7 @@ public static class CommonConstant
 {
 
     public const string EmptyString = "";
-    public const string UnderLind = "_";
+    public const string Underline = "_";
     public const string Comma = ",";
 
     public const string Success = "Success";

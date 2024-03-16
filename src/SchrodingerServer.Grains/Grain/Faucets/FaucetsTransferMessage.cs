@@ -7,4 +7,5 @@ public class FaucetsTransferMessage
 
     public const string InvalidAddressMessage = "Invalid Address.";
     public const string SuspendUseMessage = "Suspend use.";
+    public const string TransferPendingMessage = "The last faucet transaction is pending, please try again later.";
 }

@@ -3,11 +3,13 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using CoinGecko.Clients;
 using CoinGecko.Interfaces;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common;
+using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Token;
@@ -17,15 +19,19 @@ public class TokenPriceProvider : ITokenPriceProvider, ISingletonDependency
     private readonly ICoinGeckoClient _coinGeckoClient;
     private readonly IRequestLimitProvider _requestLimitProvider;
     private readonly IOptionsMonitor<CoinGeckoOptions> _coinGeckoOptions;
+    private readonly IDistributedCache<PriceCacheItem> _distributedCache;
 
     private const string UsdSymbol = "usd";
+    private const string PriceCachePrifix = "usd";
+    private const int PriceCacheTimeout = 60;
 
     public ILogger<TokenPriceProvider> Logger { get; set; }
 
-    public TokenPriceProvider(IRequestLimitProvider requestLimitProvider, IHttpClientFactory httpClientFactory, IOptionsMonitor<CoinGeckoOptions> options)
+    public TokenPriceProvider(IRequestLimitProvider requestLimitProvider, IHttpClientFactory httpClientFactory, IOptionsMonitor<CoinGeckoOptions> options, IDistributedCache<PriceCacheItem> distributedCache)
     {
         _requestLimitProvider = requestLimitProvider;
         _coinGeckoOptions = options;
+        _distributedCache = distributedCache;
         Logger = NullLogger<TokenPriceProvider>.Instance;
         if (_coinGeckoOptions.CurrentValue.ApiKey.IsNullOrEmpty())
         {
@@ -53,6 +59,22 @@ public class TokenPriceProvider : ITokenPriceProvider, ISingletonDependency
         return httpClient;
     }
 
+    public async Task<decimal> GetPriceByCacheAsync(string symbol)
+    {
+        var priceItem = await _distributedCache.GetOrAddAsync(
+            string.Join(":", PriceCachePrifix, symbol),
+            async () => new PriceCacheItem
+            {
+                Price = await GetPriceAsync(symbol)
+            } ,
+            () => new DistributedCacheEntryOptions
+            {
+                AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(PriceCacheTimeout)
+            }
+        );
+        return priceItem.Price;
+    }
+    
     public async Task<decimal> GetPriceAsync(string symbol)
     {
         if (string.IsNullOrEmpty(symbol))
@@ -66,7 +88,6 @@ public class TokenPriceProvider : ITokenPriceProvider, ISingletonDependency
             Logger.LogWarning($"can not get the token {symbol}");
             return 0;
         }
-
         try
         {
             var coinData =

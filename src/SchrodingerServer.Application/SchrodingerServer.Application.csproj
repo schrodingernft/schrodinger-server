@@ -18,6 +18,7 @@
   <ItemGroup>
     <PackageReference Include="AElf.Cryptography" Version="1.5.0" />
     <PackageReference Include="AElf.Types" Version="1.5.0" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.306.1" />
     <PackageReference Include="CoinGeckoAsyncApi" Version="1.7.0" />
     <PackageReference Include="GraphQL" Version="7.4.1" />
     <PackageReference Include="GraphQL.Client.Abstractions" Version="6.0.0" />

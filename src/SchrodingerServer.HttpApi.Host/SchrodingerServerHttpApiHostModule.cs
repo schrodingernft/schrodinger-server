@@ -70,6 +70,9 @@ namespace SchrodingerServer
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
             Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
             Configure<FaucetsOptions>(configuration.GetSection("Faucets"));
+            Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+            Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
+            Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

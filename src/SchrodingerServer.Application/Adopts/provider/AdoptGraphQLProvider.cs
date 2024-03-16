@@ -53,7 +53,6 @@ public class AdoptGraphQLProvider : IAdoptGraphQLProvider, ISingletonDependency
         if (adpotInfoDto == null || adpotInfoDto.GetAdoptInfo == null)
         {
             _logger.LogError("query adopt info failed, adoptId = {AdoptId}", adoptId);
-            throw new Exception("query adopt info failed, adoptId = " + adoptId);
             return null;
         }
 

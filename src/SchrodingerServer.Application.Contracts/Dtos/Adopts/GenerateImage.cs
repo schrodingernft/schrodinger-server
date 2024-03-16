@@ -42,19 +42,21 @@ public class QueryImage
 public class GenerateImage
 {
     public string seed { get; set; }
-    public List<Trait> newTraits { get; set; }
+    public List<Trait> newAttributes { get; set; }
     public BaseImage baseImage { get; set; }
+    
+    public int numImages { get; set; }
 }
 
 
 public class BaseImage
 {
-    public List<Trait> traits { get; set; }
+    public List<Trait> attributes { get; set; }
 }
 
 public class Trait
 {
-    public string name { get; set; }
+    public string traitType { get; set; }
     public string value { get; set; }
 }
 
@@ -80,10 +82,26 @@ public class ImageOperation{
 public class WatermarkInput
 {
     public string sourceImage  { get; set; }
-    public string watermark  { get; set; }
+    public WaterMark watermark  { get; set; }
+}
+
+public class WaterMark
+{
+    public string text  { get; set; }
+}
+
+public class WatermarkResponse
+{
+    public string processedImage  { get; set; }
+    public string resized { get; set; }
+}
+
+public class IsOverLoadedResponse
+{
+    public bool isOverLoaded  { get; set; }
 }
 
 public class GenerateImageFromAiRes
 {
-    public string resquestId  { get; set; }
+    public string requestId  { get; set; }
 }

@@ -17,6 +17,6 @@ public class ZealyUserXpRecordIndex : SchrodingerEntity<string>, IIndexBuild
     public decimal Amount { get; set; }
     [Keyword] public string BizId { get; set; }
     [Keyword] public string Status { get; set; }
-    public DateTime CreateTime { get; set; }
-    public DateTime UpdateTime { get; set; }
+    public long CreateTime { get; set; }
+    public long UpdateTime { get; set; }
 }

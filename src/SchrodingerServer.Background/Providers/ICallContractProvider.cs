@@ -66,7 +66,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         var record = new ZealyUserXpRecordIndex
         {
             Id = recordId,
-            CreateTime = DateTime.UtcNow,
+            CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Xp = xp,
             Amount = xp * _options.Coefficient,
             Status = "pending",
@@ -79,8 +79,9 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
 
         _logger.LogInformation("in create: {time}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
     }
-    
-    private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore)
+
+    private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp,
+        ZealyXpScoreIndex xpScore)
     {
         // todo: get transaction status and update record
 
@@ -89,8 +90,9 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
             // ...
             zealyUserXp.UseRepairTime = xpScore.UpdateTime;
         }
+
         record.Status = ""; //TransactionStatusType.Success.ToString();
-        record.UpdateTime = DateTime.UtcNow;
+        record.UpdateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();;
 
         zealyUserXp.LastXp = zealyUserXp.Xp;
         zealyUserXp.Xp = record.Xp;

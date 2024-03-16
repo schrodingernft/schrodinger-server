@@ -1,6 +1,7 @@
 using Hangfire;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Options;
+using SchrodingerServer.Symbol;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Background.Services;
@@ -25,5 +26,7 @@ public class InitJobsService : IInitJobsService, ISingletonDependency
     {
         _recurringJobs.AddOrUpdate<IZealyScoreService>("IZealyScoreService",
             x => x.UpdateScoreAsync(), _options.RecurringCorn);
+        _recurringJobs.AddOrUpdate<IXgrPriceService>("IXgrPriceService",
+            x => x.SaveXgrDayPriceAsync(false), _options.RecurringCorn);
     }
 }

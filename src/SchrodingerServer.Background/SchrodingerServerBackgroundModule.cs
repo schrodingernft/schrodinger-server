@@ -1,11 +1,17 @@
 using System;
+using GraphQL.Client.Abstractions;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.Newtonsoft;
 using Hangfire;
 using Hangfire.Mongo;
 using Hangfire.Mongo.CosmosDB;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Orleans;
@@ -26,12 +32,15 @@ using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.Threading;
 using Polly;
+using SchrodingerServer.CoinGeckoApi;
+using SchrodingerServer.Common.GraphQL;
 using SchrodingerServer.Points;
-using SchrodingerServer.Users;
+using StackExchange.Redis;
 
 namespace SchrodingerServer.Background;
 
 [DependsOn(
+    typeof(SchrodingerServerApplicationModule),
     typeof(SchrodingerServerApplicationContractsModule),
     typeof(AbpBackgroundWorkersModule),
     typeof(AbpAutofacModule),
@@ -53,7 +62,12 @@ public class SchrodingerServerBackgroundModule : AbpModule
         Configure<UpdateScoreOptions>(configuration.GetSection("UpdateScore"));
         Configure<ZealyScoreOptions>(configuration.GetSection("ZealyScore"));
         Configure<ContractSyncOptions>(configuration.GetSection("Sync"));
-
+        Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+        Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+        
+        var hostingEnvironment = context.Services.GetHostingEnvironment();
+        ConfigureRedis(context, configuration, hostingEnvironment);
+        ConfigureGraphQl(context, configuration);
         context.Services.AddHostedService<SchrodingerServerHostService>();
         context.Services.AddSingleton<IPointSettleService, PointSettleService>();
         context.Services.AddHttpClient();
@@ -62,6 +76,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         ConfigureOrleans(context, configuration);
     }
 
+  
     private static void ConfigureOrleans(ServiceConfigurationContext context, IConfiguration configuration)
     {
         context.Services.AddSingleton(o =>
@@ -147,6 +162,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
     {
         context.AddBackgroundWorkerAsync<UserRelationWorker>();
         context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
+        context.AddBackgroundWorkerAsync<UniswapPriceSnapshotWorker>();
         InitRecurringJob(context.ServiceProvider);
         StartOrleans(context.ServiceProvider);
     }
@@ -172,5 +188,28 @@ public class SchrodingerServerBackgroundModule : AbpModule
     {
         var client = serviceProvider.GetRequiredService<IClusterClient>();
         AsyncHelper.RunSync(client.Close);
+    }
+    
+    private void ConfigureRedis(
+        ServiceConfigurationContext context,
+        IConfiguration configuration,
+        IWebHostEnvironment hostingEnvironment)
+    {
+        if (!hostingEnvironment.IsDevelopment())
+        {
+            var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            context.Services
+                .AddDataProtection()
+                .PersistKeysToStackExchangeRedis(redis, "SchrodingerServer-Protection-Keys");
+        }
+    }
+    
+    private void ConfigureGraphQl(ServiceConfigurationContext context,
+        IConfiguration configuration)
+    {
+        context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
+            new NewtonsoftJsonSerializer()));
+        context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
+        Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
     }
 }

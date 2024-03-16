@@ -17,7 +17,7 @@ namespace SchrodingerServer.Symbol;
 
 public interface IXgrPriceService
 {
-    Task SaveXgrDayPriceAsync();
+    Task SaveXgrDayPriceAsync(bool isGen0);
 }
 
 
@@ -50,7 +50,7 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
         _logger = logger;
     }
 
-    public async Task SaveXgrDayPriceAsync()
+    public async Task SaveXgrDayPriceAsync(bool isGen0)
     {
         var skipCount = 0;
         var date = getUTCDay();
@@ -64,7 +64,7 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
             List<SymbolDayPriceIndex> symbolDayPriceIndexList = new List<SymbolDayPriceIndex>();
             foreach (var item in schrodingerSymbolList)
             {
-                var price = await GetSymbolPrice(item.Symbol,date.ToUtcSeconds());
+                var price = await GetSymbolPrice(item.Symbol,date.ToUtcSeconds(),isGen0);
                 if (price > 0)
                 {
                     var symbolDayPriceIndex = new SymbolDayPriceIndex()
@@ -81,6 +81,7 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
             {
                 await _symbolDayPriceProvider.SaveSymbolDayPriceIndex(symbolDayPriceIndexList);
             }
+            _logger.LogInformation("SaveXgrDayPriceAsync date:{date} isGen0:{isGen0} count:{count}", dateStr,isGen0,symbolDayPriceIndexList.Count);
         }
        
     }
@@ -91,7 +92,7 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
         return new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, 0, 0, 0, DateTimeKind.Utc);
     }
 
-    private async Task<decimal> GetSymbolPrice(string symbol,long date)
+    private async Task<decimal> GetSymbolPrice(string symbol,long date,bool isGen0)
     {
         var getMyNftListingsDto = new GetNFTListingsDto()
         {
@@ -103,15 +104,15 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
         decimal usdPrice = 0;
         try
         {
-            if (GetIsGen0FromSymbol(symbol))
+            bool isGen0Symbol  = GetIsGen0FromSymbol(symbol);
+            if (isGen0 && isGen0Symbol)
             {
                 var tokenResponse  = await _uniswapV3Provider.GetLatestUSDPriceAsync(date);
                 if (tokenResponse != null )
                 {
                     usdPrice = Convert.ToDecimal(tokenResponse.PriceUSD);
                 }
-            }
-            else
+            }else if(!isGen0 && !isGen0Symbol)
             {
                 var listingDto = await _symbolPriceGraphProvider.GetNFTListingsAsync(getMyNftListingsDto);
                 if (listingDto != null && listingDto.TotalCount > 0)

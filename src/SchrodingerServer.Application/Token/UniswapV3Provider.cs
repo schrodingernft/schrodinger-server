@@ -56,9 +56,11 @@ public class UniswapV3Provider : ISingletonDependency
         });
         _logger.LogDebug("UniSwapV3 price  tokenId={tokenId}, resp={Resp}", tokenId,
             JsonConvert.SerializeObject(resp));
-        AssertHelper.IsTrue(resp.Data != null, "Response data empty");
-        AssertHelper.NotEmpty(resp.Data!.Data, "Response list empty");
-        return resp.Data.Data[0];
+        if (resp.Data != null && !resp.Data!.Data.IsNullOrEmpty())
+        {
+           return resp.Data.Data[0];
+        }
+        return null;
     }
 
     public class BaseResponse<T>

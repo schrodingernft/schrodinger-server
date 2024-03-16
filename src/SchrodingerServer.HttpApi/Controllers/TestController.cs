@@ -29,9 +29,9 @@ public class TestController : AbpControllerBase
     }
     
     [HttpGet("saveXgrDayPrice")]
-    public async Task SaveXgrDayPriceAsync()
+    public async Task SaveXgrDayPriceAsync(bool isGen0)
     {
-         await _xgrPriceService.SaveXgrDayPriceAsync();
+         await _xgrPriceService.SaveXgrDayPriceAsync(isGen0);
     }
     
 }

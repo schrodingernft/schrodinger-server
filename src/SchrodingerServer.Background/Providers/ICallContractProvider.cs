@@ -79,8 +79,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
 
         _logger.LogInformation("in create: {time}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
     }
-
-    [AutomaticRetry(Attempts = 10, DelaysInSeconds = new[] { 20 })]
+    
     private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore)
     {
         // todo: get transaction status and update record

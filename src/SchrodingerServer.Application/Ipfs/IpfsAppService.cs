@@ -31,44 +31,6 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
         _logger = logger;
         _options = ipfsOption;
     }
-    
-    public async Task<string> TestIpfs()
-    {
-        var url = _options.CurrentValue.Url;
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
-        
-        request.Headers.Add("Authorization", _options.CurrentValue.Token);
-        request.Content = JsonContent.Create(new Dictionary<string, object>());
-
-        var ipfsBody = new IpfsBody
-        {
-            pinataContent = new PinataContent
-            {
-                data = "dsaasdaa", // 存储的内容
-            },
-            pinataOptions = new PinataOptions
-            {
-                cidVersion = 1, // 版本号
-            },
-            pinataMetadata = new PinataMetadata
-            {
-                name = "test2.json" // 文件
-            }
-        };
-        var jsonString = JsonConvert.SerializeObject(ipfsBody);
-    
-    
-        request.Content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-
-        var client = new HttpClient();
-        
-        var response = await client.SendAsync(request);
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        Console.WriteLine(responseBody);
-        
-        return responseBody;
-    }
 
     public async Task<string> Upload(string content, string name)
     {

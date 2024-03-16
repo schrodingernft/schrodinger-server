@@ -65,13 +65,12 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
         _logger.LogInformation("begin to add zealy user, nextCursor:{nextCursor}", nextCursor);
         try
         {
-
             await AddZealyUserAsync(nextCursor);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "add zealy user error.");
-            
+
             //todo: retry logic
         }
     }
@@ -84,8 +83,10 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
             uri += $"cursor={nextCursor}";
         }
 
+        _logger.LogInformation("uri, {uri}", uri);
         var response = await _zealyClientProxyProvider.GetAsync<ReviewDto>(uri);
-
+        _logger.LogInformation("response, {response}", response);
+        
         if (response.NextCursor == null)
         {
             _logger.LogInformation("add zealy user finish");

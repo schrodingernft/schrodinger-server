@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using SchrodingerServer.Points;
@@ -116,6 +115,9 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
                 {
                     holderBalance.Balance = item.ChangeAmount;
                 }
+
+                holderBalance.Id = IdGenerateHelper.GetHolderBalanceId(holderBalance.ChainId, holderBalance.BizDate, 
+                    holderBalance.Symbol, holderBalance.Address);
 
                 saveList.Add(holderBalance);
             }

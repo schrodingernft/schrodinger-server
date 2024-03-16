@@ -30,7 +30,8 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
         _userRelationService = userRelationService;
         _logger = logger;
         _pointSettleService = pointSettleService;
-        timer.Period = options.Value.Period * 60 * 1000;
+        timer.Period = options.Value.Period  * 1000;
+        //timer.Period = options.Value.Period * 60 * 1000;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)

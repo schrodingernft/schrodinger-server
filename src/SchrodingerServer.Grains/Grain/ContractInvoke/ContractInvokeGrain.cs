@@ -1,5 +1,7 @@
+using AElf;
 using AElf.Client.Dto;
 using AElf.Client.Service;
+using AElf.Types;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -101,13 +103,14 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
             _logger.LogError("ChainOptions chainId:{chainId} has no chain info.", State.ChainId);
             return;
         }
-        var txInfo = await _contractProvider.SendTransactionAsync(State.ChainId, chainInfo.PointTxPublicKey, 
-            State.ContractAddress, State.ContractMethod, State.Param);
         
-        var txResult = await _contractProvider.CallTransactionAsync<SendTransactionOutput>(State.ChainId, txInfo.transaction);
+        var client = _blockchainClientFactory.GetClient(State.ChainId);
+        
+        var txResult = await SendTransactionAsync(State.ChainId, await GenerateRawTransaction(State.ContractMethod,
+            State.Param, State.ChainId, State.ContractAddress));
         
         var oriStatus = State.Status;
-        State.Sender = txInfo.transaction.From.ToBase58();
+        State.Sender = client.GetAddressFromPrivateKey(chainInfo.PrivateKey);
         State.TransactionId = txResult.TransactionId;
         State.Status = ContractInvokeStatus.Pending.ToString();
         
@@ -168,7 +171,37 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         
         await WriteStateAsync();
     }
+    
+    private async Task<SendTransactionOutput> SendTransactionAsync(string chainId, string rawTx)
+    {
+        var client = _blockchainClientFactory.GetClient(chainId);
+        return await client.SendTransactionAsync(new SendTransactionInput() { RawTransaction = rawTx });
+    }
 
+    private async Task<string> GenerateRawTransaction(string methodName, string param, string chainId,
+        string contractAddress)
+    {
+        if (!_chainOptionsMonitor.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo)) return "";
+
+        var client = _blockchainClientFactory.GetClient(chainId);
+        var status = await client.GetChainStatusAsync();
+        var height = status.BestChainHeight;
+        var blockHash = status.BestChainHash;
+
+        var from = client.GetAddressFromPrivateKey(chainInfo.PrivateKey);
+        var transaction = new Transaction
+        {
+            From = Address.FromBase58(from),
+            To = Address.FromBase58(contractAddress),
+            MethodName = methodName,
+            Params = ByteString.FromBase64(param),
+            RefBlockNumber = height,
+            RefBlockPrefix = ByteString.CopyFrom(Hash.LoadFromHex(blockHash).Value.Take(4).ToArray())
+        };
+        
+        return client.SignTransaction(chainInfo.PrivateKey, transaction).ToByteArray().ToHex();
+    }
+    
     private async Task<TransactionResultDto> GetTxResultAsync(string chainId, string txId)
     {
         var client = _blockchainClientFactory.GetClient(chainId);

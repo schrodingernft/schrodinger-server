@@ -27,8 +27,8 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private readonly IZealyProvider _zealyProvider;
 
-    //private readonly ZealyClientProxyProvider _zealyClientProxyProvider;
-    private readonly IZealyClientProvider _zealyClientProxyProvider;
+    private readonly IZealyClientProxyProvider _zealyClientProxyProvider;
+    //private readonly IZealyClientProvider _zealyClientProxyProvider;
     private readonly INESTRepository<ZealyUserXpIndex, string> _zealyUserXpRepository;
     private readonly ICallContractProvider _contractProvider;
     private readonly ZealyScoreOptions _options;
@@ -36,7 +36,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
-        IZealyProvider zealyProvider, IZealyClientProvider zealyClientProxyProvider,
+        IZealyProvider zealyProvider, IZealyClientProxyProvider zealyClientProxyProvider,
         INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
         IOptionsSnapshot<ZealyScoreOptions> options)
     {

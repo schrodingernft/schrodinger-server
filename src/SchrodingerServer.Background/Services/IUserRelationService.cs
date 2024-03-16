@@ -81,7 +81,7 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
         var uri = CommonConstant.GetReviewsUri + $"?questId={_options.QuestId}&limit={_options.Limit}";
         if (!nextCursor.IsNullOrEmpty())
         {
-            uri += $"cursor={nextCursor}";
+            uri += $"&cursor={nextCursor}";
         }
 
         _logger.LogInformation("uri, {uri}", uri);

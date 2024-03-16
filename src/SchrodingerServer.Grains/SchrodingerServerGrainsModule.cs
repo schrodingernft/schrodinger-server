@@ -1,6 +1,6 @@
 using AElf.Client.Service;
 using Microsoft.Extensions.DependencyInjection;
-using SchrodingerServer.Grains.Grain.ApplicationHandler;
+using SchrodingerServer.Common.ApplicationHandler;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Modularity;
 

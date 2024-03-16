@@ -30,6 +30,7 @@
     <ItemGroup>
         <ProjectReference Include="..\SchrodingerServer.Application\SchrodingerServer.Application.csproj" />
         <ProjectReference Include="..\SchrodingerServer.Grains\SchrodingerServer.Grains.csproj" />
+        <ProjectReference Include="..\SchrodingerServer.MongoDB\SchrodingerServer.MongoDB.csproj" />
     </ItemGroup>
     
     <ItemGroup>

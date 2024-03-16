@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
 using AElf.Client.Service;
 using Microsoft.Extensions.Options;
+using SchrodingerServer.Options;
 
-namespace SchrodingerServer.Grains.Grain.ApplicationHandler
+namespace SchrodingerServer.Common.ApplicationHandler
 {
     public class AElfClientFactory : IBlockchainClientFactory<AElfClient>
     {

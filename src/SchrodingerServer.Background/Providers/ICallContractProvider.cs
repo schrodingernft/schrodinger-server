@@ -5,6 +5,7 @@ using AElf.Indexing.Elasticsearch;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SchrodingerServer.Common;
 using SchrodingerServer.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Users.Dto;
@@ -40,7 +41,6 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
     [AutomaticRetry(Attempts = 5, DelaysInSeconds = new[] { 10 })]
     public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, ZealyXpScoreIndex xpScore, decimal xp)
     {
-        //var bizId = Guid.NewGuid() + "-" + DateTime.UtcNow.ToString("yyyy-MM-dd");
         var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
 
         var pointSettleDto = new PointSettleDto()
@@ -69,7 +69,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
             CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Xp = xp,
             Amount = xp * _options.Coefficient,
-            Status = "pending",
+            Status = ContractInvokeStatus.Pending.ToString(),
             UserId = zealyUserXp.Id,
             Address = zealyUserXp.Address
         };
@@ -77,22 +77,20 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
         // BackgroundJob.Schedule(() => SearchAsync(record, zealyUserXp, xpScore), TimeSpan.FromSeconds(150));
 
-        _logger.LogInformation("in create: {time}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        _logger.LogInformation("in create, bizId:{bizId}", bizId);
     }
 
     private async Task SearchAsync(ZealyUserXpRecordIndex record, ZealyUserXpIndex zealyUserXp,
         ZealyXpScoreIndex xpScore)
     {
-        // todo: get transaction status and update record
-
         if (xpScore != null)
         {
-            // ...
             zealyUserXp.UseRepairTime = xpScore.UpdateTime;
         }
 
-        record.Status = ""; //TransactionStatusType.Success.ToString();
-        record.UpdateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();;
+        record.Status = ContractInvokeStatus.Success.ToString();
+        record.UpdateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        ;
 
         zealyUserXp.LastXp = zealyUserXp.Xp;
         zealyUserXp.Xp = record.Xp;

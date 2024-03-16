@@ -82,6 +82,9 @@ public class ContractTest
             UserPointsList = { userPoints }
         };
 
+        var json = JsonFormatter.Default.Format(batchSettleInput);
+        Console.WriteLine(json);
+
         var str = "CgpTR1JIb2xkaW5nEioKIgogp4KHU8R+7jSr9stCm3aI5wj+IeIzpYuaGRgld/1pXwQQgNiO4W8=";
         // create raw transaction
         var transaction = new Transaction

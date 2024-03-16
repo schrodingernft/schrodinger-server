@@ -1,4 +1,3 @@
-using Google.Protobuf;
 
 namespace SchrodingerServer.Grains.Grain.ContractInvoke;
 
@@ -14,6 +13,9 @@ public class ContractInvokeGrainDto
     public string ContractAddress { get; set; }
     public string ContractMethod { get; set; }
     public string Sender { get; set; }
+    
+    public string ParamJson { get; set; }
+    
     public string Param { get; set; }
     public string TransactionId { get; set; }
     public string Status { get; set; }

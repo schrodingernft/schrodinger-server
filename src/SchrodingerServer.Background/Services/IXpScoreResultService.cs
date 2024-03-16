@@ -49,7 +49,8 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         }
 
         _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
-        var bizIds = records.Select(t => t.BizId).Distinct().ToList();
+        var bizIds = records.Select(t => t.Id).Distinct().ToList();
+      //  var bizIds = records.Select(t => t.BizId).Distinct().ToList();
 
         
         // fix , need to remove

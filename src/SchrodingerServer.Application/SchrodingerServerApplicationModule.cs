@@ -34,6 +34,7 @@ public class SchrodingerServerApplicationModule : AbpModule
         
         var configuration = context.Services.GetConfiguration();
         Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+        Configure<UniswapV3Options>(configuration.GetSection("UniswapV3"));
     }
     
 }

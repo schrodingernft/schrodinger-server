@@ -1,6 +1,10 @@
+using System;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using RedisRateLimiting.AspNetCore;
 using SchrodingerServer.EntityEventHandler.Core.Options;
+using StackExchange.Redis;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Modularity;
 
@@ -13,10 +17,14 @@ namespace SchrodingerServer.EntityEventHandler.Core
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            Configure<AbpAutoMapperOptions>(options =>
-            {
-                options.AddMaps<SchrodingerServerEntityEventHandlerCoreModule>();
-            });
+            Configure<AbpAutoMapperOptions>(options => { options.AddMaps<SchrodingerServerEntityEventHandlerCoreModule>(); });
+            var configuration = context.Services.GetConfiguration();
+            ConfigureRateLimiting(context, configuration);
+        }
+
+        private void ConfigureRateLimiting(ServiceConfigurationContext context, IConfiguration configuration)
+        {
+            var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
         }
     }
 }

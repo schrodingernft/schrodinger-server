@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Orleans;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Grains.Grain.Traits;
-using SchrodingerServer.Traits;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Adopts;
@@ -20,7 +19,7 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         _clusterClient = clusterClient;
         _logger = logger;
     }
-    
+
     public async Task<string> GetImageGenerationIdAsync(string adoptId)
     {
         try
@@ -35,16 +34,17 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         }
     }
 
-    public async Task SetImageGenerationIdAsync(string adoptId, string imageGenerationId)
+    public async Task<string> SetImageGenerationIdNXAsync(string adoptId, string imageGenerationId)
     {
         try
         {
             var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
-            await grain.SetImageGenerationIdAsync(imageGenerationId);
+            return await grain.SetImageGenerationIdNXAsync(imageGenerationId);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "SetRequestAsync Exception adoptId:{AdoptId}, imageGenerationId:{ImageGenerationId}", adoptId, imageGenerationId);
+            return "invalidVal";
         }
     }
 
@@ -71,7 +71,7 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
         return grain.HasWatermarkAsync();
     }
-    
+
     public async Task SetWatermarkImageInfoAsync(string adoptId, string imageUri, string resizedImage, string selectedImage)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);

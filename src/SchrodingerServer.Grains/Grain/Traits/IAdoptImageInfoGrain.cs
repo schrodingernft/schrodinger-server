@@ -9,7 +9,7 @@ namespace SchrodingerServer.Grains.Grain.Traits;
 
 public interface IAdoptImageInfoGrain : IGrainWithStringKey
 {
-    Task SetImageGenerationIdAsync(string imageGenerationId);
+    Task<string> SetImageGenerationIdNXAsync(string imageGenerationId);
     Task SetImagesAsync(List<string> images);
     Task<string> GetImageGenerationIdAsync();
     Task<List<string>> GetImagesAsync();
@@ -26,7 +26,7 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
     private readonly IObjectMapper _objectMapper;
 
 
-    public AdoptImageInfoGrain( ILogger<AdoptImageInfoGrain> logger, IObjectMapper objectMapper, 
+    public AdoptImageInfoGrain(ILogger<AdoptImageInfoGrain> logger, IObjectMapper objectMapper,
         IOptionsMonitor<ChainOptions> chainOptionsMonitor)
     {
         _logger = logger;
@@ -35,10 +35,15 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
     }
 
 
-    public async Task SetImageGenerationIdAsync(string imageGenerationId)
+    public async Task<string> SetImageGenerationIdNXAsync(string imageGenerationId)
     {
-        State.ImageGenerationId = imageGenerationId;
-        await WriteStateAsync();
+        if (State.ImageGenerationId == null)
+        {
+            State.ImageGenerationId = imageGenerationId;
+            await WriteStateAsync();
+        }
+
+        return State.ImageGenerationId;
     }
 
     public async Task SetImagesAsync(List<string> images)
@@ -68,18 +73,18 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
         await base.ReadStateAsync();
         await base.OnActivateAsync();
     }
-    
+
     public async Task SetWatermarkAsync()
     {
         State.HasWatermark = true;
         await WriteStateAsync();
     }
-    
+
     public Task<bool> HasWatermarkAsync()
     {
-        return  Task.FromResult(State.HasWatermark);
+        return Task.FromResult(State.HasWatermark);
     }
-    
+
     public async Task SetWatermarkImageInfoAsync(string uri, string resizeImage)
     {
         State.ImageUri = uri;
@@ -87,7 +92,7 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
         State.HasWatermark = true;
         await WriteStateAsync();
     }
-    
+
     public Task<WaterImageGrainInfoDto> GetWatermarkImageInfoAsync()
     {
         return Task.FromResult(_objectMapper.Map<AdoptImageInfoState, WaterImageGrainInfoDto>(State));

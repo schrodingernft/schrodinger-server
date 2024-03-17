@@ -8,7 +8,7 @@ public interface IAdoptImageService
 {
     Task<string> GetImageGenerationIdAsync(string adoptId);
 
-    Task SetImageGenerationIdAsync(string adoptId, string imageGenerationId);
+    Task<string> SetImageGenerationIdNXAsync(string adoptId, string imageGenerationId);
 
     Task<List<string>> GetImagesAsync(string adoptId);
     Task SetImagesAsync(string adoptId,List<string> images);

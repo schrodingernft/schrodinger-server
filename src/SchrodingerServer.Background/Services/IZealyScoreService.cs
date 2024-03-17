@@ -154,6 +154,9 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
             xp = userXpScore == null ? response.Xp : userXpScore.ActualScore;
             useRepairTime = userXpScore == null ? 0 : userXpScore.UpdateTime;
+            _logger.LogInformation(
+                "calculate xp, responseXp:{responseXp}, userXp:{userXp}, useRepairTime:{useRepairTime}, xp:{xp}",
+                response.Xp, userXp.Xp, useRepairTime, xp);
         }
         else
         {
@@ -165,6 +168,9 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
             }
 
             xp = response.Xp - userXp.Xp + repairScore;
+            _logger.LogInformation(
+                "calculate xp, responseXp:{responseXp}, userXp:{userXp}, repairScore:{repairScore}, useRepairTime:{useRepairTime}, xp:{xp}",
+                response.Xp, userXp.Xp, repairScore, useRepairTime, xp);
         }
 
         if (xp > 0)

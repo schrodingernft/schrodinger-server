@@ -16,8 +16,7 @@ public interface IHolderBalanceProvider
     Task<List<HolderDailyChangeDto>> GetHolderDailyChangeListAsync(string chainId, string bizDate, int skipCount,
         int maxResultCount);
 
-    Task<Dictionary<string, HolderBalanceIndex>> GetPreHolderBalanceAsync(string chainId, string bizDate,
-        List<string> addressList);
+    Task<HolderBalanceIndex> GetPreHolderBalanceAsync(string chainId, string bizDate, string address);
 }
 
 public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependency
@@ -61,29 +60,27 @@ public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependenc
         return graphQlResponse?.GetSchrodingerHolderDailyChangeList.Data;
     }
 
-    public async Task<Dictionary<string, HolderBalanceIndex>> GetPreHolderBalanceAsync(string chainId, string bizDate,
-        List<string> addressList)
+    public async Task<HolderBalanceIndex> GetPreHolderBalanceAsync(string chainId, string bizDate, string address)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<HolderBalanceIndex>, QueryContainer>>();
 
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.ChainId).Value(chainId)));
 
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.BizDate).Value(bizDate)));
-        
         mustQuery.Add(q => q.TermRange(i
             => i.Field(index => index.BizDate).LessThan(bizDate)));
 
         mustQuery.Add(q => q.Terms(i =>
-            i.Field(f => f.Address).Terms(addressList)));
+            i.Field(f => f.Address).Terms(address)));
 
         QueryContainer Filter(QueryContainerDescriptor<HolderBalanceIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
-
-        var tuple = await _holderBalanceIndexRepository.GetSortListAsync(Filter);
-        return !tuple.Item2.IsNullOrEmpty()
-            ? tuple.Item2.ToDictionary(item => item.Address, item => item)
-            : new Dictionary<string, HolderBalanceIndex>();
+        
+        var sorting = new Func<SortDescriptor<HolderBalanceIndex>, IPromise<IList<ISort>>>(s =>
+            s.Descending(t => t.BizDate));
+        
+        var tuple = await _holderBalanceIndexRepository.GetSortListAsync(Filter, sortFunc: sorting);
+        
+        return !tuple.Item2.IsNullOrEmpty() ? tuple.Item2.FirstOrDefault() : new HolderBalanceIndex();
     }
 }

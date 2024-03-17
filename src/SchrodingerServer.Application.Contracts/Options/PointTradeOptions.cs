@@ -6,7 +6,7 @@ public class PointTradeOptions
 {
     public int MaxBatchSize { get; set; } = 10;
     
-    public string BaseCoin { get; set; } = "SGR";
+    public string BaseCoin { get; set; } = "SGR-1";
     
     public Dictionary<string, ChainInfo> ChainInfos { get; set; } = new();
 

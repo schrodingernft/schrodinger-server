@@ -83,6 +83,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} start...", chainId);
         var skipCount = 0;
         List<HolderDailyChangeDto> dailyChanges;
+        var priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
         do
         {
             dailyChanges =
@@ -97,8 +98,8 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
             var symbols = dailyChanges.Select(item => item.Symbol).ToHashSet();
             symbols.Add(_pointTradeOptions.CurrentValue.BaseCoin);
-
-            var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(bizDate, symbols.ToList());
+            
+            var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(priceBizDate, symbols.ToList());
 
             //get user latest date balance and add change
             var saveList = new List<HolderBalanceIndex>();
@@ -130,11 +131,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
     private async Task<long> GetPreHolderBalanceAsync(string chainId, string bizDate, string address)
     {
-        var preHolderBalanceDict = await _holderBalanceProvider.GetPreHolderBalanceAsync(chainId, bizDate,
-            new List<string>
-            {
-                address
-            });
-        return preHolderBalanceDict.TryGetValue(address, out var preHolderBalance) ? preHolderBalance.Balance : 0;
+        var preHolderBalanceIndex = await _holderBalanceProvider.GetPreHolderBalanceAsync(chainId, bizDate, address);
+        return preHolderBalanceIndex.Balance;
     }
 }

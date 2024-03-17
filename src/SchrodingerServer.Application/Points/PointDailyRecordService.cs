@@ -46,11 +46,16 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
         {
             return;
         }
-
         foreach (var (pointName, pointInfo) in _pointTradeOptions.CurrentValue.PointMapping)
         {
             if (pointInfo.ConditionalExp.IsNullOrEmpty())
             {
+                continue;
+            }
+            
+            if (pointInfo.NeedMultiplyPrice && symbolPrice == null)
+            {
+                _logger.LogError("Need multiply symbolPrice but it is null.");
                 continue;
             }
 
@@ -70,7 +75,9 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
                 PointAmount = DecimalHelper.Divide(CalcPointAmount(dto, pointInfo, symbolPrice), 8)
             };
             input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName, input.Address);
-            _logger.LogInformation("Handle point daily record id:{id} symbolPrice:{symbolPrice} ",input.Id, symbolPrice);
+            _logger.LogInformation(
+                "Handle point daily record id:{id} symbolPrice:{symbolPrice} pointAmount:{pointAmount}", input.Id,
+                symbolPrice, input.PointAmount);
             var pointDailyRecordGrain = _clusterClient.GetGrain<IPointDailyRecordGrain>(input.Id);
             var result = await pointDailyRecordGrain.UpdateAsync(input);
             if (!result.Success)
@@ -87,14 +94,10 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
 
     private decimal CalcPointAmount(HolderDailyChangeDto dto, PointInfo pointInfo, decimal? symbolPrice)
     {
+        //use balance
         if (pointInfo.UseBalance)
         {
-            return dto.Balance;
-        }
-
-        if (pointInfo.Factor == null)
-        {
-            return dto.ChangeAmount;
+            return (decimal)(dto.Balance * pointInfo.Factor * symbolPrice);
         }
 
         var pointAmount = (decimal)(dto.ChangeAmount * pointInfo.Factor);

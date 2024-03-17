@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using SchrodingerServer.Background.Services;
 using SchrodingerServer.Options;
-using SchrodingerServer.Points;
-using SchrodingerServer.Users.Dto;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Threading;
 
@@ -26,7 +21,7 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
     {
         _userRelationService = userRelationService;
         _logger = logger;
-        timer.Period = options.Value.Period * 1000;
+        timer.Period = options.Value.Period * 60 * 1000;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)

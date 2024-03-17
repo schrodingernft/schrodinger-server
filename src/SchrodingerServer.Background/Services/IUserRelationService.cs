@@ -87,7 +87,7 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
             uri += $"&cursor={nextCursor}";
         }
 
-        _logger.LogInformation("uri, {uri}", uri);
+        _logger.LogInformation("get user from zealy, uri:{uri}", uri);
         var response = await _zealyClientProxyProvider.GetAsync<ReviewDto>(uri);
 
         if (response.NextCursor == null)
@@ -144,10 +144,8 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
             uri += $"&cursor={nextCursor}";
         }
 
-        _logger.LogInformation("uri, {uri}", uri);
+        _logger.LogInformation("get user from zealy, uri:{uri}", uri);
         var response = await _zealyClientProxyProvider.GetAsync<ReviewDto>(uri);
-        _logger.LogInformation("response, {response}", response);
-
         if (response.NextCursor == null)
         {
             _logger.LogInformation("add zealy user finish");

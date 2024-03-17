@@ -1,11 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
+using SchrodingerServer.EntityEventHandler.Core;
 using Volo.Abp;
 using Volo.Abp.Authorization;
 using Volo.Abp.Autofac;
 using Volo.Abp.BackgroundJobs;
-using Volo.Abp.Data;
 using Volo.Abp.Modularity;
-using Volo.Abp.Threading;
 
 namespace SchrodingerServer;
 
@@ -19,15 +18,11 @@ public class SchrodingerServerTestBaseModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
-
     }
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        Configure<AbpBackgroundJobOptions>(options =>
-        {
-            options.IsJobExecutionEnabled = false;
-        });
+        Configure<AbpBackgroundJobOptions>(options => { options.IsJobExecutionEnabled = false; });
 
         context.Services.AddAlwaysAllowAuthorization();
     }
@@ -35,5 +30,4 @@ public class SchrodingerServerTestBaseModule : AbpModule
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
     }
-
 }

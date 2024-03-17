@@ -12,13 +12,13 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
 {
     private readonly ILogger<AutoMaticImageGenerateHandler> _logger;
     private readonly AutoMaticImageProvider _autoMaticImageProvider;
-    private readonly IRequestLimitProvider _requestLimitProvider;
+    private readonly IRateDistributeLimiter _rateDistributeLimiter;
 
-    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRequestLimitProvider requestLimitProvider)
+    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRequestLimitProvider requestLimitProvider, IRateDistributeLimiter rateDistributeLimiter)
     {
         _logger = logger;
         _autoMaticImageProvider = autoMaticImageProvider;
-        _requestLimitProvider = requestLimitProvider;
+        _rateDistributeLimiter = rateDistributeLimiter;
     }
 
     public async Task HandleEventAsync(AutoMaticImageGenerateEto eventData)
@@ -30,7 +30,9 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
 
     private async Task<T> HandleAsync<T>(Func<Task<T>> task)
     {
-        await _requestLimitProvider.RecordRequestAsync("autoMaticImageGenerateHandler-");
+        var limiter = _rateDistributeLimiter.GetRateLimiterInstance("autoMaticImageGenerateHandler");
+        await limiter.AcquireAsync();
+        // await _requestLimitProvider.RecordRequestAsync("autoMaticImageGenerateHandler-");
         return await task();
     }
 }

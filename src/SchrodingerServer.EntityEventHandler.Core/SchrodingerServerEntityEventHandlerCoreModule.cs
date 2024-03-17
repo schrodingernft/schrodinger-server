@@ -1,8 +1,5 @@
-using System;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using RedisRateLimiting.AspNetCore;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using StackExchange.Redis;
 using Volo.Abp.AutoMapper;
@@ -24,7 +21,9 @@ namespace SchrodingerServer.EntityEventHandler.Core
 
         private void ConfigureRateLimiting(ServiceConfigurationContext context, IConfiguration configuration)
         {
-            var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            var multiplexer = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+            Configure<RateLimitOptions>(configuration.GetSection("RateLimitOptions"));
         }
     }
 }

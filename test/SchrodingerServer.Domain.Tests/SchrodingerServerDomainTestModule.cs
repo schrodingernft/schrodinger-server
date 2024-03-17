@@ -8,6 +8,9 @@ using AElf.Indexing.Elasticsearch.Services;
 using Elasticsearch.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SchrodingerServer.EntityEventHandler.Core.IndexHandler;
+using SchrodingerServer.EntityEventHandler.Core.Options;
+using StackExchange.Redis;
 using Volo.Abp;
 using Volo.Abp.Modularity;
 using Volo.Abp.Threading;
@@ -22,13 +25,25 @@ public class SchrodingerServerDomainTestModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         Configure<IndexCreateOption>(x => { x.AddModule(typeof(SchrodingerServerDomainModule)); });
-        
-        // Do not modify this!!!
-        context.Services.Configure<EsEndpointOption>(options =>
-        {
-            options.Uris = new List<string> { "http://127.0.0.1:9200" };
-        });
 
+        // Do not modify this!!!
+        context.Services.Configure<EsEndpointOption>(options => { options.Uris = new List<string> { "http://127.0.0.1:9200" }; });
+        var multiplexer = ConnectionMultiplexer.Connect("127.0.0.1:6379");
+        context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+        context.Services.AddSingleton<IRateDistributeLimiter>();
+        context.Services.Configure<RateLimitOptions>(options =>
+        {
+            options.RedisRateLimitOptions = new List<RateLimitOption>
+            {
+                new()
+                {
+                    Name = "test",
+                    TokenLimit = 1,
+                    TokensPerPeriod = 1,
+                    ReplenishmentPeriod = 1
+                }
+            };
+        });
         context.Services.Configure<IndexSettingOptions>(options =>
         {
             options.NumberOfReplicas = 1;
@@ -37,7 +52,7 @@ public class SchrodingerServerDomainTestModule : AbpModule
             options.IndexPrefix = "SchrodingerServertest";
         });
     }
-    
+
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
     {
         var elasticIndexService = context.ServiceProvider.GetRequiredService<IElasticIndexService>();
@@ -62,5 +77,4 @@ public class SchrodingerServerDomainTestModule : AbpModule
                            !type.IsAbstract && type.IsClass && compareType != type)
             .Cast<Type>().ToList();
     }
-
 }

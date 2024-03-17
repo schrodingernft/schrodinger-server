@@ -12,13 +12,13 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
 {
     private readonly ILogger<DefaultImageGenerateHandler> _logger;
     private readonly DefaultImageProvider _defaultImageProvider;
-    private readonly IRequestLimitProvider _requestLimitProvider;
+    private readonly IRateDistributeLimiter _rateDistributeLimiter;
 
-    public DefaultImageGenerateHandler(ILogger<DefaultImageGenerateHandler> logger, DefaultImageProvider defaultImageProvider, IRequestLimitProvider requestLimitProvider)
+    public DefaultImageGenerateHandler(ILogger<DefaultImageGenerateHandler> logger, DefaultImageProvider defaultImageProvider, IRateDistributeLimiter rateDistributeLimiter)
     {
         _logger = logger;
         _defaultImageProvider = defaultImageProvider;
-        _requestLimitProvider = requestLimitProvider;
+        _rateDistributeLimiter = rateDistributeLimiter;
     }
 
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
@@ -30,7 +30,9 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
 
     private async Task<T> HandleAsync<T>(Func<Task<T>> task)
     {
-        await _requestLimitProvider.RecordRequestAsync("defaultImageGenerateHandler-");
+        var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
+        await limiter.AcquireAsync();
+        // await _requestLimitProvider.RecordRequestAsync("defaultImageGenerateHandler-");
         return await task();
     }
 }

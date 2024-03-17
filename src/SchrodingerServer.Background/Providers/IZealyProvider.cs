@@ -98,8 +98,8 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpRecordIndex>, QueryContainer>>();
 
-        // mustQuery.Add(q => q.Term(i =>
-        //     i.Field(f => f.Status).Value(ContractInvokeStatus.Pending.ToString())));
+        mustQuery.Add(q => q.Term(i =>
+            i.Field(f => f.Status).Value(ContractInvokeStatus.Pending.ToString())));
 
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpRecordIndex> f) =>
             f.Bool(b => b.Must(mustQuery));

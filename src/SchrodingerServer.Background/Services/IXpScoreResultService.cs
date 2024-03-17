@@ -25,7 +25,6 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
     private readonly ILogger<XpScoreResultService> _logger;
     private readonly INESTRepository<ContractInvokeIndex, string> _contractInvokeIndexRepository;
     private const int FetchPendingCount = 300;
-    private bool Start = false;
 
     public XpScoreResultService(IZealyProvider zealyProvider, ILogger<XpScoreResultService> logger,
         INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository)
@@ -37,17 +36,11 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
 
     public async Task HandleXpResultAsync()
     {
-        if (Start)
-        {
-            _logger.LogError("task already execute");
-            return;
-        }
         await HandleXpResultAsync(0, FetchPendingCount);
     }
 
     private async Task HandleXpResultAsync(int skipCount, int maxResultCount)
     {
-        Start = true;
         var records = await _zealyProvider.GetPendingUserXpsAsync(skipCount, maxResultCount);
         if (records.IsNullOrEmpty())
         {
@@ -55,82 +48,37 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             return;
         }
 
+        _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
+        var bizIds = records.Select(t => t.BizId).Distinct().ToList();
+        // get transaction from trans
+        var contractInfos = await GetContractInvokeTxByIdsAsync(bizIds);
         foreach (var record in records)
         {
-            var tempId = string.Empty;
-            if (record.Id.Contains(':'))
-            {
-                var ids = record.Id.Split(':');
-                tempId = ids[0];
-            }
-
-            if (record.BizId.IsNullOrEmpty()&&!tempId.IsNullOrEmpty())
-            {
-                record.BizId = tempId;
-                await _zealyProvider.XpRecordAddOrUpdateAsync(record);
-            }
-           
+            await HandleRecordAsync(record, contractInfos);
         }
 
-        _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
-      //   var bizIds = records.Select(t => t.Id).Distinct().ToList();
-      // //  var bizIds = records.Select(t => t.BizId).Distinct().ToList();
-      //
-      //   
-      //   // fix , need to remove
-      //   for (var i = 0; i < bizIds.Count; i++)
-      //   {
-      //       try
-      //       {
-      //           if (bizIds[i].Contains(':'))
-      //           {
-      //               var ids = bizIds[i].Split(':');
-      //               bizIds[i] = ids[0];
-      //           }
-      //       }
-      //       catch (Exception e)
-      //       {
-      //           _logger.LogError(e,"error");
-      //       }
-      //   }
-      //   //
-      //
-      //   // get transaction from trans
-      //   var contractInfos = await GetContractInvokeTxByIdsAsync(bizIds);
-      //   foreach (var record in records)
-      //   {
-      //       await HandleRecordAsync(record, contractInfos);
-      //  }
+        if (records.Count < maxResultCount)
+        {
+            return;
+        }
 
-        // if (records.Count < maxResultCount)
-        // {
-        //     return;
-        // }
-        //
-        // var newSkipCount = skipCount + maxResultCount;
-        // await HandleXpResultAsync(newSkipCount, maxResultCount);
+        var newSkipCount = skipCount + maxResultCount;
+        _logger.LogInformation(
+            "handle pending xp score records, skipCount:{skipCount}, maxResultCount:{maxResultCount}", newSkipCount,
+            maxResultCount);
+        await HandleXpResultAsync(newSkipCount, maxResultCount);
     }
 
     private async Task HandleRecordAsync(ZealyUserXpRecordIndex record, List<ContractInvokeIndex> contractInfos)
     {
         try
         {
-            //var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
-
-            var tempId = string.Empty;
-            if (record.Id.Contains(':'))
-            {
-                var ids = record.Id.Split(':');
-                tempId = ids[0];
-            }
-
-            if (record.BizId.IsNullOrEmpty()&&!tempId.IsNullOrEmpty())
-            {
-                record.BizId = tempId;
-            }
-            var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == tempId);
+            var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
             if (contractInfo == null)
             {
+                _logger.LogWarning(
+                    "modify record status fail, contract info is null, recordId:{recordId}, bizId:{bizId}",
+                    record.Id, record.BizId ?? "-");
                 return;
             }
 

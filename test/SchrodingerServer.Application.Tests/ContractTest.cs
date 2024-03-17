@@ -123,6 +123,15 @@ public class ContractTest
             var match = Regex.Match(test, pattern);
             Console.WriteLine($"'{test}' does NOT end with 'SGR-1': {match.Success}");
         }
-        Console.WriteLine(112);
+
+        var pattern2 = "SGRTEST-1$";
+        string[] tests2 = { "HelloSGR-2", "SGR-1234", "SGRTEST-1", "111SGRTEST-1"};
+
+        foreach (var test in tests2)
+        {
+            var match = Regex.Match(test, pattern2);
+            Console.WriteLine($"'{test}' end with 'SGRTEST-1': {match.Success}");
+        }
+
     }
 }

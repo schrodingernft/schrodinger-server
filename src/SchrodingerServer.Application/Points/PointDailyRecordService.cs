@@ -58,7 +58,7 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
 
             if (!match.Success)
             {
-                return;
+                continue;
             }
 
             var input = new PointDailyRecordGrainDto()

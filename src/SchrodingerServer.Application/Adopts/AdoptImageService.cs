@@ -66,10 +66,10 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         await grain.SetWatermarkAsync();
     }
 
-    public Task<bool> HasWatermark(string adoptId)
+    public async Task<bool> HasWatermark(string adoptId)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
-        return grain.HasWatermarkAsync();
+        return await grain.HasWatermarkAsync();
     }
     
     public async Task SetWatermarkImageInfoAsync(string adoptId, string imageUri, string resizedImage, string selectedImage)

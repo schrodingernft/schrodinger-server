@@ -55,35 +55,52 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             return;
         }
 
-        _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
-        var bizIds = records.Select(t => t.Id).Distinct().ToList();
-      //  var bizIds = records.Select(t => t.BizId).Distinct().ToList();
-
-        
-        // fix , need to remove
-        for (var i = 0; i < bizIds.Count; i++)
-        {
-            try
-            {
-                if (bizIds[i].Contains(':'))
-                {
-                    var ids = bizIds[i].Split(':');
-                    bizIds[i] = ids[0];
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e,"error");
-            }
-        }
-        //
-
-        // get transaction from trans
-        var contractInfos = await GetContractInvokeTxByIdsAsync(bizIds);
         foreach (var record in records)
         {
-            await HandleRecordAsync(record, contractInfos);
+            var tempId = string.Empty;
+            if (record.Id.Contains(':'))
+            {
+                var ids = record.Id.Split(':');
+                tempId = ids[0];
+            }
+
+            if (record.BizId.IsNullOrEmpty()&&!tempId.IsNullOrEmpty())
+            {
+                record.BizId = tempId;
+                await _zealyProvider.XpRecordAddOrUpdateAsync(record);
+            }
+           
         }
+
+        _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
+      //   var bizIds = records.Select(t => t.Id).Distinct().ToList();
+      // //  var bizIds = records.Select(t => t.BizId).Distinct().ToList();
+      //
+      //   
+      //   // fix , need to remove
+      //   for (var i = 0; i < bizIds.Count; i++)
+      //   {
+      //       try
+      //       {
+      //           if (bizIds[i].Contains(':'))
+      //           {
+      //               var ids = bizIds[i].Split(':');
+      //               bizIds[i] = ids[0];
+      //           }
+      //       }
+      //       catch (Exception e)
+      //       {
+      //           _logger.LogError(e,"error");
+      //       }
+      //   }
+      //   //
+      //
+      //   // get transaction from trans
+      //   var contractInfos = await GetContractInvokeTxByIdsAsync(bizIds);
+      //   foreach (var record in records)
+      //   {
+      //       await HandleRecordAsync(record, contractInfos);
+      //  }
 
         // if (records.Count < maxResultCount)
         // {

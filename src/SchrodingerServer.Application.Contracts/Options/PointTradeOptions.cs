@@ -40,4 +40,6 @@ public class PointInfo
     public decimal? Factor { get; set; }
     
     public bool NeedMultiplyPrice { get; set; }
+    
+    public bool UseBalance { get; set; }
 }

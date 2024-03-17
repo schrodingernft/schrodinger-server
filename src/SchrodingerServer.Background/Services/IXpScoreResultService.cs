@@ -24,7 +24,8 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
     private readonly IZealyProvider _zealyProvider;
     private readonly ILogger<XpScoreResultService> _logger;
     private readonly INESTRepository<ContractInvokeIndex, string> _contractInvokeIndexRepository;
-    private const int FetchPendingCount = 10;
+    private const int FetchPendingCount = 300;
+    private bool Start = false;
 
     public XpScoreResultService(IZealyProvider zealyProvider, ILogger<XpScoreResultService> logger,
         INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository)
@@ -36,11 +37,17 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
 
     public async Task HandleXpResultAsync()
     {
+        if (Start)
+        {
+            _logger.LogError("task already execute");
+            return;
+        }
         await HandleXpResultAsync(0, FetchPendingCount);
     }
 
     private async Task HandleXpResultAsync(int skipCount, int maxResultCount)
     {
+        Start = true;
         var records = await _zealyProvider.GetPendingUserXpsAsync(skipCount, maxResultCount);
         if (records.IsNullOrEmpty())
         {
@@ -78,13 +85,13 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             await HandleRecordAsync(record, contractInfos);
         }
 
-        if (records.Count < maxResultCount)
-        {
-            return;
-        }
-
-        var newSkipCount = skipCount + maxResultCount;
-        await HandleXpResultAsync(newSkipCount, maxResultCount);
+        // if (records.Count < maxResultCount)
+        // {
+        //     return;
+        // }
+        //
+        // var newSkipCount = skipCount + maxResultCount;
+        // await HandleXpResultAsync(newSkipCount, maxResultCount);
     }
 
     private async Task HandleRecordAsync(ZealyUserXpRecordIndex record, List<ContractInvokeIndex> contractInfos)

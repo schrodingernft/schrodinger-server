@@ -174,7 +174,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             var info = await _adoptImageService.GetWatermarkImageInfoAsync(input.AdoptId);
             _logger.Info("GetWatermarkImageInfo from grain, info: {info}", JsonConvert.SerializeObject(info));
 
-            if (info == null || info.ImageUri == "" || info.ResizedImage == "")
+            if (info == null || info.ImageUri == null || info.ResizedImage == null)
             {
                 _logger.Info("Invalid watermark info, uri:{}, resizeImage", info.ImageUri, info.ResizedImage);
                 throw new UserFriendlyException("Invalid watermark info");

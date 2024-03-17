@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Nest;
 using SchrodingerServer.EntityEventHandler.Core.IndexHandler;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using Shouldly;

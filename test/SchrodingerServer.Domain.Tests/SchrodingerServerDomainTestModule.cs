@@ -30,7 +30,7 @@ public class SchrodingerServerDomainTestModule : AbpModule
         context.Services.Configure<EsEndpointOption>(options => { options.Uris = new List<string> { "http://127.0.0.1:9200" }; });
         var multiplexer = ConnectionMultiplexer.Connect("127.0.0.1:6379");
         context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
-        context.Services.AddSingleton<IRateDistributeLimiter>();
+        context.Services.AddSingleton<IRateDistributeLimiter, RateDistributeLimiter>();
         context.Services.Configure<RateLimitOptions>(options =>
         {
             options.RedisRateLimitOptions = new List<RateLimitOption>
@@ -64,7 +64,7 @@ public class SchrodingerServerDomainTestModule : AbpModule
             foreach (var t in types)
             {
                 AsyncHelper.RunSync(async () =>
-                    await elasticIndexService.DeleteIndexAsync("SchrodingerServertest." + t.Name.ToLower()));
+                    await elasticIndexService.DeleteIndexAsync("schrodingerservertest." + t.Name.ToLower()));
             }
         });
     }

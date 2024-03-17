@@ -53,10 +53,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     {
         _logger.LogInformation("begin update zealy score recurring job");
         // update user
-        await _userRelationService.AddUserRelationAsync();
+       // await _userRelationService.AddUserRelationAsync();
 
         // wait es synchronization
-        await Task.Delay(1000);
+       // await Task.Delay(1000);
 
         await HandleUserScoreAsync();
         // ...
@@ -128,7 +128,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
-        if (user.Address != "12AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
+        if (user.Address != "2AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
         {
             return;
         }
@@ -156,10 +156,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         else
         {
             var repairScore = 0m;
-            if (userXp.UseRepairTime != userXpScore.UpdateTime)
-            {
-                repairScore = userXpScore.ActualScore - userXpScore.RawScore;
-            }
+            // if (userXp.UseRepairTime != userXpScore.UpdateTime)
+            // {
+            //     repairScore = userXpScore.ActualScore - userXpScore.RawScore;
+            // }
 
             xp = response.Xp - userXp.Xp + repairScore;
         }

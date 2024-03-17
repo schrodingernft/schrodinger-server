@@ -13,6 +13,7 @@ namespace SchrodingerServer.Background.Workers;
 public class ContractInvokeWorker : AsyncPeriodicBackgroundWorkerBase
 {
     private readonly IContractInvokeService _contractInvokeService;
+    private readonly IOptionsMonitor<ContractSyncOptions> _contractSyncOptionsMonitor;
 
     public ContractInvokeWorker(AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IContractInvokeService contractInvokeService,
@@ -20,6 +21,7 @@ public class ContractInvokeWorker : AsyncPeriodicBackgroundWorkerBase
         base(timer, serviceScopeFactory)
     {
         _contractInvokeService = contractInvokeService;
+        _contractSyncOptionsMonitor = contractSyncOptionsMonitor;
         Timer.Period = 1000 * contractSyncOptionsMonitor.CurrentValue.Sync;
         contractSyncOptionsMonitor.OnChange((_, _) =>
         {
@@ -30,7 +32,8 @@ public class ContractInvokeWorker : AsyncPeriodicBackgroundWorkerBase
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         Logger.LogInformation("Executing contract invoke job");
-        var bizIds = await _contractInvokeService.SearchUnfinishedTransactionsAsync();
+        var bizIds = await _contractInvokeService.SearchUnfinishedTransactionsAsync(_contractSyncOptionsMonitor
+            .CurrentValue.Limit);
         var tasks = new List<Task>();
         foreach (var bizId in bizIds)
         {

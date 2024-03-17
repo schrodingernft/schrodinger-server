@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SchrodingerServer.Common;
 
@@ -22,4 +23,18 @@ public class DecimalHelper
         return amount / (decimal)Math.Pow(10, decimals);
     }
     
+    public static decimal? GetValueFromDict(Dictionary<string, decimal> priceDict, string key, string defaultKey)
+    {
+        if (priceDict.TryGetValue(key, out decimal value))
+        {
+            return value;
+        }
+
+        if (priceDict.TryGetValue(defaultKey, out value))
+        {
+            return value;
+        }
+        return null;
+    }
+
 }

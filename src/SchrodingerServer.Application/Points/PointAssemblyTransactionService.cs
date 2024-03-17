@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -76,8 +77,8 @@ public class PointAssemblyTransactionService : IPointAssemblyTransactionService,
                         }).ToList()
                     };
                     
-                    _logger.LogInformation("ToBatchSettle bizId {bizId} addressList {}", bizId, 
-                        tradeList.Select(item => item.Address).ToList());
+                    _logger.LogInformation("ToBatchSettle bizId {bizId} addressList {addressList}", bizId, 
+                        JsonSerializer.Serialize(tradeList.Select(item => item.Address).ToList()));
 
                     await _pointSettleService.BatchSettleAsync(pointSettleDto);
                 }

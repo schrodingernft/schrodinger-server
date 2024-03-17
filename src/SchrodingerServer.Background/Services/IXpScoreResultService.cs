@@ -98,7 +98,15 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
     {
         try
         {
-            var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
+            //var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
+
+            var tempId = string.Empty;
+            if (record.Id.Contains(':'))
+            {
+                var ids = record.Id.Split(':');
+                tempId = ids[0];
+            }
+            var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == tempId);
             if (contractInfo == null)
             {
                 return;

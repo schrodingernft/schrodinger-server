@@ -78,7 +78,10 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         await grain.SetWatermarkImageInfoAsync(imageUri, resizedImage);
 
         var images = await grain.GetImagesAsync();
-        images.Remove(selectedImage);
+        var index = images.IndexOf(selectedImage);
+        
+        // only works when there are two images in the list
+        images.RemoveAt((index+1) % 2);
         await grain.SetImagesAsync(images);
     }
 

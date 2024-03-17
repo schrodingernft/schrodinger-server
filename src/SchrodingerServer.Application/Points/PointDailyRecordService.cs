@@ -70,6 +70,7 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
                 PointAmount = DecimalHelper.Divide(CalcPointAmount(dto, pointInfo, symbolPrice), 8)
             };
             input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName, input.Address);
+            _logger.LogInformation("Handle point daily record id:{id} symbolPrice:{symbolPrice} ",input.Id, symbolPrice);
             var pointDailyRecordGrain = _clusterClient.GetGrain<IPointDailyRecordGrain>(input.Id);
             var result = await pointDailyRecordGrain.UpdateAsync(input);
             if (!result.Success)

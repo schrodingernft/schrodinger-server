@@ -55,7 +55,7 @@ public class ContractInvokeService : IContractInvokeService, ISingletonDependenc
         };
 
         QueryContainer Filter(QueryContainerDescriptor<ContractInvokeIndex> f) =>
-            f.Bool(b => b.Must(mustNotQuery));
+            f.Bool(b => b.MustNot(mustNotQuery));
 
         var (_, synchronizeTransactions) = await _contractInvokeIndexRepository
             .GetListAsync(Filter, limit: limit);

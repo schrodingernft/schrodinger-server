@@ -172,7 +172,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         if (hasWaterMark)
         {
             var info = await _adoptImageService.GetWatermarkImageInfoAsync(input.AdoptId);
-            _logger.Info("GetWatermarkImageInfo from grain, info:{}", JsonConvert.SerializeObject(info));
+            _logger.Info("GetWatermarkImageInfo from grain, info: {info}", JsonConvert.SerializeObject(info));
 
             if (info == null || info.ImageUri == "" || info.ResizedImage == "")
             {

@@ -22,7 +22,7 @@ public class ScoreRepairController : AbpControllerBase
         _repairAppService = repairAppService;
     }
 
-    [Authorize]
+    [Authorize(Roles = "admin")]
     [HttpPost("xp-score")]
     public async Task UpdateScoreRepairDataAsync(List<UpdateXpScoreRepairDataDto> input)
     {

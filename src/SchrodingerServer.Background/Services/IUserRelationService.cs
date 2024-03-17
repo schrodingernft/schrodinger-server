@@ -29,6 +29,7 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
     private readonly ILogger<UserRelationService> _logger;
     private readonly INESTRepository<ZealyUserIndex, string> _zealyUserRepository;
     private readonly IDistributedCache<ReviewsCursorInfo> _distributedCache;
+    private readonly IZealyProvider _zealyProvider;
     private readonly ZealyUserOptions _options;
     private int _retryCount = 0;
 
@@ -36,21 +37,80 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
         ILogger<UserRelationService> logger,
         INESTRepository<ZealyUserIndex, string> zealyUserRepository,
         IDistributedCache<ReviewsCursorInfo> distributedCache,
-        IOptionsSnapshot<ZealyUserOptions> options
-    )
+        IOptionsSnapshot<ZealyUserOptions> options,
+        IZealyProvider zealyProvider)
     {
         _logger = logger;
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _zealyUserRepository = zealyUserRepository;
         _distributedCache = distributedCache;
+        _zealyProvider = zealyProvider;
         _options = options.Value;
     }
 
     public async Task AddUserRelationAsync()
     {
         _logger.LogInformation("AddUserRelationAsync begin to execute.");
+        await AddZealyUserWithRetryFromBeginAsync();
         await AddZealyUserWithRetryAsync();
         _logger.LogInformation("AddUserRelationAsync end to execute.");
+    }
+
+    private async Task AddZealyUserWithRetryFromBeginAsync()
+    {
+        var nextCursor = string.Empty;
+        var cursorInfo = await _distributedCache.GetAsync(nameof(ReviewsCursorInfo));
+
+        if (cursorInfo == null)
+        {
+            return;
+        }
+
+        _logger.LogInformation("add zealy user from begin, nextCursor:{nextCursor}", nextCursor);
+        try
+        {
+            await AddZealyUserFromBeginAsync(nextCursor);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "add zealy user error.");
+
+            //todo: retry logic
+        }
+    }
+
+    private async Task AddZealyUserFromBeginAsync(string nextCursor)
+    {
+        var uri = CommonConstant.GetReviewsUri + $"?questId={_options.QuestId}&limit={_options.Limit}";
+        if (!nextCursor.IsNullOrEmpty())
+        {
+            uri += $"&cursor={nextCursor}";
+        }
+
+        _logger.LogInformation("uri, {uri}", uri);
+        var response = await _zealyClientProxyProvider.GetAsync<ReviewDto>(uri);
+
+        if (response.NextCursor == null)
+        {
+            _logger.LogInformation("add zealy user from begin finish");
+            return;
+        }
+
+        // mapping index
+        var users = GetUserIndices(response.Items);
+        var user = response.Items.Last();
+
+        var zealyUser = await _zealyProvider.GetUserByIdAsync(user.User.Id);
+        await _zealyUserRepository.BulkAddOrUpdateAsync(users);
+
+        if (zealyUser != null)
+        {
+            _logger.LogInformation("last item already save, add zealy user from begin finish, lastUserId:{userId}",
+                zealyUser.Id);
+            return;
+        }
+
+        await AddZealyUserAsync(response.NextCursor);
     }
 
     private async Task AddZealyUserWithRetryAsync()
@@ -87,7 +147,7 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
         _logger.LogInformation("uri, {uri}", uri);
         var response = await _zealyClientProxyProvider.GetAsync<ReviewDto>(uri);
         _logger.LogInformation("response, {response}", response);
-        
+
         if (response.NextCursor == null)
         {
             _logger.LogInformation("add zealy user finish");

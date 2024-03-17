@@ -99,6 +99,12 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                     userXp.LastXp = userXp.Xp;
                     userXp.Xp = record.Xp;
                     userXp.UpdateTime = DateTime.UtcNow;
+
+                    if (record.UseRepairTime > 0)
+                    {
+                        userXp.UseRepairTime = record.UseRepairTime;
+                    }
+                    
                     await _zealyProvider.UserXpAddOrUpdateAsync(userXp);
                 }
 

@@ -142,6 +142,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var userXp = _zealyUserXps.FirstOrDefault(t => t.Id == user.Id);
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
 
+        long useRepairTime = 0;
         if (userXp == null)
         {
             userXp = new ZealyUserXpIndex()
@@ -152,12 +153,14 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
             };
 
             xp = userXpScore == null ? response.Xp : userXpScore.ActualScore;
+            useRepairTime = userXpScore == null ? 0 : userXpScore.UpdateTime;
         }
         else
         {
             var repairScore = 0m;
             if (userXpScore != null && userXp.UseRepairTime != userXpScore.UpdateTime)
             {
+                useRepairTime = userXpScore.UpdateTime;
                 repairScore = userXpScore.ActualScore - userXpScore.RawScore;
             }
 
@@ -167,7 +170,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         if (xp > 0)
         {
             // contract xp
-            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, userXpScore, xp));
+            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, useRepairTime, xp));
         }
         else
         {

@@ -97,7 +97,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
         var imageGenerationId = await _imageDispatcher.GetImageGenerationIdAsync(aelfAddress, AdoptInfo2GenerateImage(adoptInfo), adoptId);
 
-        if (imageGenerationId.Exist)
+        if (!imageGenerationId.Exist)
         {
             return output;
         }

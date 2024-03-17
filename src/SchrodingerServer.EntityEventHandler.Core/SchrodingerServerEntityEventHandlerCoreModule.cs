@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SchrodingerServer.EntityEventHandler.Core.IndexHandler;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using StackExchange.Redis;
 using Volo.Abp.AutoMapper;
@@ -17,6 +18,7 @@ namespace SchrodingerServer.EntityEventHandler.Core
             Configure<AbpAutoMapperOptions>(options => { options.AddMaps<SchrodingerServerEntityEventHandlerCoreModule>(); });
             var configuration = context.Services.GetConfiguration();
             ConfigureRateLimiting(context, configuration);
+            context.Services.AddSingleton<IRateDistributeLimiter, RateDistributeLimiter>();
         }
 
         private void ConfigureRateLimiting(ServiceConfigurationContext context, IConfiguration configuration)

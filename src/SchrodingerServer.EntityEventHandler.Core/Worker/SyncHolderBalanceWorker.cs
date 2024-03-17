@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core.Options;
+using SchrodingerServer.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Symbol.Provider;
 using SchrodingerServer.Users;
@@ -29,15 +30,18 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
     private readonly IHolderBalanceProvider _holderBalanceProvider;
     private readonly INESTRepository<HolderBalanceIndex, string> _holderBalanceIndexRepository;
     private readonly IOptionsMonitor<WorkerOptions> _workerOptionsMonitor;
+    private readonly IOptionsMonitor<PointTradeOptions> _pointTradeOptions;
+
     private readonly IObjectMapper _objectMapper;
     private readonly IPointDailyRecordService _pointDailyRecordService;
     private readonly ISymbolDayPriceProvider _symbolDayPriceProvider;
-    
+
     public SyncHolderBalanceWorker(ILogger<SyncHolderBalanceWorker> logger,
         IHolderBalanceProvider holderBalanceProvider, IOptionsMonitor<WorkerOptions> workerOptionsMonitor,
         INESTRepository<HolderBalanceIndex, string> holderBalanceIndexRepository, IObjectMapper objectMapper,
-        IPointDailyRecordService pointDailyRecordService, 
-        ISymbolDayPriceProvider symbolDayPriceProvider)
+        IPointDailyRecordService pointDailyRecordService,
+        ISymbolDayPriceProvider symbolDayPriceProvider,
+        IOptionsMonitor<PointTradeOptions> pointTradeOptions)
     {
         _logger = logger;
         _holderBalanceProvider = holderBalanceProvider;
@@ -46,6 +50,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _objectMapper = objectMapper;
         _pointDailyRecordService = pointDailyRecordService;
         _symbolDayPriceProvider = symbolDayPriceProvider;
+        _pointTradeOptions = pointTradeOptions;
     }
 
     public async Task Invoke()
@@ -66,6 +71,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
             _logger.LogError("SyncHolderBalanceWorker chainIds has no config...");
             return;
         }
+
         foreach (var chainId in _workerOptionsMonitor.CurrentValue.ChainIds)
         {
             await HandleHolderDailyChangeAsync(chainId, bizDate);
@@ -90,14 +96,17 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
             }
 
             var symbols = dailyChanges.Select(item => item.Symbol).ToHashSet();
+            symbols.Add(_pointTradeOptions.CurrentValue.BaseCoin);
 
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(bizDate, symbols.ToList());
-            
+
             //get pre date balance and add change
             var saveList = new List<HolderBalanceIndex>();
             foreach (var item in dailyChanges)
             {
-                var symbolPrice = symbolPriceDict.TryGetValue(item.Symbol, out var price) ? price : (decimal?)null;
+                var symbolPrice = DecimalHelper.GetValueFromDict(symbolPriceDict, item.Symbol,
+                    _pointTradeOptions.CurrentValue.BaseCoin);
+
                 await _pointDailyRecordService.HandlePointDailyChangeAsync(chainId, item, symbolPrice);
 
                 var holderBalance = _objectMapper.Map<HolderDailyChangeDto, HolderBalanceIndex>(item);
@@ -116,7 +125,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
                     holderBalance.Balance = item.ChangeAmount;
                 }
 
-                holderBalance.Id = IdGenerateHelper.GetHolderBalanceId(holderBalance.ChainId, holderBalance.BizDate, 
+                holderBalance.Id = IdGenerateHelper.GetHolderBalanceId(holderBalance.ChainId, holderBalance.BizDate,
                     holderBalance.Symbol, holderBalance.Address);
 
                 saveList.Add(holderBalance);
@@ -126,7 +135,6 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
             await _holderBalanceIndexRepository.BulkAddOrUpdateAsync(saveList);
 
             skipCount += dailyChanges.Count;
-            
         } while (!dailyChanges.IsNullOrEmpty());
 
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} end...", chainId);

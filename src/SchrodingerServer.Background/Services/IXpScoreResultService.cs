@@ -106,6 +106,11 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                 var ids = record.Id.Split(':');
                 tempId = ids[0];
             }
+
+            if (record.BizId.IsNullOrEmpty()&&!tempId.IsNullOrEmpty())
+            {
+                record.BizId = tempId;
+            }
             var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == tempId);
             if (contractInfo == null)
             {

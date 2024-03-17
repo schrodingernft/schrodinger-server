@@ -35,14 +35,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyUserXpIndex> _zealyUserXps = new();
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
 
-
-    private readonly IContractInvokeService _contractInvokeService;
-    private bool Start = false;
-
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
         IZealyProvider zealyProvider, IZealyClientProvider zealyClientProxyProvider,
         INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
-        IOptionsSnapshot<ZealyScoreOptions> options, IContractInvokeService contractInvokeService)
+        IOptionsSnapshot<ZealyScoreOptions> options)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -50,14 +46,13 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _zealyUserXpRepository = zealyUserXpRepository;
         _contractProvider = contractProvider;
-        _contractInvokeService = contractInvokeService;
         _options = options.Value;
     }
 
     public async Task UpdateScoreAsync()
     {
         _logger.LogInformation("begin update zealy score recurring job");
-        
+
         // update user
         // await _userRelationService.AddUserRelationAsync();
 
@@ -163,10 +158,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         else
         {
             var repairScore = 0m;
-            // if (userXp.UseRepairTime != userXpScore.UpdateTime)
-            // {
-            //     repairScore = userXpScore.ActualScore - userXpScore.RawScore;
-            // }
+            if (userXpScore != null && userXp.UseRepairTime != userXpScore.UpdateTime)
+            {
+                repairScore = userXpScore.ActualScore - userXpScore.RawScore;
+            }
 
             xp = response.Xp - userXp.Xp + repairScore;
         }

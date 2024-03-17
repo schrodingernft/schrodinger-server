@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchrodingerServer.ScoreRepair;
 using SchrodingerServer.ScoreRepair.Dtos;
@@ -21,6 +22,7 @@ public class ScoreRepairController : AbpControllerBase
         _repairAppService = repairAppService;
     }
 
+    [Authorize]
     [HttpPost("xp-score")]
     public async Task UpdateScoreRepairDataAsync(List<UpdateXpScoreRepairDataDto> input)
     {

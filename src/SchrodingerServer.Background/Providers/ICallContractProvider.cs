@@ -37,7 +37,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         _options = options.Value;
     }
 
-    [AutomaticRetry(Attempts = 5, DelaysInSeconds = new[] { 10 })]
+    [AutomaticRetry(Attempts = 20, DelaysInSeconds = new[] { 30 })]
     public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp)
     {
         var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";

@@ -127,11 +127,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
-        if (user.Address != "12AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
-        {
-            return;
-        }
-
         // get total score from user
         var uri = CommonConstant.GetUserUri + $"/{user.Id}";
 

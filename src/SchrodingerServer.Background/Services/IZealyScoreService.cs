@@ -57,13 +57,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     public async Task UpdateScoreAsync()
     {
         _logger.LogInformation("begin update zealy score recurring job");
-
-        if (Start)
-        {
-            return;
-        }
-        await _contractInvokeService.ExecuteJobAsync("f572fb6a-9044-462c-aca1-28fa49d00611-2024-03-17");
-        Start = true;
+        
         // update user
         // await _userRelationService.AddUserRelationAsync();
 

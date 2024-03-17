@@ -35,10 +35,14 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyUserXpIndex> _zealyUserXps = new();
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
 
+
+    private readonly IContractInvokeService _contractInvokeService;
+    private bool Start = false;
+
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
         IZealyProvider zealyProvider, IZealyClientProvider zealyClientProxyProvider,
         INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
-        IOptionsSnapshot<ZealyScoreOptions> options)
+        IOptionsSnapshot<ZealyScoreOptions> options, IContractInvokeService contractInvokeService)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -46,17 +50,25 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _zealyUserXpRepository = zealyUserXpRepository;
         _contractProvider = contractProvider;
+        _contractInvokeService = contractInvokeService;
         _options = options.Value;
     }
 
     public async Task UpdateScoreAsync()
     {
         _logger.LogInformation("begin update zealy score recurring job");
+
+        if (Start)
+        {
+            return;
+        }
+        await _contractInvokeService.ExecuteJobAsync("f572fb6a-9044-462c-aca1-28fa49d00611-2024-03-17");
+        Start = true;
         // update user
-       // await _userRelationService.AddUserRelationAsync();
+        // await _userRelationService.AddUserRelationAsync();
 
         // wait es synchronization
-       // await Task.Delay(1000);
+        // await Task.Delay(1000);
 
         await HandleUserScoreAsync();
         // ...
@@ -132,6 +144,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         {
             return;
         }
+
         // get total score from user
         var uri = CommonConstant.GetUserUri + $"/{user.Id}";
 

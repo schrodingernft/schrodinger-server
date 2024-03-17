@@ -45,14 +45,17 @@ public class ContractInvokeService : IContractInvokeService, ISingletonDependenc
 
     public async Task<List<string>> SearchUnfinishedTransactionsAsync(int limit)
     {
-        var mustQuery = new List<Func<QueryContainerDescriptor<ContractInvokeIndex>, QueryContainer>>()
+        var mustNotQuery = new List<Func<QueryContainerDescriptor<ContractInvokeIndex>, QueryContainer>>()
         {
             q => q.Match(m 
-                => m.Field(f => f.Status).Query(ContractInvokeStatus.ToBeCreated.ToString()))
+                => m.Field(f => f.Status).Query(ContractInvokeStatus.Success.ToString())),
+            q => q.Match(m 
+                => m.Field(f => f.Status).Query(ContractInvokeStatus.FinalFailed.ToString()))
+
         };
 
         QueryContainer Filter(QueryContainerDescriptor<ContractInvokeIndex> f) =>
-            f.Bool(b => b.Must(mustQuery));
+            f.Bool(b => b.Must(mustNotQuery));
 
         var (_, synchronizeTransactions) = await _contractInvokeIndexRepository
             .GetListAsync(Filter, limit: limit);

@@ -151,7 +151,7 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
     private async Task HandleFailedAsync()
     {
         //To retry and send HandleCreatedAsync
-        if (State.RetryCount > _chainOptionsMonitor.CurrentValue.MaxRetryCount)
+        if (State.RetryCount >= _chainOptionsMonitor.CurrentValue.MaxRetryCount)
         {
             State.Status = ContractInvokeStatus.FinalFailed.ToString();
         }

@@ -100,34 +100,22 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(bizDate, symbols.ToList());
 
-            //get pre date balance and add change
+            //get user latest date balance and add change
             var saveList = new List<HolderBalanceIndex>();
             foreach (var item in dailyChanges)
             {
                 var symbolPrice = DecimalHelper.GetValueFromDict(symbolPriceDict, item.Symbol,
                     _pointTradeOptions.CurrentValue.BaseCoin);
 
-                await _pointDailyRecordService.HandlePointDailyChangeAsync(chainId, item, symbolPrice);
-
                 var holderBalance = _objectMapper.Map<HolderDailyChangeDto, HolderBalanceIndex>(item);
-
-                var preHolderBalanceDict = await _holderBalanceProvider.GetPreHolderBalanceAsync(chainId, bizDate,
-                    new List<string>
-                    {
-                        item.Address
-                    });
-                if (preHolderBalanceDict.TryGetValue(item.Address, out var preHolderBalance))
-                {
-                    holderBalance.Balance = item.ChangeAmount + preHolderBalance.Balance;
-                }
-                else
-                {
-                    holderBalance.Balance = item.ChangeAmount;
-                }
-
                 holderBalance.Id = IdGenerateHelper.GetHolderBalanceId(holderBalance.ChainId, holderBalance.BizDate,
                     holderBalance.Symbol, holderBalance.Address);
+                var preHolderBalance = await GetPreHolderBalanceAsync(chainId, bizDate, item.Address);
 
+                //save real balance
+                holderBalance.Balance = preHolderBalance + item.ChangeAmount;
+                item.Balance = holderBalance.Balance;
+                await _pointDailyRecordService.HandlePointDailyChangeAsync(chainId, item, symbolPrice);
                 saveList.Add(holderBalance);
             }
 
@@ -138,5 +126,15 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         } while (!dailyChanges.IsNullOrEmpty());
 
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} end...", chainId);
+    }
+
+    private async Task<long> GetPreHolderBalanceAsync(string chainId, string bizDate, string address)
+    {
+        var preHolderBalanceDict = await _holderBalanceProvider.GetPreHolderBalanceAsync(chainId, bizDate,
+            new List<string>
+            {
+                address
+            });
+        return preHolderBalanceDict.TryGetValue(address, out var preHolderBalance) ? preHolderBalance.Balance : 0;
     }
 }

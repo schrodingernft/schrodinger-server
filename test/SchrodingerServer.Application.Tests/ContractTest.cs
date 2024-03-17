@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Client.Dto;
@@ -109,5 +110,19 @@ public class ContractTest
         
         Console.WriteLine(rawTransactionResult.TransactionId);
         
+    }
+    
+    [Fact]
+    public async Task Test_Reg()
+    {
+        //"ConditionalExp" : "^(?!.*SGR-1$).*"
+        string[] tests = { "HelloSGR-2", "SGR-1234", "TestSGR-1", "SampleText"};
+        var pattern = "^.*SGR-(?!1$)\\d+$";
+        foreach (var test in tests)
+        {
+            var match = Regex.Match(test, pattern);
+            Console.WriteLine($"'{test}' does NOT end with 'SGR-1': {match.Success}");
+        }
+        Console.WriteLine(112);
     }
 }

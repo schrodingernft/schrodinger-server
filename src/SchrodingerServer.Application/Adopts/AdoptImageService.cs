@@ -85,6 +85,7 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
     public async Task<WaterImageGrainInfoDto> GetWatermarkImageInfoAsync(string adoptId)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
-        return await grain.GetWatermarkImageInfoAsync();
+        var grainResult = await grain.GetWatermarkImageInfoAsync();
+        return grainResult.Data;
     }
 }

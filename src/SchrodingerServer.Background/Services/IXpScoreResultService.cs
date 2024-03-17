@@ -4,11 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Nest;
 using Newtonsoft.Json;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
 using SchrodingerServer.ContractInvoke.Index;
+using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 
@@ -24,19 +26,21 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
     private readonly IZealyProvider _zealyProvider;
     private readonly ILogger<XpScoreResultService> _logger;
     private readonly INESTRepository<ContractInvokeIndex, string> _contractInvokeIndexRepository;
-    private const int FetchPendingCount = 300;
+    private readonly UpdateScoreOptions _options;
 
     public XpScoreResultService(IZealyProvider zealyProvider, ILogger<XpScoreResultService> logger,
-        INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository)
+        INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository,
+        IOptionsSnapshot<UpdateScoreOptions> options)
     {
         _zealyProvider = zealyProvider;
         _logger = logger;
         _contractInvokeIndexRepository = contractInvokeIndexRepository;
+        _options = options.Value;
     }
 
     public async Task HandleXpResultAsync()
     {
-        await HandleXpResultAsync(0, FetchPendingCount);
+        await HandleXpResultAsync(0, _options.FetchPendingCount);
     }
 
     private async Task HandleXpResultAsync(int skipCount, int maxResultCount)

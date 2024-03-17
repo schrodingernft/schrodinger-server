@@ -6,4 +6,5 @@ public class UpdateScoreOptions
     
     // minutes
     public int UpdateXpScoreResultPeriod { get; set; } = 20;
+    public int FetchPendingCount { get; set; } = 300;
 }

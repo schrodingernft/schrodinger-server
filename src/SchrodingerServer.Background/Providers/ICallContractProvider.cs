@@ -66,7 +66,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
             Id = bizId,
             CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Xp = xp,
-            Amount = xp * _options.Coefficient,
+            Amount =  DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
             BizId = bizId,
             Status = ContractInvokeStatus.Pending.ToString(),
             UserId = zealyUserXp.Id,

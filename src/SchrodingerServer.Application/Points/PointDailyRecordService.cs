@@ -72,7 +72,7 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
                 PointName = pointName,
                 BizDate = dto.Date,
                 Address = dto.Address,
-                PointAmount = DecimalHelper.Divide(CalcPointAmount(dto, pointInfo, symbolPrice), 8)
+                PointAmount = CalcPointAmount(dto, pointInfo, symbolPrice)
             };
             input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName, input.Address);
             _logger.LogInformation(

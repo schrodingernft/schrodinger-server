@@ -57,7 +57,7 @@ public class PointSettleService : IPointSettleService, ISingletonDependency
             .Select(item => new UserPoints
             {
                 UserAddress = Address.FromBase58(item.Address),
-                UserPoints_ = DecimalHelper.ConvertToLong(item.PointAmount, 8)
+                UserPoints_ = DecimalHelper.ConvertToLong(item.PointAmount, 0)
             }).ToList();
         var batchSettleInput = new BatchSettleInput()
         {

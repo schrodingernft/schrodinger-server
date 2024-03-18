@@ -47,6 +47,12 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
 
     public async Task<GrainResultDto<ContractInvokeGrainDto>> CreateAsync(ContractInvokeGrainDto input)
     {
+        if (State.BizId != null && State.BizId.Equals(input.BizId))
+        {
+            _logger.LogInformation(
+                "CreateAsync Contract repeated bizId {bizId} ", State.BizId);
+            return OfContractInvokeGrainResultDto(false, CommonConstant.TradeRepeated);
+        }
         State = _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeState>(input);
         if (State.Id.IsNullOrEmpty())
         {
@@ -221,12 +227,13 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         return await client.GetTransactionResultAsync(txId);
     }
 
-    private GrainResultDto<ContractInvokeGrainDto> OfContractInvokeGrainResultDto(bool success)
+    private GrainResultDto<ContractInvokeGrainDto> OfContractInvokeGrainResultDto(bool success, string message = null)
     {
         return new GrainResultDto<ContractInvokeGrainDto>()
         {
             Data = _objectMapper.Map<ContractInvokeState, ContractInvokeGrainDto>(State),
-            Success = success
+            Success = success,
+            Message = message
         };
     }
 }

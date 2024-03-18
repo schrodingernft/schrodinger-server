@@ -10,7 +10,7 @@ public static class CommonConstant
     public const string Comma = ",";
 
     public const string Success = "Success";
-    
+    public const string TradeRepeated = "TradeRepeated";
     public const string ELF = "ELF";
     public const string MainChainId = "AELF";
     public const string TDVVChainId = "tDVV";

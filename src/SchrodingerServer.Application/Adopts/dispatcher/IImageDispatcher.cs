@@ -11,7 +11,8 @@ namespace SchrodingerServer.Adopts.dispatcher;
 
 public interface IImageDispatcher
 {
-    Task<ImageGenerationIdDto> GetImageGenerationIdAsync(string aelfAddress, GenerateImage imageInfo, string adoptId);
+    Task DispatchAIGenerationRequest(string aelfAddress, GenerateImage imageInfo, string adoptId);
+    IImageProvider CurrentProvider();
 }
 
 public class ImageGenerationIdDto
@@ -35,28 +36,21 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
         _providers = providers.ToDictionary(x => x.Type.ToString(), y => y);
     }
 
-    public async Task<ImageGenerationIdDto> GetImageGenerationIdAsync(string aelfAddress, GenerateImage imageInfo, string adoptId)
+    public async Task DispatchAIGenerationRequest(string adoptAddressId, GenerateImage imageInfo, string adoptId)
     {
-        var adoptAddress = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
-        var imageGenerationId = await _adoptImageService.GetImageGenerationIdAsync(adoptAddress);
-        var imageGenerationIdDto = new ImageGenerationIdDto
-        {
-            ImageGenerationId = imageGenerationId,
-            Exist = !string.IsNullOrEmpty(imageGenerationId)
-        };
-        if (imageGenerationIdDto.Exist)
-        {
-            return imageGenerationIdDto;
-        }
-
-
+        var provider = CurrentProvider();
         _logger.LogInformation("GenerateImageByAiAsync Begin. imageInfo: {info} adoptId: {adoptId} ", JsonConvert.SerializeObject(imageInfo), adoptId);
+        await provider.SendAIGenerationRequest(adoptAddressId, adoptId, imageInfo);
+    }
+
+    public IImageProvider CurrentProvider()
+    {
         if (!_providers.TryGetValue(_adoptImageOptions.ImageProvider, out var provider))
         {
+            _logger.LogError("Get AI Provider Failed");
             throw new UserFriendlyException("wrong type of image provider configuration");
         }
 
-        await provider.GetRequestIdAsync(adoptAddress, imageInfo, adoptId);
-        return imageGenerationIdDto;
+        return provider;
     }
 }

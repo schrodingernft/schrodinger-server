@@ -36,12 +36,15 @@ using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common.GraphQL;
 using SchrodingerServer.Points;
 using StackExchange.Redis;
+using Volo.Abp.Caching;
+using Volo.Abp.Caching.StackExchangeRedis;
 
 namespace SchrodingerServer.Background;
 
 [DependsOn(
     typeof(SchrodingerServerApplicationModule),
     typeof(SchrodingerServerApplicationContractsModule),
+    typeof(AbpCachingStackExchangeRedisModule),
     typeof(AbpBackgroundWorkersModule),
     typeof(AbpAutofacModule),
     typeof(SchrodingerServerGrainsModule),
@@ -68,12 +71,18 @@ public class SchrodingerServerBackgroundModule : AbpModule
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         ConfigureRedis(context, configuration, hostingEnvironment);
         ConfigureGraphQl(context, configuration);
+        ConfigureCache(configuration);
         context.Services.AddHostedService<SchrodingerServerHostService>();
         context.Services.AddSingleton<IPointSettleService, PointSettleService>();
         context.Services.AddHttpClient();
         ConfigureHangfire(context, configuration);
         ConfigureZealyClient(context, configuration);
         ConfigureOrleans(context, configuration);
+    }
+    
+    private void ConfigureCache(IConfiguration configuration)
+    {
+        Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "SchrodingerServer:"; });
     }
 
   

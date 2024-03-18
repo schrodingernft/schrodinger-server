@@ -95,15 +95,17 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             Generation = adoptInfo.Generation,
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
-
-        var imageGenerationId = await _imageDispatcher.GetImageGenerationIdAsync(aelfAddress, AdoptInfo2GenerateImage(adoptInfo), adoptId);
-
-        if (!imageGenerationId.Exist)
+        var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
+        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
+        if (!hasSendRequest)
         {
+            await _adoptImageService.MarkRequest(adoptId);
+            await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
             return output;
         }
 
-        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, imageGenerationId.ImageGenerationId);
+        var provider = _imageDispatcher.CurrentProvider();
+        output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
         return output;
     }
 
@@ -137,7 +139,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         try
         {
             using var httpClient = new HttpClient();
-            var isOverLoaded = _traitsOptions.CurrentValue.IsOverLoadedUrl;
             var response = await httpClient.GetAsync(_traitsOptions.CurrentValue.IsOverLoadedUrl);
             if (response.IsSuccessStatusCode)
             {
@@ -171,13 +172,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
         }
-
-        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
+        
+        var hasWaterMark = await _adoptImageService.HasWatermark(input.AdoptId);
+        if (hasWaterMark)
         {
             var info = await _adoptImageService.GetWatermarkImageInfoAsync(input.AdoptId);
-            _logger.Info("GetWatermarkImageInfo from grain, info:{}", JsonConvert.SerializeObject(info));
+            _logger.Info("GetWatermarkImageInfo from grain, info: {info}", JsonConvert.SerializeObject(info));
 
-            if (info.ImageUri == "" || info.ResizedImage == "")
+            if (info == null || info.ImageUri == null || info.ResizedImage == null)
             {
                 _logger.Info("Invalid watermark info, uri:{}, resizeImage", info.ImageUri, info.ResizedImage);
                 throw new UserFriendlyException("Invalid watermark info");
@@ -226,7 +228,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         }
 
         var base64String = stringArray[1].Trim();
-        string waterImageHash = await _ipfsAppService.UploadFile(base64String, input.AdoptId);
+        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        if (waterImageHash == "")
+        {
+            _logger.LogInformation("upload ipfs failed");
+            throw new UserFriendlyException("upload failed");
+        }
         var uri = "ipfs://" + waterImageHash;
 
         // uploadToS3

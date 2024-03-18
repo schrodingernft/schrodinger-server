@@ -61,7 +61,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         if (bizDate.IsNullOrEmpty())
         {
             //TODO use block time
-            bizDate = DateTime.UtcNow.ToString(TimeHelper.Pattern);
+            bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);
         }
 
         //TODO control repeat execute
@@ -85,7 +85,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} start...", chainId);
         var skipCount = 0;
         List<HolderDailyChangeDto> dailyChanges;
-        var priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
+        var priceBizDate = GetPriceBizDate(bizDate);
         do
         {
             dailyChanges =
@@ -145,11 +145,27 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} end...", chainId);
     }
 
+    private static string GetPriceBizDate(string bizDate)
+    {
+        string priceBizDate;
+        if (bizDate.Equals(DateTime.UtcNow.ToString(TimeHelper.Pattern)))
+        {
+            priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
+        }
+        else
+        {
+            priceBizDate = bizDate;
+        }
+
+        return priceBizDate;
+    }
+
     private async Task HandleHolderBalanceNoChangesAsync(string chainId, string bizDate)
     {
         var skipCount = 0;
         List<HolderBalanceIndex> holderBalanceIndices;
-        var priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
+
+        var priceBizDate = GetPriceBizDate(bizDate);
         do
         {
             holderBalanceIndices = await _holderBalanceProvider.GetPreHolderBalanceListAsync(chainId, bizDate,

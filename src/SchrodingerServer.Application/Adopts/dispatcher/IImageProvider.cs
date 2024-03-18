@@ -75,11 +75,13 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
 {
     public override ProviderType Type { get; } = ProviderType.AutoMatic;
     private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
+    private readonly IOptionsMonitor<StableDiffusionOption> _stableDiffusionOption;
 
     public AutoMaticImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService,
-        IDistributedEventBus distributedEventBus, IOptionsMonitor<TraitsOptions> traitsOptions) : base(logger, adoptImageService, distributedEventBus)
+        IDistributedEventBus distributedEventBus, IOptionsMonitor<TraitsOptions> traitsOptions, IOptionsMonitor<StableDiffusionOption> stableDiffusionOption) : base(logger, adoptImageService, distributedEventBus)
     {
         _traitsOptions = traitsOptions;
+        _stableDiffusionOption = stableDiffusionOption;
     }
 
     public override Task<string> GenerateImageRequestIdAsync(GenerateImage imageInfo, string adoptId)
@@ -105,10 +107,27 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         return images;
     }
 
-    public async Task<QueryAutoMaticResponse> QueryImageInfoByAiAsync(string adoptId, GenerateImage imageInfo)
+    private QueryAutoMaticImage GetQueryAutoMaticImage(GenerateImage imageInfo)
     {
         var traits = imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList();
-        var queryImage = new QueryAutoMaticImage() { traits = traits, seed = imageInfo.seed };
+        var diffusedOption = _stableDiffusionOption.CurrentValue;
+        return new QueryAutoMaticImage()
+        {
+            traits = traits,
+            seed = imageInfo.seed,
+            sampler_index = diffusedOption.SamplerIndex,
+            nagative_prompt = diffusedOption.NagativePrompt,
+            step = diffusedOption.Step,
+            batch_size = diffusedOption.BatchSize,
+            width = diffusedOption.Width,
+            height = diffusedOption.Height,
+            n_iters = diffusedOption.NIters
+        };
+    }
+
+    public async Task<QueryAutoMaticResponse> QueryImageInfoByAiAsync(string adoptId, GenerateImage imageInfo)
+    {
+        var queryImage = GetQueryAutoMaticImage(imageInfo);
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
         using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");

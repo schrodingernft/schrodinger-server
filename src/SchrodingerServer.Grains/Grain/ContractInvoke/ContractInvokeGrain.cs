@@ -47,6 +47,12 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
 
     public async Task<GrainResultDto<ContractInvokeGrainDto>> CreateAsync(ContractInvokeGrainDto input)
     {
+        if (State.BizId != null && State.BizId.Equals(input.BizId))
+        {
+            _logger.LogInformation(
+                "CreateAsync contract invoke repeated bizId {bizId} ", State.BizId);
+            return OfContractInvokeGrainResultDto(false, CommonConstant.TradeRepeated);
+        }
         State = _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeState>(input);
         if (State.Id.IsNullOrEmpty())
         {
@@ -151,8 +157,15 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
     private async Task HandleFailedAsync()
     {
         //To retry and send HandleCreatedAsync
-        State.Status = ContractInvokeStatus.ToBeCreated.ToString();
-        State.RetryCount += 1;
+        if (State.RetryCount >= _chainOptionsMonitor.CurrentValue.MaxRetryCount)
+        {
+            State.Status = ContractInvokeStatus.FinalFailed.ToString();
+        }
+        else
+        {
+            State.Status = ContractInvokeStatus.ToBeCreated.ToString();
+            State.RetryCount += 1;
+        }
         _logger.LogInformation(
             "HandleFailedAsync Contract bizId {bizId} txHash:{txHash} invoke status to {status}, retryCount:{retryCount}",
             State.BizId, State.TransactionId, State.Status, State.RetryCount);
@@ -214,12 +227,13 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         return await client.GetTransactionResultAsync(txId);
     }
 
-    private GrainResultDto<ContractInvokeGrainDto> OfContractInvokeGrainResultDto(bool success)
+    private GrainResultDto<ContractInvokeGrainDto> OfContractInvokeGrainResultDto(bool success, string message = null)
     {
         return new GrainResultDto<ContractInvokeGrainDto>()
         {
             Data = _objectMapper.Map<ContractInvokeState, ContractInvokeGrainDto>(State),
-            Success = success
+            Success = success,
+            Message = message
         };
     }
 }

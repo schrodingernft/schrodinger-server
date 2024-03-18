@@ -2,6 +2,8 @@ namespace SchrodingerServer.Grains.Grain.ApplicationHandler;
 
 public class ChainOptions
 {
+    public int MaxRetryCount { get; set; } = 5;
+
     public Dictionary<string, ChainInfo> ChainInfos { get; set; }
 }
 

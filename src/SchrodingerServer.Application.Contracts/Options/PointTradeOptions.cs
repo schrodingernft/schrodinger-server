@@ -5,7 +5,11 @@ namespace SchrodingerServer.Options;
 public class PointTradeOptions
 {
     public int MaxBatchSize { get; set; } = 10;
-
+    
+    public string BaseCoin { get; set; } = "SGR-1";
+    
+    public string[] BlackPointAddressList { get; set; }
+    
     public Dictionary<string, ChainInfo> ChainInfos { get; set; } = new();
 
     //key is point name
@@ -38,4 +42,6 @@ public class PointInfo
     public decimal? Factor { get; set; }
     
     public bool NeedMultiplyPrice { get; set; }
+    
+    public bool UseBalance { get; set; }
 }

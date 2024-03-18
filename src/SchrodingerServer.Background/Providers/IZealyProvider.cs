@@ -13,6 +13,7 @@ namespace SchrodingerServer.Background.Providers;
 public interface IZealyProvider
 {
     Task<List<ZealyUserIndex>> GetUsersAsync(int skipCount, int maxResultCount);
+    Task<ZealyUserIndex> GetUserByIdAsync(string userId);
     Task<List<ZealyUserXpIndex>> GetUserXpsAsync(int skipCount, int maxResultCount);
     Task<ZealyUserXpIndex> GetUserXpByIdAsync(string id);
     Task<List<ZealyXpScoreIndex>> GetXpScoresAsync(int skipCount, int maxResultCount);
@@ -49,6 +50,23 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
             await _zealyUserRepository.GetListAsync(skip: skipCount, limit: maxResultCount);
 
         return data;
+    }
+
+    public async Task<ZealyUserIndex> GetUserByIdAsync(string userId)
+    {
+        if (userId.IsNullOrEmpty())
+        {
+            return null;
+        }
+        
+        var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserIndex>, QueryContainer>>();
+        mustQuery.Add(q => q.Term(i =>
+            i.Field(f => f.Id).Value(userId)));
+        
+        QueryContainer Filter(QueryContainerDescriptor<ZealyUserIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        return await _zealyUserRepository.GetAsync(Filter);
     }
 
     public async Task<List<ZealyUserXpIndex>> GetUserXpsAsync(int skipCount, int maxResultCount)

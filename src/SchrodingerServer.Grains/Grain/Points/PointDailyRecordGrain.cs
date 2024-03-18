@@ -32,6 +32,7 @@ public class PointDailyRecordGrain : Grain<PointDailyRecordState>, IPointDailyRe
 
     public async Task<GrainResultDto<PointDailyRecordGrainDto>> UpdateAsync(PointDailyRecordGrainDto input)
     {
+        var prePointAmount = State.PointAmount;
         State = _objectMapper.Map<PointDailyRecordGrainDto, PointDailyRecordState>(input);
         if (State.Id.IsNullOrEmpty())
         {
@@ -39,7 +40,7 @@ public class PointDailyRecordGrain : Grain<PointDailyRecordState>, IPointDailyRe
             State.CreateTime = DateTime.UtcNow;
         }
         //accumulated points amount
-        State.PointAmount += input.PointAmount;
+        State.PointAmount = prePointAmount + input.PointAmount;
         State.UpdateTime = DateTime.UtcNow;
         await WriteStateAsync();
 

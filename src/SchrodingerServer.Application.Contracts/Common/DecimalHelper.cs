@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SchrodingerServer.Common;
 
@@ -17,9 +18,28 @@ public class DecimalHelper
         return (long)(num * multiplier);
     }
     
+    public static decimal MultiplyByPowerOfTen(decimal number, int n)
+    {
+        return number * (decimal)Math.Pow(10, n);
+    }
+    
     public static decimal Divide(decimal amount, int decimals)
     {
         return amount / (decimal)Math.Pow(10, decimals);
     }
     
+    public static decimal? GetValueFromDict(Dictionary<string, decimal> priceDict, string key, string defaultKey)
+    {
+        if (priceDict.TryGetValue(key, out decimal value))
+        {
+            return value;
+        }
+
+        if (priceDict.TryGetValue(defaultKey, out value))
+        {
+            return value;
+        }
+        return null;
+    }
+
 }

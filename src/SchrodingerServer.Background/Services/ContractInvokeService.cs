@@ -6,6 +6,7 @@ using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Orleans;
+using SchrodingerServer.Common;
 using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.ContractInvoke.Index;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
@@ -47,7 +48,10 @@ public class ContractInvokeService : IContractInvokeService, ISingletonDependenc
         var mustNotQuery = new List<Func<QueryContainerDescriptor<ContractInvokeIndex>, QueryContainer>>()
         {
             q => q.Match(m 
-                => m.Field(f => f.Status).Query(Status.Success.ToString())),
+                => m.Field(f => f.Status).Query(ContractInvokeStatus.Success.ToString())),
+            q => q.Match(m 
+                => m.Field(f => f.Status).Query(ContractInvokeStatus.FinalFailed.ToString()))
+
         };
 
         QueryContainer Filter(QueryContainerDescriptor<ContractInvokeIndex> f) =>

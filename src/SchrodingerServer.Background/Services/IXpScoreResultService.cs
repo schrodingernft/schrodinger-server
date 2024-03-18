@@ -4,11 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Nest;
 using Newtonsoft.Json;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
 using SchrodingerServer.ContractInvoke.Index;
+using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 
@@ -24,19 +26,21 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
     private readonly IZealyProvider _zealyProvider;
     private readonly ILogger<XpScoreResultService> _logger;
     private readonly INESTRepository<ContractInvokeIndex, string> _contractInvokeIndexRepository;
-    private const int FetchPendingCount = 10;
+    private readonly UpdateScoreOptions _options;
 
     public XpScoreResultService(IZealyProvider zealyProvider, ILogger<XpScoreResultService> logger,
-        INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository)
+        INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository,
+        IOptionsSnapshot<UpdateScoreOptions> options)
     {
         _zealyProvider = zealyProvider;
         _logger = logger;
         _contractInvokeIndexRepository = contractInvokeIndexRepository;
+        _options = options.Value;
     }
 
     public async Task HandleXpResultAsync()
     {
-        await HandleXpResultAsync(0, FetchPendingCount);
+        await HandleXpResultAsync(0, _options.FetchPendingCount);
     }
 
     private async Task HandleXpResultAsync(int skipCount, int maxResultCount)
@@ -49,28 +53,7 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         }
 
         _logger.LogInformation("handle pending xp score records, count:{count}", records.Count);
-        var bizIds = records.Select(t => t.Id).Distinct().ToList();
-      //  var bizIds = records.Select(t => t.BizId).Distinct().ToList();
-
-        
-        // fix , need to remove
-        for (var i = 0; i < bizIds.Count; i++)
-        {
-            try
-            {
-                if (bizIds[i].Contains(':'))
-                {
-                    var ids = bizIds[i].Split(':');
-                    bizIds[i] = ids[0];
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e,"error");
-            }
-        }
-        //
-
+        var bizIds = records.Select(t => t.BizId).Distinct().ToList();
         // get transaction from trans
         var contractInfos = await GetContractInvokeTxByIdsAsync(bizIds);
         foreach (var record in records)
@@ -84,6 +67,9 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         }
 
         var newSkipCount = skipCount + maxResultCount;
+        _logger.LogInformation(
+            "handle pending xp score records, skipCount:{skipCount}, maxResultCount:{maxResultCount}", newSkipCount,
+            maxResultCount);
         await HandleXpResultAsync(newSkipCount, maxResultCount);
     }
 
@@ -94,6 +80,9 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
             if (contractInfo == null)
             {
+                _logger.LogWarning(
+                    "modify record status fail, contract info is null, recordId:{recordId}, bizId:{bizId}",
+                    record.Id, record.BizId ?? "-");
                 return;
             }
 
@@ -110,6 +99,12 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                     userXp.LastXp = userXp.Xp;
                     userXp.Xp = record.Xp;
                     userXp.UpdateTime = DateTime.UtcNow;
+
+                    if (record.UseRepairTime > 0)
+                    {
+                        userXp.UseRepairTime = record.UseRepairTime;
+                    }
+                    
                     await _zealyProvider.UserXpAddOrUpdateAsync(userXp);
                 }
 

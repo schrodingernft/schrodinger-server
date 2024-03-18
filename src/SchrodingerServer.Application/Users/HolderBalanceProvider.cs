@@ -16,8 +16,10 @@ public interface IHolderBalanceProvider
     Task<List<HolderDailyChangeDto>> GetHolderDailyChangeListAsync(string chainId, string bizDate, int skipCount,
         int maxResultCount);
 
-    Task<Dictionary<string, HolderBalanceIndex>> GetPreHolderBalanceAsync(string chainId, string bizDate,
-        List<string> addressList);
+    Task<Dictionary<string, HolderBalanceIndex>> GetHolderBalanceAsync(string chainId, List<string> addressList);
+    
+    Task<List<HolderBalanceIndex>> GetPreHolderBalanceListAsync(string chainId, string bizDate, int skipCount,
+        int maxResultCount);
 }
 
 public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependency
@@ -61,29 +63,44 @@ public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependenc
         return graphQlResponse?.GetSchrodingerHolderDailyChangeList.Data;
     }
 
-    public async Task<Dictionary<string, HolderBalanceIndex>> GetPreHolderBalanceAsync(string chainId, string bizDate,
-        List<string> addressList)
+    public async Task<Dictionary<string, HolderBalanceIndex>> GetHolderBalanceAsync(string chainId, List<string> addressList)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<HolderBalanceIndex>, QueryContainer>>();
 
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.ChainId).Value(chainId)));
 
-        mustQuery.Add(q => q.Term(i =>
-            i.Field(f => f.BizDate).Value(bizDate)));
-        
-        mustQuery.Add(q => q.TermRange(i
-            => i.Field(index => index.BizDate).LessThan(bizDate)));
-
         mustQuery.Add(q => q.Terms(i =>
             i.Field(f => f.Address).Terms(addressList)));
 
         QueryContainer Filter(QueryContainerDescriptor<HolderBalanceIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
-
+        
         var tuple = await _holderBalanceIndexRepository.GetSortListAsync(Filter);
+        
         return !tuple.Item2.IsNullOrEmpty()
-            ? tuple.Item2.ToDictionary(item => item.Address, item => item)
+            ? tuple.Item2.ToDictionary(item => item.Id, item => item)
             : new Dictionary<string, HolderBalanceIndex>();
+    }
+
+    public async Task<List<HolderBalanceIndex>> GetPreHolderBalanceListAsync(string chainId, string bizDate, int skipCount, int maxResultCount)
+    {
+        var mustQuery = new List<Func<QueryContainerDescriptor<HolderBalanceIndex>, QueryContainer>>();
+
+        mustQuery.Add(q => q.Term(i =>
+            i.Field(f => f.ChainId).Value(chainId)));
+
+        mustQuery.Add(q => q.TermRange(i
+            => i.Field(index => index.BizDate).LessThan(bizDate)));
+        
+        mustQuery.Add(q => q.Range(i
+            => i.Field(index => index.Balance).GreaterThan(0)));
+
+        QueryContainer Filter(QueryContainerDescriptor<HolderBalanceIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        var tuple = await _holderBalanceIndexRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
+        
+        return !tuple.Item2.IsNullOrEmpty() ? tuple.Item2 : new List<HolderBalanceIndex>();
     }
 }

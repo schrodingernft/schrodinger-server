@@ -52,6 +52,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     public async Task UpdateScoreAsync()
     {
         _logger.LogInformation("begin update zealy score recurring job");
+
         // update user
         await _userRelationService.AddUserRelationAsync();
 
@@ -59,8 +60,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         await Task.Delay(1000);
 
         await HandleUserScoreAsync();
-        // ...
-
         _logger.LogInformation("finish update zealy score recurring job");
     }
 
@@ -128,10 +127,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
-        if (user.Address != "12AYc5UqcgQn7w1Nq7tS48TGM8AwRg3zfRr2AM5S7bJ53LYn4A8")
-        {
-            return;
-        }
         // get total score from user
         var uri = CommonConstant.GetUserUri + $"/{user.Id}";
 
@@ -142,6 +137,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var userXp = _zealyUserXps.FirstOrDefault(t => t.Id == user.Id);
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
 
+        long useRepairTime = 0;
         if (userXp == null)
         {
             userXp = new ZealyUserXpIndex()
@@ -152,22 +148,30 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
             };
 
             xp = userXpScore == null ? response.Xp : userXpScore.ActualScore;
+            useRepairTime = userXpScore == null ? 0 : userXpScore.UpdateTime;
+            _logger.LogInformation(
+                "calculate xp, responseXp:{responseXp}, userXp:{userXp}, useRepairTime:{useRepairTime}, xp:{xp}",
+                response.Xp, userXp.Xp, useRepairTime, xp);
         }
         else
         {
             var repairScore = 0m;
-            if (userXp.UseRepairTime != userXpScore.UpdateTime)
+            if (userXpScore != null && userXp.UseRepairTime != userXpScore.UpdateTime)
             {
+                useRepairTime = userXpScore.UpdateTime;
                 repairScore = userXpScore.ActualScore - userXpScore.RawScore;
             }
 
             xp = response.Xp - userXp.Xp + repairScore;
+            _logger.LogInformation(
+                "calculate xp, responseXp:{responseXp}, userXp:{userXp}, repairScore:{repairScore}, useRepairTime:{useRepairTime}, xp:{xp}",
+                response.Xp, userXp.Xp, repairScore, useRepairTime, xp);
         }
 
         if (xp > 0)
         {
             // contract xp
-            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, userXpScore, xp));
+            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, useRepairTime, xp));
         }
         else
         {

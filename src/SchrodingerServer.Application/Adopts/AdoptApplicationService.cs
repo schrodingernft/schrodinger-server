@@ -139,7 +139,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         try
         {
             using var httpClient = new HttpClient();
-            var isOverLoaded = _traitsOptions.CurrentValue.IsOverLoadedUrl;
             var response = await httpClient.GetAsync(_traitsOptions.CurrentValue.IsOverLoadedUrl);
             if (response.IsSuccessStatusCode)
             {
@@ -173,13 +172,14 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
         }
-
-        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
+        
+        var hasWaterMark = await _adoptImageService.HasWatermark(input.AdoptId);
+        if (hasWaterMark)
         {
             var info = await _adoptImageService.GetWatermarkImageInfoAsync(input.AdoptId);
-            _logger.Info("GetWatermarkImageInfo from grain, info:{}", JsonConvert.SerializeObject(info));
+            _logger.Info("GetWatermarkImageInfo from grain, info: {info}", JsonConvert.SerializeObject(info));
 
-            if (info.ImageUri == "" || info.ResizedImage == "")
+            if (info == null || info.ImageUri == null || info.ResizedImage == null)
             {
                 _logger.Info("Invalid watermark info, uri:{}, resizeImage", info.ImageUri, info.ResizedImage);
                 throw new UserFriendlyException("Invalid watermark info");
@@ -228,7 +228,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         }
 
         var base64String = stringArray[1].Trim();
-        string waterImageHash = await _ipfsAppService.UploadFile(base64String, input.AdoptId);
+        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        if (waterImageHash == "")
+        {
+            _logger.LogInformation("upload ipfs failed");
+            throw new UserFriendlyException("upload failed");
+        }
         var uri = "ipfs://" + waterImageHash;
 
         // uploadToS3

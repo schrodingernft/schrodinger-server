@@ -32,11 +32,16 @@ public class PointDailyRecordProvider : IPointDailyRecordProvider, ISingletonDep
             i.Field(f => f.ChainId).Value(chainId)));
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.BizDate).Value(bizDate)));
+        mustQuery.Add(q => q.Range(i =>
+            i.Field(f => f.PointAmount).GreaterThan(0)));
 
         QueryContainer Filter(QueryContainerDescriptor<PointDailyRecordIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
-
-        var tuple = await _pointDailyRecordIndexRepository.GetSortListAsync(Filter, skip: skipCount);
+        
+        var sorting = new Func<SortDescriptor<PointDailyRecordIndex>, IPromise<IList<ISort>>>(s =>
+            s.Descending(t => t.BizDate));
+        
+        var tuple = await _pointDailyRecordIndexRepository.GetSortListAsync(Filter, skip: skipCount, sortFunc: sorting);
         return tuple.Item2;
     }
 }

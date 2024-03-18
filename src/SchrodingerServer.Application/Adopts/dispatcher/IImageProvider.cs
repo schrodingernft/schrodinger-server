@@ -18,7 +18,7 @@ namespace SchrodingerServer.Adopts.dispatcher;
 public interface IImageProvider
 {
     ProviderType Type { get; }
-    Task<string> GetRequestIdAsync(string imageGenerationId, GenerateImage imageInfo, string adoptId);
+    Task<string> GetRequestIdAsync(string adoptAddress, GenerateImage imageInfo, string adoptId);
 
     Task<string> GenerateImageRequestIdAsync(GenerateImage imageInfo, string adoptId);
 
@@ -41,13 +41,13 @@ public abstract class ImageProvider : IImageProvider
         DistributedEventBus = distributedEventBus;
     }
 
-    public async Task<string> GetRequestIdAsync(string imageGenerationId, GenerateImage imageInfo, string adoptId)
+    public async Task<string> GetRequestIdAsync(string adoptAddress, GenerateImage imageInfo, string adoptId)
     {
         var requestId = await GenerateImageRequestIdAsync(imageInfo, adoptId);
         Logger.LogInformation("GenerateImageByAiAsync Finish. requestId: {requestId} ", requestId);
         if (!requestId.IsNullOrEmpty())
         {
-            var realRequestId = await AdoptImageService.SetImageGenerationIdNXAsync(imageGenerationId, requestId);
+            var realRequestId = await AdoptImageService.SetImageGenerationIdNXAsync(adoptAddress, requestId);
             if (realRequestId.Equals(requestId))
             {
                 await PublishAsync(requestId, adoptId, imageInfo);

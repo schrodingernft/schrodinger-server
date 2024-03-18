@@ -37,7 +37,8 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
 
     public async Task<ImageGenerationIdDto> GetImageGenerationIdAsync(string aelfAddress, GenerateImage imageInfo, string adoptId)
     {
-        var imageGenerationId = await _adoptImageService.GetImageGenerationIdAsync(ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress));
+        var adoptAddress = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
+        var imageGenerationId = await _adoptImageService.GetImageGenerationIdAsync(adoptAddress);
         var imageGenerationIdDto = new ImageGenerationIdDto
         {
             ImageGenerationId = imageGenerationId,
@@ -55,7 +56,7 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
             throw new UserFriendlyException("wrong type of image provider configuration");
         }
 
-        var result = await provider.GetRequestIdAsync(imageGenerationId, imageInfo, adoptId);
+        await provider.GetRequestIdAsync(adoptAddress, imageInfo, adoptId);
         return imageGenerationIdDto;
     }
 }

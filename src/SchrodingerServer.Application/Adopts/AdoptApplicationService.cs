@@ -224,6 +224,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         
         var base64String = stringArray[1].Trim();
         string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        if (waterImageHash == "")
+        {
+            _logger.LogInformation("upload ipfs failed");
+            throw new UserFriendlyException("upload failed");
+        }
+        
         var uri = "ipfs://" + waterImageHash;
         
         // uploadToS3

@@ -92,7 +92,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
                 await _holderBalanceProvider.GetHolderDailyChangeListAsync(chainId, bizDate, skipCount, MaxResultCount);
             _logger.LogInformation(
                 "GetHolderDailyChangeList chainId:{chainId} skipCount: {skipCount} bizDate:{bizDate} count: {count}",
-                chainId, bizDate, skipCount, dailyChanges?.Count);
+                chainId, skipCount,bizDate , dailyChanges?.Count);
             if (dailyChanges.IsNullOrEmpty())
             {
                 break;

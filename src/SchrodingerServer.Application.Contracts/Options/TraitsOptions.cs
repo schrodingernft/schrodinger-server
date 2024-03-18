@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace SchrodingerServer.Options;
 
 public class TraitsOptions

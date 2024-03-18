@@ -95,7 +95,11 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
             {
                 break;
             }
-
+            dailyChanges =  dailyChanges.Where(t =>!_pointTradeOptions.CurrentValue.BlackPointAddressList.Contains(t.Address)).ToList();
+            if (dailyChanges.IsNullOrEmpty())
+            {
+                break;
+            }
             var symbols = dailyChanges.Select(item => item.Symbol).ToHashSet();
             symbols.Add(_pointTradeOptions.CurrentValue.BaseCoin);
             

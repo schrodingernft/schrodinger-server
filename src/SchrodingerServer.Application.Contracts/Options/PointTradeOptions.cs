@@ -8,6 +8,8 @@ public class PointTradeOptions
     
     public string BaseCoin { get; set; } = "SGR-1";
     
+    public string[] BlackPointAddressList { get; set; }
+    
     public Dictionary<string, ChainInfo> ChainInfos { get; set; } = new();
 
     //key is point name

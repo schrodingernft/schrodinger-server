@@ -171,7 +171,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         if (xp > 0)
         {
             // contract xp
-            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, useRepairTime, xp));
+           // BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, useRepairTime, xp));
         }
         else
         {

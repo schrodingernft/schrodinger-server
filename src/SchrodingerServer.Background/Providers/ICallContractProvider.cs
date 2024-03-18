@@ -1,14 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
+using GraphQL;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using SchrodingerServer.Common;
+using SchrodingerServer.Common.GraphQL;
 using SchrodingerServer.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Users.Dto;
+using SchrodingerServer.Users.Index;
 using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 
@@ -16,65 +21,93 @@ namespace SchrodingerServer.Background.Providers;
 
 public interface ICallContractProvider
 {
-    Task CreateAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp);
+    Task CreateAsync(ZealyUserXpIndex userXp);
 }
 
 public class CallContractProvider : ICallContractProvider, ISingletonDependency
 {
     private readonly IPointSettleService _pointSettleService;
-    private readonly INESTRepository<ZealyUserXpRecordIndex, string> _zealyUserXpRecordRepository;
+    private readonly INESTRepository<ZealyUserXpRecordCleanUpIndex, string> _zealyUserXpRecordRepository;
     private readonly ZealyScoreOptions _options;
     private readonly ILogger<CallContractProvider> _logger;
+    private readonly IGraphQlHelper _graphQlHelper;
 
-    public CallContractProvider(INESTRepository<ZealyUserXpRecordIndex, string> zealyUserXpRecordRepository,
+    public CallContractProvider(INESTRepository<ZealyUserXpRecordCleanUpIndex, string> zealyUserXpRecordRepository,
         IOptionsSnapshot<ZealyScoreOptions> options,
         ILogger<CallContractProvider> logger,
-        IPointSettleService pointSettleService)
+        IPointSettleService pointSettleService, IGraphQlHelper graphQlHelper)
     {
         _zealyUserXpRecordRepository = zealyUserXpRecordRepository;
         _logger = logger;
         _pointSettleService = pointSettleService;
+        _graphQlHelper = graphQlHelper;
         _options = options.Value;
     }
 
-    [AutomaticRetry(Attempts = 20, DelaysInSeconds = new[] { 30 })]
-    public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp)
+    public async Task CreateAsync(ZealyUserXpIndex userXp)
     {
-        var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
-        _logger.LogInformation("begin create, bizId:{bizId}", bizId);
+        var recordId = $"{userXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}-cleanup";
+        _logger.LogInformation("begin create, recordId:{recordId}", recordId);
 
-        var pointSettleDto = new PointSettleDto()
+        var list = await GetOperatorPointsActionSumAsync(userXp.Address);
+        var totalAmount = DecimalHelper.MultiplyByPowerOfTen(userXp.Xp * _options.Coefficient, 8);
+        decimal pointAmount = 0m;
+        var point = list.FirstOrDefault(t => t.PointsName == "XPSGR-4");
+        if (point != null && point.Amount > 0)
         {
-            ChainId = _options.ChainId,
-            BizId = bizId,
-            PointName = _options.PointName,
-            UserPointsInfos = new List<UserPointInfo>()
-            {
-                new UserPointInfo()
-                {
-                    Address = zealyUserXp.Address,
-                    PointAmount = xp * _options.Coefficient
-                }
-            }
-        };
+            pointAmount = point.Amount;
+        }
 
-        await _pointSettleService.BatchSettleAsync(pointSettleDto);
-
-        // update record
-        var record = new ZealyUserXpRecordIndex
+        var record = new ZealyUserXpRecordCleanUpIndex
         {
-            Id = bizId,
+            Id = recordId,
             CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            Xp = xp,
-            Amount =  DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
-            BizId = bizId,
-            Status = ContractInvokeStatus.Pending.ToString(),
-            UserId = zealyUserXp.Id,
-            Address = zealyUserXp.Address,
-            UseRepairTime = useRepairTime
+            Xp = userXp.Xp,
+            Amount = totalAmount - pointAmount,
+            RawAmount = pointAmount,
+            TotalAmount = totalAmount,
+            BizId = string.Empty,
+            Status = ContractInvokeStatus.ToBeCreated.ToString(),
+            UserId = userXp.Id,
+            Address = userXp.Address
         };
 
         await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
-        _logger.LogInformation("end create, bizId:{bizId}", bizId);
+        _logger.LogInformation("end create, recordId:{recordId},totalAmount:{totalAmount}, pointAmount:{pointAmount}",
+            recordId, totalAmount, pointAmount);
+    }
+
+    public async Task<List<RankingDetailIndexerDto>> GetOperatorPointsActionSumAsync(
+        string address)
+    {
+        var indexerResult = await _graphQlHelper.QueryAsync<RankingDetailIndexerQueryDto>(new GraphQLRequest
+        {
+            Query =
+                @"query($dappId:String!, $address:String!, $domain:String!){
+                    getPointsSumByAction(input: {dappId:$dappId,address:$address,domain:$domain}){
+                        totalRecordCount,
+                        data{
+                        id,
+                        address,
+                        domain,
+                        role,
+                        dappId,
+    					pointsName,
+    					actionName,
+    					amount,
+    					createTime,
+    					updateTime
+                    }
+                }
+            }",
+            Variables = new
+            {
+                dappId = string.Empty,
+                domain = string.Empty,
+                address = address
+            }
+        });
+
+        return indexerResult.GetPointsSumByAction.Data;
     }
 }

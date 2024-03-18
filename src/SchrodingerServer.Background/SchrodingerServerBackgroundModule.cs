@@ -170,11 +170,12 @@ public class SchrodingerServerBackgroundModule : AbpModule
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
         context.AddBackgroundWorkerAsync<UserRelationWorker>();
-        context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
-        context.AddBackgroundWorkerAsync<UniswapPriceSnapshotWorker>();
-        context.AddBackgroundWorkerAsync<XpScoreResultWorker>();
-        InitRecurringJob(context.ServiceProvider);
-        StartOrleans(context.ServiceProvider);
+        // context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
+        // context.AddBackgroundWorkerAsync<UniswapPriceSnapshotWorker>();
+        // context.AddBackgroundWorkerAsync<XpScoreSettleWorker>();
+        // context.AddBackgroundWorkerAsync<XpScoreResultWorker>();
+       // InitRecurringJob(context.ServiceProvider);
+        //StartOrleans(context.ServiceProvider);
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
@@ -217,9 +218,13 @@ public class SchrodingerServerBackgroundModule : AbpModule
     private void ConfigureGraphQl(ServiceConfigurationContext context,
         IConfiguration configuration)
     {
+        // context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
+        //     new NewtonsoftJsonSerializer()));
+        // context.Services.AddSingleton<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
+        // Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
+        
         context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
             new NewtonsoftJsonSerializer()));
         context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
-        Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
     }
 }

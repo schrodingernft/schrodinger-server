@@ -73,7 +73,7 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         await HandleXpResultAsync(newSkipCount, maxResultCount);
     }
 
-    private async Task HandleRecordAsync(ZealyUserXpRecordIndex record, List<ContractInvokeIndex> contractInfos)
+    private async Task HandleRecordAsync(ZealyUserXpRecordCleanUpIndex record, List<ContractInvokeIndex> contractInfos)
     {
         try
         {
@@ -96,7 +96,7 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                 }
                 else
                 {
-                    userXp.LastXp = userXp.Xp;
+                    userXp.LastXp = 0;
                     userXp.Xp = record.Xp;
                     userXp.UpdateTime = DateTime.UtcNow;
 
@@ -104,7 +104,7 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                     {
                         userXp.UseRepairTime = record.UseRepairTime;
                     }
-                    
+
                     await _zealyProvider.UserXpAddOrUpdateAsync(userXp);
                 }
 

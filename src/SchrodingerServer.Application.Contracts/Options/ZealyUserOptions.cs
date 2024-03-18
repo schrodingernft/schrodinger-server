@@ -6,7 +6,7 @@ public class ZealyUserOptions
     public int Limit { get; set; } = 10;
     
     //minute
-    public int Period { get; set; } = 60;
+    public int Period { get; set; } = 10;
     public int RetryTime { get; set; } = 5;
     public int RetryDelayTime { get; set; } = 3;
 }

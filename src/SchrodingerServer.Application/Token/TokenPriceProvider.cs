@@ -104,7 +104,7 @@ public class TokenPriceProvider : ITokenPriceProvider, ISingletonDependency
         catch (Exception ex)
         {
             Logger.LogError(ex, $"can not get current price :{symbol}.");
-            throw;
+            return 0;
         }
     }
 

@@ -58,11 +58,11 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         {
             return null;
         }
-        
+
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserIndex>, QueryContainer>>();
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.Id).Value(userId)));
-        
+
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
 
@@ -83,11 +83,11 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         {
             return null;
         }
-        
+
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpIndex>, QueryContainer>>();
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.Id).Value(id)));
-        
+
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
 
@@ -98,7 +98,7 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
     {
         await _zealyUserXpRepository.AddOrUpdateAsync(zealyUserXp);
     }
-    
+
     public async Task XpRecordAddOrUpdateAsync(ZealyUserXpRecordIndex record)
     {
         await _zealyXpRecordRepository.AddOrUpdateAsync(record);
@@ -122,7 +122,8 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpRecordIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
 
-        var (totalCount, data) = await _zealyXpRecordRepository.GetListAsync(Filter);
+        var (totalCount, data) =
+            await _zealyXpRecordRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
 
         return data;
     }

@@ -1,14 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using SchrodingerServer.Common;
 using SchrodingerServer.Options;
 using SchrodingerServer.Points;
-using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 
@@ -16,7 +14,7 @@ namespace SchrodingerServer.Background.Providers;
 
 public interface ICallContractProvider
 {
-    Task CreateAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp);
+    Task CreateRecordAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp);
 }
 
 public class CallContractProvider : ICallContractProvider, ISingletonDependency
@@ -37,44 +35,30 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
         _options = options.Value;
     }
 
-    [AutomaticRetry(Attempts = 20, DelaysInSeconds = new[] { 30 })]
-    public async Task CreateAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp)
+    public async Task CreateRecordAsync(ZealyUserXpIndex zealyUserXp, long useRepairTime, decimal xp)
     {
-        var bizId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
-        _logger.LogInformation("begin create, bizId:{bizId}", bizId);
-
-        var pointSettleDto = new PointSettleDto()
+        try
         {
-            ChainId = _options.ChainId,
-            BizId = bizId,
-            PointName = _options.PointName,
-            UserPointsInfos = new List<UserPointInfo>()
+            var recordId = $"{zealyUserXp.Id}-{DateTime.UtcNow:yyyy-MM-dd}";
+            _logger.LogInformation("begin create, recordId:{recordId}", recordId);
+
+            var record = new ZealyUserXpRecordIndex
             {
-                new UserPointInfo()
-                {
-                    Address = zealyUserXp.Address,
-                    PointAmount = xp * _options.Coefficient
-                }
-            }
-        };
-
-        await _pointSettleService.BatchSettleAsync(pointSettleDto);
-
-        // update record
-        var record = new ZealyUserXpRecordIndex
+                Id = recordId,
+                CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                Xp = xp,
+                Amount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
+                BizId = string.Empty,
+                Status = ContractInvokeStatus.ToBeCreated.ToString(),
+                UserId = zealyUserXp.Id,
+                Address = zealyUserXp.Address,
+                UseRepairTime = useRepairTime
+            };
+            await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
+        }
+        catch (Exception e)
         {
-            Id = bizId,
-            CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            Xp = xp,
-            Amount =  DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
-            BizId = bizId,
-            Status = ContractInvokeStatus.Pending.ToString(),
-            UserId = zealyUserXp.Id,
-            Address = zealyUserXp.Address,
-            UseRepairTime = useRepairTime
-        };
-
-        await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
-        _logger.LogInformation("end create, bizId:{bizId}", bizId);
+            _logger.LogError("create record error, data:{data}", JsonConvert.SerializeObject(zealyUserXp));
+        }
     }
 }

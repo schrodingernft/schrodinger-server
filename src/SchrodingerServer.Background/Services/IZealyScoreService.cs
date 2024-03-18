@@ -4,13 +4,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Hangfire;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
 using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
+using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Background.Services;
@@ -24,7 +27,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 {
     private readonly ILogger<ZealyScoreService> _logger;
     private readonly IUserRelationService _userRelationService;
-
     private readonly IZealyProvider _zealyProvider;
 
     //private readonly IZealyClientProxyProvider _zealyClientProxyProvider;
@@ -34,11 +36,13 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private readonly ZealyScoreOptions _options;
     private List<ZealyUserXpIndex> _zealyUserXps = new();
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
+    private readonly IDistributedCache<UpdateScoreInfo> _distributedCache;
+    private const string _updateScorePrefix = "UpdateZealyScoreInfo";
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger, IUserRelationService userRelationService,
         IZealyProvider zealyProvider, IZealyClientProvider zealyClientProxyProvider,
         INESTRepository<ZealyUserXpIndex, string> zealyUserXpRepository, ICallContractProvider contractProvider,
-        IOptionsSnapshot<ZealyScoreOptions> options)
+        IOptionsSnapshot<ZealyScoreOptions> options, IDistributedCache<UpdateScoreInfo> distributedCache)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -46,21 +50,55 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _zealyUserXpRepository = zealyUserXpRepository;
         _contractProvider = contractProvider;
+        _distributedCache = distributedCache;
         _options = options.Value;
     }
 
     public async Task UpdateScoreAsync()
     {
-        _logger.LogInformation("begin update zealy score recurring job");
+        try
+        {
+            var jobIsStart = await CheckJobAsync();
+            if (!jobIsStart)
+            {
+                _logger.LogWarning("update zealy score recurring job is started");
+                return;
+            }
+            
+            _logger.LogInformation("begin update zealy score recurring job");
+            // update user
+            await _userRelationService.AddUserRelationAsync();
 
-        // update user
-        await _userRelationService.AddUserRelationAsync();
+            // wait es synchronization
+            await Task.Delay(1000);
 
-        // wait es synchronization
-        await Task.Delay(1000);
+            await HandleUserScoreAsync();
+            _logger.LogInformation("finish update zealy score recurring job");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "update zealy score error");
+        }
+    }
 
-        await HandleUserScoreAsync();
-        _logger.LogInformation("finish update zealy score recurring job");
+    private async Task<bool> CheckJobAsync()
+    {
+        var key = $"{_updateScorePrefix}:{DateTime.UtcNow:yyyy-MM-dd}";
+        var cache = await _distributedCache.GetAsync(key);
+        if (cache != null)
+        {
+            return false;
+        }
+
+        await _distributedCache.SetAsync(key, new UpdateScoreInfo()
+        {
+            UpdateTime = DateTime.UtcNow
+        }, new DistributedCacheEntryOptions()
+        {
+            AbsoluteExpiration = DateTimeOffset.Now.AddHours(6)
+        });
+
+        return true;
     }
 
     private async Task GetUsersAsync(List<ZealyUserIndex> userIndices,
@@ -118,20 +156,28 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         await GetUserXpsAsync(_zealyUserXps, 0, _options.FetchCount);
         await GetXpScoresAsync(_zealyXpScores, 0, _options.FetchCount);
 
-        //List<Task> tasks = new List<Task>();
         foreach (var user in users)
         {
-            await HandleUserScoreAsync(user);
+            try
+            {
+                await HandleUserScoreAsync(user);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "handle user score error, userInfo:{userInfo}", JsonConvert.SerializeObject(user));
+                continue;
+            }
         }
     }
 
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
-        // get total score from user
-        var uri = CommonConstant.GetUserUri + $"/{user.Id}";
+        var userDto = await GetZealyUserAsync(user.Id);
 
-        _logger.LogInformation("get user info, uri:{uri}", uri);
-        var response = await _zealyClientProxyProvider.GetAsync<ZealyUserDto>(uri);
+        if (userDto == null)
+        {
+            return;
+        }
 
         var xp = 0m;
         var userXp = _zealyUserXps.FirstOrDefault(t => t.Id == user.Id);
@@ -147,11 +193,11 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
                 CreateTime = DateTime.UtcNow
             };
 
-            xp = userXpScore == null ? response.Xp : userXpScore.ActualScore;
+            xp = userXpScore == null ? userDto.Xp : userXpScore.ActualScore;
             useRepairTime = userXpScore == null ? 0 : userXpScore.UpdateTime;
             _logger.LogInformation(
-                "calculate xp, responseXp:{responseXp}, userXp:{userXp}, useRepairTime:{useRepairTime}, xp:{xp}",
-                response.Xp, userXp.Xp, useRepairTime, xp);
+                "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, useRepairTime:{useRepairTime}, xp:{xp}",
+                user.Id, userDto.Xp, userXp.Xp, useRepairTime, xp);
         }
         else
         {
@@ -162,24 +208,38 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
                 repairScore = userXpScore.ActualScore - userXpScore.RawScore;
             }
 
-            xp = response.Xp - userXp.Xp + repairScore;
+            xp = userDto.Xp - userXp.Xp + repairScore;
             _logger.LogInformation(
-                "calculate xp, responseXp:{responseXp}, userXp:{userXp}, repairScore:{repairScore}, useRepairTime:{useRepairTime}, xp:{xp}",
-                response.Xp, userXp.Xp, repairScore, useRepairTime, xp);
+                "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, repairScore:{repairScore}, useRepairTime:{useRepairTime}, xp:{xp}",
+                user.Id, userDto.Xp, userXp.Xp, repairScore, useRepairTime, xp);
         }
 
         if (xp > 0)
         {
-            // contract xp
-            BackgroundJob.Enqueue(() => _contractProvider.CreateAsync(userXp, useRepairTime, xp));
+            BackgroundJob.Enqueue(() => _contractProvider.CreateRecordAsync(userXp, useRepairTime, xp));
         }
         else
         {
-            userXp.Xp = userXp.Xp == 0 ? response.Xp : userXp.Xp;
+            userXp.Xp = userXp.Xp == 0 ? userDto.Xp : userXp.Xp;
             userXp.LastXp = userXp.Xp;
         }
 
         userXp.HandleXpTime = DateTime.UtcNow;
         await _zealyUserXpRepository.AddOrUpdateAsync(userXp);
+    }
+
+    private async Task<ZealyUserDto> GetZealyUserAsync(string userId)
+    {
+        try
+        {
+            var uri = CommonConstant.GetUserUri + $"/{userId}";
+            _logger.LogInformation("get user info, uri:{uri}", uri);
+            return await _zealyClientProxyProvider.GetAsync<ZealyUserDto>(uri);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "get user score from zealy error, userId:{userId}", userId);
+            return null;
+        }
     }
 }

@@ -16,7 +16,7 @@ public interface IHolderBalanceProvider
     Task<List<HolderDailyChangeDto>> GetHolderDailyChangeListAsync(string chainId, string bizDate, int skipCount,
         int maxResultCount);
 
-    Task<Dictionary<string, HolderBalanceIndex>> GetHolderBalanceAsync(string chainId, List<string> ids);
+    Task<Dictionary<string, HolderBalanceIndex>> GetHolderBalanceAsync(string chainId, List<string> addressList);
     
     Task<List<HolderBalanceIndex>> GetPreHolderBalanceListAsync(string chainId, string bizDate, int skipCount,
         int maxResultCount);
@@ -63,7 +63,7 @@ public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependenc
         return graphQlResponse?.GetSchrodingerHolderDailyChangeList.Data;
     }
 
-    public async Task<Dictionary<string, HolderBalanceIndex>> GetHolderBalanceAsync(string chainId, List<string> ids)
+    public async Task<Dictionary<string, HolderBalanceIndex>> GetHolderBalanceAsync(string chainId, List<string> addressList)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<HolderBalanceIndex>, QueryContainer>>();
 
@@ -71,7 +71,7 @@ public class HolderBalanceProvider : IHolderBalanceProvider, ISingletonDependenc
             i.Field(f => f.ChainId).Value(chainId)));
 
         mustQuery.Add(q => q.Terms(i =>
-            i.Field(f => f.Id).Terms(ids)));
+            i.Field(f => f.Address).Terms(addressList)));
 
         QueryContainer Filter(QueryContainerDescriptor<HolderBalanceIndex> f) =>
             f.Bool(b => b.Must(mustQuery));

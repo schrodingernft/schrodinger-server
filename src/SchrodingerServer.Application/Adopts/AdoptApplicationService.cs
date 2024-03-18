@@ -134,7 +134,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         try
         {
             using var httpClient = new HttpClient();
-            var isOverLoaded = _traitsOptions.CurrentValue.IsOverLoadedUrl;
             var response = await httpClient.GetAsync(_traitsOptions.CurrentValue.IsOverLoadedUrl);
             if (response.IsSuccessStatusCode)
             {

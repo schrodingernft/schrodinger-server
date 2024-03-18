@@ -54,7 +54,7 @@ public class CallContractProvider : ICallContractProvider, ISingletonDependency
                 Address = zealyUserXp.Address,
                 UseRepairTime = useRepairTime
             };
-            await _zealyUserXpRecordRepository.AddOrUpdateAsync(record);
+            await _zealyUserXpRecordRepository.AddAsync(record);
         }
         catch (Exception e)
         {

@@ -61,7 +61,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         if (bizDate.IsNullOrEmpty())
         {
             //TODO use block time
-            bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);
+            bizDate = DateTime.UtcNow.ToString(TimeHelper.Pattern);
         }
 
         //TODO control repeat execute

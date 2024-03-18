@@ -50,7 +50,7 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         if (State.BizId != null && State.BizId.Equals(input.BizId))
         {
             _logger.LogInformation(
-                "CreateAsync Contract repeated bizId {bizId} ", State.BizId);
+                "CreateAsync contract invoke repeated bizId {bizId} ", State.BizId);
             return OfContractInvokeGrainResultDto(false, CommonConstant.TradeRepeated);
         }
         State = _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeState>(input);

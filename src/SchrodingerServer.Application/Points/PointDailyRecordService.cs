@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -48,7 +49,7 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
         }
         foreach (var (pointName, pointInfo) in _pointTradeOptions.CurrentValue.PointMapping)
         {
-            if (pointInfo.ConditionalExp.IsNullOrEmpty())
+            if (CollectionUtilities.IsNullOrEmpty(pointInfo.ConditionalExp))
             {
                 continue;
             }
@@ -99,8 +100,8 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
         {
             return (decimal)(dto.Balance * pointInfo.Factor * symbolPrice);
         }
-
-        var pointAmount = (decimal)(dto.ChangeAmount * pointInfo.Factor);
+        var changeAmount = Math.Abs(dto.ChangeAmount);
+        var pointAmount = (decimal)(changeAmount * pointInfo.Factor);
 
         if (pointInfo.NeedMultiplyPrice && symbolPrice != null)
         {

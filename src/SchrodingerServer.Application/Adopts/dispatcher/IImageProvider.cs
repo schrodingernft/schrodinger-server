@@ -22,22 +22,22 @@ public interface IImageProvider
 
     Task<string> GenerateImageRequestIdAsync(GenerateImage imageInfo, string adoptId);
 
-    Task<List<string>> GenerateImageAsync(string requestId, string adoptId);
+    Task<List<string>> GenerateImageAsync(string requestId, string adoptId, GenerateImage imageInfo);
 
-    Task PublishAsync(string requestId, string adoptId);
+    Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
 }
 
 public abstract class ImageProvider : IImageProvider
 {
     public abstract ProviderType Type { get; }
-    private readonly IAdoptImageService _adoptImageService;
+    protected readonly IAdoptImageService AdoptImageService;
     protected readonly ILogger<ImageProvider> Logger;
     protected readonly IDistributedEventBus DistributedEventBus;
 
     protected ImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService, IDistributedEventBus distributedEventBus)
     {
         Logger = logger;
-        _adoptImageService = adoptImageService;
+        AdoptImageService = adoptImageService;
         DistributedEventBus = distributedEventBus;
     }
 
@@ -47,10 +47,10 @@ public abstract class ImageProvider : IImageProvider
         Logger.LogInformation("GenerateImageByAiAsync Finish. requestId: {requestId} ", requestId);
         if (!requestId.IsNullOrEmpty())
         {
-            var realRequestId = await _adoptImageService.SetImageGenerationIdNXAsync(imageGenerationId, requestId);
+            var realRequestId = await AdoptImageService.SetImageGenerationIdNXAsync(imageGenerationId, requestId);
             if (realRequestId.Equals(requestId))
             {
-                await PublishAsync(requestId, adoptId);
+                await PublishAsync(requestId, adoptId, imageInfo);
             }
 
             requestId = realRequestId;
@@ -61,8 +61,8 @@ public abstract class ImageProvider : IImageProvider
 
 
     public abstract Task<string> GenerateImageRequestIdAsync(GenerateImage imageInfo, string adoptId);
-    public abstract Task<List<string>> GenerateImageAsync(string requestId, string adoptId);
-    public abstract Task PublishAsync(string requestId, string adoptId);
+    public abstract Task<List<string>> GenerateImageAsync(string requestId, string adoptId, GenerateImage imageInfo);
+    public abstract Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
 }
 
 public enum ProviderType
@@ -74,26 +74,65 @@ public enum ProviderType
 public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
 {
     public override ProviderType Type { get; } = ProviderType.AutoMatic;
+    private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
 
     public AutoMaticImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService,
-        IDistributedEventBus distributedEventBus) : base(logger, adoptImageService, distributedEventBus)
+        IDistributedEventBus distributedEventBus, IOptionsMonitor<TraitsOptions> traitsOptions) : base(logger, adoptImageService, distributedEventBus)
     {
+        _traitsOptions = traitsOptions;
     }
 
     public override Task<string> GenerateImageRequestIdAsync(GenerateImage imageInfo, string adoptId)
     {
-        return Task.FromResult(Guid.NewGuid().ToString("N"));
+        return Task.FromResult(adoptId);
     }
 
-    public override Task<List<string>> GenerateImageAsync(string requestId, string adoptId)
+    public override async Task<List<string>> GenerateImageAsync(string requestId, string adoptId, GenerateImage imageInfo)
     {
-        //todo implement autoMatic image generate
-        throw new NotImplementedException();
+        Logger.LogInformation("GenerateImageAsyncAsync Begin. requestId: {requestId} adoptId: {adoptId} ", requestId, adoptId);
+        var response = await QueryImageInfoByAiAsync(adoptId, imageInfo);
+        var images = new List<string>();
+        Logger.LogInformation("GenerateImageAsyncAsync Finish. resp: {resp}", JsonConvert.SerializeObject(response));
+        if (response == null || response.images == null || response.images.Count == 0)
+        {
+            Logger.LogInformation("AutoMaticImageProvider GetImagesAsync autoMaticResponse.images null");
+            return images;
+        }
+
+        images = response.images;
+
+        await AdoptImageService.SetImagesAsync(adoptId, images);
+        return images;
     }
 
-    public override async Task PublishAsync(string requestId, string adoptId)
+    public async Task<QueryAutoMaticResponse> QueryImageInfoByAiAsync(string adoptId, GenerateImage imageInfo)
     {
-        await DistributedEventBus.PublishAsync(new AutoMaticImageGenerateEto() { RequestId = requestId, AdoptId = adoptId });
+        var traits = imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList();
+        var queryImage = new QueryAutoMaticImage() { traits = traits };
+        var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
+        using var httpClient = new HttpClient();
+        var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+        httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+        var start = DateTime.Now;
+        var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.AutoMaticImageGenerateUrl, requestContent);
+        var timeCost = (DateTime.Now - start).Milliseconds;
+        var responseContent = await response.Content.ReadAsStringAsync();
+        if (response.IsSuccessStatusCode)
+        {
+            var aiQueryResponse = JsonConvert.DeserializeObject<QueryAutoMaticResponse>(responseContent);
+            Logger.LogInformation("AutoMaticImageProvider QueryImageInfoByAiAsync query success {adoptId} timeCost={timeCost}", adoptId, timeCost);
+            return aiQueryResponse;
+        }
+        else
+        {
+            Logger.LogError("AutoMaticImageProvider QueryImageInfoByAiAsync query not success {adoptId} timeCost={timeCost}", adoptId, timeCost);
+            return new QueryAutoMaticResponse { };
+        }
+    }
+
+    public override async Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo)
+    {
+        await DistributedEventBus.PublishAsync(new AutoMaticImageGenerateEto() { RequestId = requestId, AdoptId = adoptId, GenerateImage = imageInfo });
     }
 }
 
@@ -101,12 +140,10 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
 {
     public override ProviderType Type { get; } = ProviderType.Default;
     private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
-    private readonly IAdoptImageService _adoptImageService;
 
     public DefaultImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService, IOptionsMonitor<TraitsOptions> traitsOptions,
         IDistributedEventBus distributedEventBus) : base(logger, adoptImageService, distributedEventBus)
     {
-        _adoptImageService = adoptImageService;
         _traitsOptions = traitsOptions;
     }
 
@@ -143,7 +180,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         }
     }
 
-    public override async Task<List<string>> GenerateImageAsync(string requestId, string adoptId)
+    public override async Task<List<string>> GenerateImageAsync(string requestId, string adoptId, GenerateImage imageInfo)
     {
         Logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId} adoptId: {adoptId} ", requestId, adoptId);
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
@@ -157,13 +194,13 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
 
         images = aiQueryResponse.images.Select(imageItem => imageItem.image).ToList();
 
-        await _adoptImageService.SetImagesAsync(adoptId, images);
+        await AdoptImageService.SetImagesAsync(adoptId, images);
         return images;
     }
 
-    public override async Task PublishAsync(string requestId, string adoptId)
+    public override async Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo)
     {
-        await DistributedEventBus.PublishAsync(new DefaultImageGenerateEto() { RequestId = requestId, AdoptId = adoptId });
+        await DistributedEventBus.PublishAsync(new DefaultImageGenerateEto() { RequestId = requestId, AdoptId = adoptId, GenerateImage = imageInfo });
     }
 
     private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)

@@ -1,3 +1,4 @@
+using SchrodingerServer.Dtos.TraitsDto;
 using Volo.Abp.EventBus;
 
 namespace SchrodingerServer.Image;
@@ -7,4 +8,6 @@ public class DefaultImageGenerateEto
 {
     public string AdoptId { get; set; }
     public string RequestId { get; set; }
+
+    public GenerateImage GenerateImage { get; set; }
 }

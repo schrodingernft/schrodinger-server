@@ -24,6 +24,7 @@ using SchrodingerServer.Users;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
+using Volo.Abp.Users;
 using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using ConfirmInput = Schrodinger.ConfirmInput;
 using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
@@ -182,7 +183,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             }
 
             var signature = GenerateSignatureWithSecretService(input.AdoptId, info.ImageUri, info.ResizedImage);
-
+                                                                                                                                        
             var response = new GetWaterMarkImageInfoOutput
             {
                 Image = info.ResizedImage,

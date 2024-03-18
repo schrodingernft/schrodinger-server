@@ -8,8 +8,10 @@ using AElf.Indexing.Elasticsearch.Services;
 using Elasticsearch.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.EntityEventHandler.Core.IndexHandler;
 using SchrodingerServer.EntityEventHandler.Core.Options;
+using SchrodingerServer.Options;
 using StackExchange.Redis;
 using Volo.Abp;
 using Volo.Abp.Modularity;
@@ -31,6 +33,7 @@ public class SchrodingerServerDomainTestModule : AbpModule
         var multiplexer = ConnectionMultiplexer.Connect("127.0.0.1:6379");
         context.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
         context.Services.AddSingleton<IRateDistributeLimiter, RateDistributeLimiter>();
+        context.Services.AddSingleton<IImageProvider, AutoMaticImageProvider>();
         context.Services.Configure<RateLimitOptions>(options =>
         {
             options.RedisRateLimitOptions = new List<RateLimitOption>

@@ -110,11 +110,11 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(priceBizDate, symbols.ToList());
 
-            var addressList = realDailyChanges
+            var ids = realDailyChanges
                 .Select(item => IdGenerateHelper.GetHolderBalanceId(chainId, item.Symbol, item.Address)).ToList();
 
             var holderBalanceDict =
-                await _holderBalanceProvider.GetHolderBalanceAsync(chainId, addressList);
+                await _holderBalanceProvider.GetHolderBalanceAsync(chainId, ids);
 
             //get user latest date balance and add change
             var saveList = new List<HolderBalanceIndex>();

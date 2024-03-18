@@ -95,15 +95,17 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             Generation = adoptInfo.Generation,
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
-
-        var imageGenerationId = await _imageDispatcher.GetImageGenerationIdAsync(aelfAddress, AdoptInfo2GenerateImage(adoptInfo), adoptId);
-
-        if (!imageGenerationId.Exist)
+        var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
+        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
+        if (!hasSendRequest)
         {
+            await _adoptImageService.MarkRequest(adoptId);
+            await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
             return output;
         }
 
-        output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, imageGenerationId.ImageGenerationId);
+        var provider = _imageDispatcher.CurrentProvider();
+        output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
         return output;
     }
 

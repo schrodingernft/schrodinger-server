@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Image;
 using Volo.Abp.DependencyInjection;
@@ -23,9 +25,12 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
 
     public async Task HandleEventAsync(AutoMaticImageGenerateEto eventData)
     {
-        _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto start, {requestId} {adoptId}", eventData.RequestId, eventData.AdoptId);
-        await HandleAsync(async () => await _autoMaticImageProvider.GenerateImageAsync(eventData.RequestId, eventData.AdoptId, eventData.GenerateImage));
-        _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto end, {requestId} {adoptId}", eventData.RequestId, eventData.AdoptId);
+        _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto start, data: {data}", JsonConvert.SerializeObject(eventData));
+        var images =  await HandleAsync(async Task<List<string>> () => await _autoMaticImageProvider.RequestGenerateImage(eventData.AdoptId,
+            eventData.GenerateImage));
+        await _autoMaticImageProvider.SetAIGeneratedImages(eventData.AdoptId, images);
+        await _autoMaticImageProvider.SetRequestId(eventData.AdoptAddressId, eventData.AdoptId); 
+        _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto end");
     }
 
     private async Task<T> HandleAsync<T>(Func<Task<T>> task)

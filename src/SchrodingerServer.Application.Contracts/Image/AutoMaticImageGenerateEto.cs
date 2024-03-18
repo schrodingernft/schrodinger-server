@@ -8,7 +8,7 @@ namespace SchrodingerServer.Image;
 public class AutoMaticImageGenerateEto
 {
     public string AdoptId { get; set; }
-    public string RequestId { get; set; }
+    public string AdoptAddressId { get; set; }
 
     public GenerateImage GenerateImage { get; set; }
 }

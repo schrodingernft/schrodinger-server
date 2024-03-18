@@ -20,7 +20,7 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         _logger = logger;
     }
 
-    public async Task<string> GetImageGenerationIdAsync(string adoptId)
+    public async Task<string> GetRequestIdAsync(string adoptId)
     {
         try
         {
@@ -86,5 +86,17 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
         return await grain.GetWatermarkImageInfoAsync();
+    }
+    
+    public Task<bool> HasSendRequest(string adoptId)
+    {
+        var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
+        return grain.HasSendRequest();
+    }
+
+    public async Task MarkRequest(string adoptId)
+    {
+        var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
+        await grain.MarkRequest();
     }
 }

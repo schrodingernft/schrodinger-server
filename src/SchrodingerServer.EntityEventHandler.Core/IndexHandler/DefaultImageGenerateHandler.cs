@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Image;
 using Volo.Abp.DependencyInjection;
@@ -23,9 +24,12 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
 
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
     {
-        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto start, {requestId} {adoptId}", eventData.RequestId, eventData.AdoptId);
-        await HandleAsync(async () => await _defaultImageProvider.GenerateImageAsync(eventData.RequestId, eventData.AdoptId, eventData.GenerateImage));
-        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end, {requestId} {adoptId}", eventData.RequestId, eventData.AdoptId);
+        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto  data: {data}", JsonConvert.SerializeObject(eventData));
+        var requestId = await HandleAsync(async Task<string> () => await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId,
+            eventData.GenerateImage));
+        await _defaultImageProvider.SetRequestId(eventData.AdoptAddressId, requestId);
+            
+        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end");
     }
 
     private async Task<T> HandleAsync<T>(Func<Task<T>> task)
@@ -35,4 +39,5 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         // await _requestLimitProvider.RecordRequestAsync("defaultImageGenerateHandler-");
         return await task();
     }
+    
 }

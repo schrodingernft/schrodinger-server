@@ -98,19 +98,19 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
                 break;
             }
 
-            dailyChanges = dailyChanges
+           var  realDailyChanges = dailyChanges
                 .Where(t => !_pointTradeOptions.CurrentValue.BlackPointAddressList.Contains(t.Address)).ToList();
-            if (dailyChanges.IsNullOrEmpty())
+            if (realDailyChanges.IsNullOrEmpty())
             {
-                break;
+              continue;
             }
 
-            var symbols = dailyChanges.Select(item => item.Symbol).ToHashSet();
+            var symbols = realDailyChanges.Select(item => item.Symbol).ToHashSet();
             symbols.Add(_pointTradeOptions.CurrentValue.BaseCoin);
 
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(priceBizDate, symbols.ToList());
 
-            var addressList = dailyChanges
+            var addressList = realDailyChanges
                 .Select(item => IdGenerateHelper.GetHolderBalanceId(chainId, item.Symbol, item.Address)).ToList();
 
             var holderBalanceDict =
@@ -118,7 +118,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
             //get user latest date balance and add change
             var saveList = new List<HolderBalanceIndex>();
-            foreach (var item in dailyChanges)
+            foreach (var item in realDailyChanges)
             {
                 var symbolPrice = DecimalHelper.GetValueFromDict(symbolPriceDict, item.Symbol,
                     _pointTradeOptions.CurrentValue.BaseCoin);
@@ -154,12 +154,18 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         {
             holderBalanceIndices = await _holderBalanceProvider.GetPreHolderBalanceListAsync(chainId, bizDate,
                 skipCount, MaxResultCount);
+            var  realHolderBalanceIndices = holderBalanceIndices
+                .Where(t => !_pointTradeOptions.CurrentValue.BlackPointAddressList.Contains(t.Address)).ToList();
+            if (realHolderBalanceIndices.IsNullOrEmpty())
+            {
+                continue;
+            }
 
-            var symbols = holderBalanceIndices.Select(item => item.Symbol).ToHashSet();
+            var symbols = realHolderBalanceIndices.Select(item => item.Symbol).ToHashSet();
             symbols.Add(_pointTradeOptions.CurrentValue.BaseCoin);
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(priceBizDate, symbols.ToList());
 
-            foreach (var item in holderBalanceIndices)
+            foreach (var item in realHolderBalanceIndices)
             {
                 var symbolPrice = DecimalHelper.GetValueFromDict(symbolPriceDict, item.Symbol,
                     _pointTradeOptions.CurrentValue.BaseCoin);

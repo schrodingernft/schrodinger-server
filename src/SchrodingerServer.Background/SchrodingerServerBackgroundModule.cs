@@ -172,6 +172,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         context.AddBackgroundWorkerAsync<UserRelationWorker>();
         context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
         context.AddBackgroundWorkerAsync<UniswapPriceSnapshotWorker>();
+        context.AddBackgroundWorkerAsync<XpScoreSettleWorker>();
         context.AddBackgroundWorkerAsync<XpScoreResultWorker>();
         InitRecurringJob(context.ServiceProvider);
         StartOrleans(context.ServiceProvider);

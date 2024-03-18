@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SchrodingerServer.Grains;
 using SchrodingerServer.Grains.Grain.ApplicationHandler;
+using SchrodingerServer.Grains.Grain.Provider;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
@@ -21,5 +22,7 @@ public class SchrodingerServerOrleansSiloModule : AbpModule
         var configuration = context.Services.GetConfiguration();
         Configure<ChainOptions>(configuration.GetSection("Chains"));
         Configure<FaucetsTransferOptions>(configuration.GetSection("Faucets"));
+        Configure<SyncTokenOptions>(configuration.GetSection("Sync"));
+        context.Services.AddSingleton<IContractProvider, ContractProvider>();
     }
 }

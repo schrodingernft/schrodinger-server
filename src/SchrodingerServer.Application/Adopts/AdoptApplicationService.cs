@@ -109,8 +109,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     private GenerateImage AdoptInfo2GenerateImage(AdoptInfo adoptInfo)
     {
+        var gb = CurrentUser.GetId().ToByteArray();
         var imageInfo = new GenerateImage
         {
+            seed = BitConverter.ToInt32(gb, 0),
             newAttributes = new List<Trait> { },
             baseImage = new BaseImage
             {
@@ -118,13 +120,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             },
             numImages = adoptInfo.ImageCount
         };
-        foreach (Attribute attributeItem in adoptInfo.Attributes)
+        foreach (var item in adoptInfo.Attributes.Select(attributeItem => new Trait
+                 {
+                     traitType = attributeItem.TraitType,
+                     value = attributeItem.Value
+                 }))
         {
-            var item = new Trait
-            {
-                traitType = attributeItem.TraitType,
-                value = attributeItem.Value
-            };
             imageInfo.newAttributes.Add(item);
         }
 
@@ -183,7 +184,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             }
 
             var signature = GenerateSignatureWithSecretService(input.AdoptId, info.ImageUri, info.ResizedImage);
-                                                                                                                                        
+
             var response = new GetWaterMarkImageInfoOutput
             {
                 Image = info.ResizedImage,

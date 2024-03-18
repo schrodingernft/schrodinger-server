@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -46,6 +47,7 @@ public class QueryAutoMaticImage
     public int width { get; set; } = 1024;
     public int height { get; set; } = 1024;
     public int n_iters { get; set; } = 1;
+    public int seed { get; set; }
 }
 
 public class QueryAutoMaticResponse
@@ -61,7 +63,7 @@ public class QueryImage
 
 public class GenerateImage
 {
-    public string seed { get; set; }
+    public int seed { get; set; }
     public List<Trait> newAttributes { get; set; }
     public BaseImage baseImage { get; set; }
 

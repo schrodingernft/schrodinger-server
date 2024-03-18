@@ -24,7 +24,7 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
     {
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto start, {requestId} {adoptId}", eventData.RequestId, eventData.AdoptId);
-        await HandleAsync(async () => await _defaultImageProvider.GenerateImageAsync(eventData.RequestId, eventData.AdoptId));
+        await HandleAsync(async () => await _defaultImageProvider.GenerateImageAsync(eventData.RequestId, eventData.AdoptId, eventData.GenerateImage));
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end, {requestId} {adoptId}", eventData.RequestId, eventData.AdoptId);
     }
 

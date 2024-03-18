@@ -21,8 +21,4 @@
     <ProjectReference Include="..\SchrodingerServer.TestBase\SchrodingerServer.TestBase.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="ImageGen\img" />
-  </ItemGroup>
-
 </Project>

@@ -108,7 +108,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
     public async Task<QueryAutoMaticResponse> QueryImageInfoByAiAsync(string adoptId, GenerateImage imageInfo)
     {
         var traits = imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList();
-        var queryImage = new QueryAutoMaticImage() { traits = traits };
+        var queryImage = new QueryAutoMaticImage() { traits = traits, seed = imageInfo.seed };
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
         using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");

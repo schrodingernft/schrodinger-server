@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using SchrodingerServer.Adopts.dispatcher;
+using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Options;
 using Shouldly;
 using Xunit;
@@ -19,9 +21,9 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
     {
         var monitor = Mock.Of<IOptionsMonitor<TraitsOptions>>(x => x.CurrentValue == new TraitsOptions()
         {
-            AutoMaticImageGenerateUrl = "http://fs.iis.pub:13888/sdapi/v1/txt2img"
+            AutoMaticImageGenerateUrl = "http://192.168.11.40:3008/traits-to-image"
         });
-        _autoMaticImageProvider = new AutoMaticImageProvider(NullLogger<ImageProvider>.Instance, null, null, null, monitor);
+        _autoMaticImageProvider = new AutoMaticImageProvider(NullLogger<ImageProvider>.Instance, null, null, monitor);
     }
 
     [Fact]
@@ -31,7 +33,16 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
         var adoptId = "1234";
         var prompt =
             "A cute cat with two hands raised, ((pixel art)), cat add an Alien touch, (wearing Yoshi costume:0.1), Underwater Abyssal Reef background, Wearing a Mushroom Hat, (Has Fire-shaped eyes:1.2), (mouth Biting a Dagger:1.2), Wearing a Sunflower chain, (The cat is accompanied by a Baby Flame cat:1.6), Ditto, Black Bean Pad paw, High-Waiste Shorts";
-        var res = await _autoMaticImageProvider.QueryImageInfoByAiAsync(adoptId, prompt);
+        var gImage = new GenerateImage()
+        {
+            newAttributes = new List<Trait>() { new() { traitType = "Background", value = "Fantasy Forest" } },
+            baseImage = new BaseImage()
+            {
+                attributes = new List<Trait>() { new() { traitType = "Clothes", value = "Doraemon" } },
+            }
+        };
+
+        var res = await _autoMaticImageProvider.QueryImageInfoByAiAsync(adoptId, gImage);
         res.ShouldNotBeNull();
         res.images.Count.ShouldBe(2);
         foreach (var img in res.images)

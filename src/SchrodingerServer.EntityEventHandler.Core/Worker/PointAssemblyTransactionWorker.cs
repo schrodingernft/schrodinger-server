@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,6 +10,7 @@ using SchrodingerServer.EntityEventHandler.Core.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Points.Provider;
 using Volo.Abp.BackgroundWorkers;
+using Volo.Abp.DistributedLocking;
 using Volo.Abp.Threading;
 
 namespace SchrodingerServer.EntityEventHandler.Core.Worker;
@@ -19,10 +21,13 @@ public class PointAssemblyTransactionWorker : AsyncPeriodicBackgroundWorkerBase
     private readonly ILogger<PointAssemblyTransactionWorker> _logger;
     private readonly IOptionsMonitor<WorkerOptions> _workerOptionsMonitor;
     private readonly IPointDispatchProvider _pointDispatchProvider;
-    
+    private readonly IAbpDistributedLock _distributedLock;
+
+    private readonly string _lockKey = "IPointAssemblyTransactionWorker";
 
     public PointAssemblyTransactionWorker(AbpAsyncTimer timer,IServiceScopeFactory serviceScopeFactory,IPointAssemblyTransactionService pointAssemblyTransactionService,
         ILogger<PointAssemblyTransactionWorker> logger, IOptionsMonitor<WorkerOptions> workerOptionsMonitor,
+        IAbpDistributedLock distributedLock,
         IPointDispatchProvider pointDispatchProvider) : base(timer,
     serviceScopeFactory)
     {
@@ -30,13 +35,15 @@ public class PointAssemblyTransactionWorker : AsyncPeriodicBackgroundWorkerBase
         _logger = logger;
         _workerOptionsMonitor = workerOptionsMonitor;
         _pointDispatchProvider = pointDispatchProvider;
-        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("IPointAssemblyTransactionWorker").Minutes * 60 * 1000);
+        _distributedLock = distributedLock;
+        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault(_lockKey).Minutes * 1000);
     }
     
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
+        await using var handle =
+            await _distributedLock.TryAcquireAsync(_lockKey);
         _logger.LogInformation("Executing point assembly transaction job start");
-
         var bizDate = _workerOptionsMonitor.CurrentValue.BizDate;
         if (bizDate.IsNullOrEmpty())
         {

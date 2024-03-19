@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\SchrodingerServer.Domain\SchrodingerServer.Domain.csproj" />
+        <ProjectReference Include="..\..\src\SchrodingerServer.EntityEventHandler.Core\SchrodingerServer.EntityEventHandler.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

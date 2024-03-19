@@ -7,9 +7,9 @@ public class StableDiffusionOption
     public string NegativePrompt { get; set; } = "NSFW";
 
     public string SdModelCheckpoint { get; set; } = "revAnimated_v122.safetensors";
-    public int Step { get; set; } = 20;
+    public int Steps { get; set; } = 20;
     public int BatchSize { get; set; } = 2;
     public int Width { get; set; } = 512;
     public int Height { get; set; } = 512;
-    public int NIters { get; set; } = 1;
+    public int NIter { get; set; } = 1;
 }

@@ -42,11 +42,11 @@ public class QueryAutoMaticImage
     public string negative_prompt { get; set; } = "NSFW";
 
     public string sd_model_checkpoint { get; set; } = "revAnimated_v122.safetensors";
-    public int step { get; set; }
+    public int steps { get; set; }
     public int batch_size { get; set; } = 2;
     public int width { get; set; } = 1024;
     public int height { get; set; } = 1024;
-    public int n_iters { get; set; } = 1;
+    public int n_iter { get; set; } = 1;
     public int seed { get; set; }
 }
 

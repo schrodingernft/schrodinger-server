@@ -25,7 +25,6 @@ using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.Users;
-using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using ConfirmInput = Schrodinger.ConfirmInput;
 using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 

@@ -148,8 +148,10 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         if (response.IsSuccessStatusCode)
         {
             var aiQueryResponse = JsonConvert.DeserializeObject<QueryAutoMaticResponse>(responseContent);
+            var images = aiQueryResponse.images.Select(image => "data:image/webp;base64," + image).ToList();
+
             Logger.LogInformation("AutoMaticImageProvider QueryImageInfoByAiAsync query success {adoptId} timeCost={timeCost}", adoptId, timeCost);
-            return aiQueryResponse;
+            return new QueryAutoMaticResponse() { images = images, info = aiQueryResponse.info };
         }
         else
         {
@@ -270,7 +272,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             }
 
             images = await QueryImages(requestId);
-            
+
             if (!images.IsNullOrEmpty())
             {
                 await SetAIGeneratedImages(adoptId, images);

@@ -38,7 +38,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private readonly ZealyScoreOptions _options;
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
     private readonly IDistributedCache<UpdateScoreInfo> _distributedCache;
-    private readonly IBalanceProvider _balanceProvider;
     private readonly IClusterClient _clusterClient;
     private const string _updateScorePrefix = "UpdateZealyScoreInfo";
 
@@ -48,7 +47,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         IZealyClientProvider zealyClientProxyProvider,
         IXpRecordProvider xpRecordProvider,
         IOptionsSnapshot<ZealyScoreOptions> options,
-        IDistributedCache<UpdateScoreInfo> distributedCache, IBalanceProvider balanceProvider,
+        IDistributedCache<UpdateScoreInfo> distributedCache,
         IClusterClient clusterClient)
     {
         _logger = logger;
@@ -57,7 +56,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _xpRecordProvider = xpRecordProvider;
         _distributedCache = distributedCache;
-        _balanceProvider = balanceProvider;
         _clusterClient = clusterClient;
         _options = options.Value;
     }

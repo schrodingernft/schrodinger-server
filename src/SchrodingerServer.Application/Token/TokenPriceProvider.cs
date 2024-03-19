@@ -22,7 +22,7 @@ public class TokenPriceProvider : ITokenPriceProvider, ISingletonDependency
     private readonly IDistributedCache<PriceCacheItem> _distributedCache;
 
     private const string UsdSymbol = "usd";
-    private const string PriceCachePrifix = "usd";
+    private const string PriceCachePrefix = "usd";
     private const int PriceCacheTimeout = 60;
 
     public ILogger<TokenPriceProvider> Logger { get; set; }
@@ -62,7 +62,7 @@ public class TokenPriceProvider : ITokenPriceProvider, ISingletonDependency
     public async Task<decimal> GetPriceByCacheAsync(string symbol)
     {
         var priceItem = await _distributedCache.GetOrAddAsync(
-            string.Join(":", PriceCachePrifix, symbol),
+            string.Join(":", PriceCachePrefix, symbol),
             async () => new PriceCacheItem
             {
                 Price = await GetPriceAsync(symbol)

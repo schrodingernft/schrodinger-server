@@ -31,7 +31,7 @@ public class ContractInvokeHandler : IDistributedEventHandler<ContractInvokeEto>
         try
         {
             var contact = _objectMapper.Map<ContractInvokeEto, ContractInvokeIndex>(eventData);
-            await _repository.AddAsync(contact);
+            await _repository.AddOrUpdateAsync(contact);
             _logger.LogDebug("HandleEventAsync ContractInvokeEto success");
         }
         catch (Exception ex)

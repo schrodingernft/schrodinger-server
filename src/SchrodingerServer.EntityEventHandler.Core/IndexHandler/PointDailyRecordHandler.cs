@@ -31,7 +31,7 @@ public class PointDailyRecordHandler : IDistributedEventHandler<PointDailyRecord
         try
         {
             var contact = _objectMapper.Map<PointDailyRecordEto, PointDailyRecordIndex>(eventData);
-            await _repository.AddAsync(contact);
+            await _repository.AddOrUpdateAsync(contact);
             _logger.LogDebug("HandleEventAsync PointDailyRecordEto success");
         }
         catch (Exception ex)

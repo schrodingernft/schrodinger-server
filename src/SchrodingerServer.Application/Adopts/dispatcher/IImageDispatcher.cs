@@ -26,14 +26,12 @@ public class ImageGenerationIdDto
 public class ImageDispatcher : IImageDispatcher, ISingletonDependency
 {
     private readonly AdoptImageOptions _adoptImageOptions;
-    private readonly IAdoptImageService _adoptImageService;
     private readonly ILogger<ImageDispatcher> _logger;
     private readonly Dictionary<string, IImageProvider> _providers;
 
-    public ImageDispatcher(IOptionsMonitor<AdoptImageOptions> adoptImageOptions, IAdoptImageService adoptImageService, ILogger<ImageDispatcher> logger, IEnumerable<IImageProvider> providers)
+    public ImageDispatcher(IOptionsMonitor<AdoptImageOptions> adoptImageOptions, ILogger<ImageDispatcher> logger, IEnumerable<IImageProvider> providers)
     {
         _adoptImageOptions = adoptImageOptions.CurrentValue;
-        _adoptImageService = adoptImageService;
         _logger = logger;
         _providers = providers.ToDictionary(x => x.Type.ToString(), y => y);
     }

@@ -41,26 +41,26 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         }
 
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
-        var requestId = await HandleAsync(async Task<string>() => await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId,
-            imageInfo), eventData.AdoptId);
+        var requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
+        // var requestId = await HandleAsync(async Task<string>() => , eventData.AdoptId);
         await _defaultImageProvider.SetRequestId(eventData.AdoptAddressId, requestId);
 
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end");
     }
 
-    private async Task<T> HandleAsync<T>(Func<Task<T>> task, string adoptId)
-    {
-        var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
-        var lease = await limiter.AcquireAsync();
-        if (!lease.IsAcquired)
-        {
-            if (lease.TryGetMetadata(RateLimitMetadataName.RetryAfter.Name, out var retryAfter))
-            {
-                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, (int)retryAfter * 1000);
-                await Task.Delay((int)retryAfter * 1000);
-            }
-        }
-
-        return await task();
-    }
+    // private async Task<T> HandleAsync<T>(Func<Task<T>> task, string adoptId)
+    // {
+    //     var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
+    //     var lease = await limiter.AcquireAsync();
+    //     if (!lease.IsAcquired)
+    //     {
+    //         if (lease.TryGetMetadata(RateLimitMetadataName.RetryAfter.Name, out var retryAfter))
+    //         {
+    //             _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, (int)retryAfter * 1000);
+    //             await Task.Delay((int)retryAfter * 1000);
+    //         }
+    //     }
+    //
+    //     return await task();
+    // }
 }

@@ -16,6 +16,7 @@ using SchrodingerServer.Users;
 using SchrodingerServer.Users.Index;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Caching;
+using Volo.Abp.DistributedLocking;
 using Volo.Abp.ObjectMapping;
 using Volo.Abp.Threading;
 
@@ -37,7 +38,8 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
     private readonly ISymbolDayPriceProvider _symbolDayPriceProvider;
     private readonly IDistributedCache<string> _distributedCache;
     private readonly IPointDispatchProvider _pointDispatchProvider;
-    
+    private readonly IAbpDistributedLock _distributedLock;
+    private readonly string _lockKey = "ISyncHolderBalanceWorker";
 
     public SyncHolderBalanceWorker(AbpAsyncTimer timer,IServiceScopeFactory serviceScopeFactory,ILogger<SyncHolderBalanceWorker> logger,
         IHolderBalanceProvider holderBalanceProvider, IOptionsMonitor<WorkerOptions> workerOptionsMonitor,
@@ -46,6 +48,7 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
         ISymbolDayPriceProvider symbolDayPriceProvider,
         IDistributedCache<string> distributedCache,
         IPointDispatchProvider pointDispatchProvider,
+        IAbpDistributedLock distributedLock,
         IOptionsMonitor<PointTradeOptions> pointTradeOptions): base(timer,
         serviceScopeFactory)
     {
@@ -59,7 +62,8 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
         _pointTradeOptions = pointTradeOptions;
         _distributedCache = distributedCache;
         _pointDispatchProvider = pointDispatchProvider;
-        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("ISyncHolderBalanceWorker").Minutes * 60 * 1000);
+        _distributedLock = distributedLock;
+        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault(_lockKey).Minutes  * 1000);
 
     }
 
@@ -186,14 +190,14 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
+        await using var handle =
+            await _distributedLock.TryAcquireAsync(_lockKey);
         _logger.LogInformation("SyncHolderBalanceWorker start...");
-        
         var bizDate = _workerOptionsMonitor.CurrentValue.BizDate;
         if (bizDate.IsNullOrEmpty())
         {
             bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);
         }
-      
         var isExecuted = await _pointDispatchProvider.GetDispatchAsync(PointDispatchConstants.SYNC_HOLDER_BALANCE_PREFIX , bizDate);
         if (isExecuted)
         {

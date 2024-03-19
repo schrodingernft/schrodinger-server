@@ -3,26 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using SchrodingerServer.Options;
+using SchrodingerServer.Point;
 using SchrodingerServer.Points;
+using SchrodingerServer.Points.Provider;
 using SchrodingerServer.Symbol.Provider;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Index;
-using Volo.Abp.DependencyInjection;
+using Volo.Abp.BackgroundWorkers;
+using Volo.Abp.Caching;
 using Volo.Abp.ObjectMapping;
+using Volo.Abp.Threading;
 
 namespace SchrodingerServer.EntityEventHandler.Core.Worker;
 
-public interface ISyncHolderBalanceWorker
-{
-    Task Invoke();
-}
 
-public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDependency
+public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
 {
     private const int MaxResultCount = 800;
 
@@ -35,13 +36,19 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
     private readonly IObjectMapper _objectMapper;
     private readonly IPointDailyRecordService _pointDailyRecordService;
     private readonly ISymbolDayPriceProvider _symbolDayPriceProvider;
+    private readonly IDistributedCache<string> _distributedCache;
+    private readonly IPointDispatchProvider _pointDispatchProvider;
+    
 
-    public SyncHolderBalanceWorker(ILogger<SyncHolderBalanceWorker> logger,
+    public SyncHolderBalanceWorker(AbpAsyncTimer timer,IServiceScopeFactory serviceScopeFactory,ILogger<SyncHolderBalanceWorker> logger,
         IHolderBalanceProvider holderBalanceProvider, IOptionsMonitor<WorkerOptions> workerOptionsMonitor,
         INESTRepository<HolderBalanceIndex, string> holderBalanceIndexRepository, IObjectMapper objectMapper,
         IPointDailyRecordService pointDailyRecordService,
         ISymbolDayPriceProvider symbolDayPriceProvider,
-        IOptionsMonitor<PointTradeOptions> pointTradeOptions)
+        IDistributedCache<string> distributedCache,
+        IPointDispatchProvider pointDispatchProvider,
+        IOptionsMonitor<PointTradeOptions> pointTradeOptions): base(timer,
+        serviceScopeFactory)
     {
         _logger = logger;
         _holderBalanceProvider = holderBalanceProvider;
@@ -51,33 +58,10 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _pointDailyRecordService = pointDailyRecordService;
         _symbolDayPriceProvider = symbolDayPriceProvider;
         _pointTradeOptions = pointTradeOptions;
-    }
+        _distributedCache = distributedCache;
+        _pointDispatchProvider = pointDispatchProvider;
+        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("ISyncHolderBalanceWorker").Minutes * 60 * 1000);
 
-    public async Task Invoke()
-    {
-        _logger.LogInformation("SyncHolderBalanceWorker start...");
-
-        var bizDate = _workerOptionsMonitor.CurrentValue.BizDate;
-        if (bizDate.IsNullOrEmpty())
-        {
-            //TODO use block time
-            bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);
-        }
-
-        //TODO control repeat execute
-        var chainIds = _workerOptionsMonitor.CurrentValue.ChainIds;
-        if (chainIds.IsNullOrEmpty())
-        {
-            _logger.LogError("SyncHolderBalanceWorker chainIds has no config...");
-            return;
-        }
-
-        foreach (var chainId in _workerOptionsMonitor.CurrentValue.ChainIds)
-        {
-            await HandleHolderDailyChangeAsync(chainId, bizDate);
-            await Task.Delay(5000);
-            await HandleHolderBalanceNoChangesAsync(chainId, bizDate);
-        }
     }
 
     private async Task HandleHolderDailyChangeAsync(string chainId, string bizDate)
@@ -86,6 +70,7 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         var skipCount = 0;
         List<HolderDailyChangeDto> dailyChanges;
         var priceBizDate = GetPriceBizDate(bizDate);
+        skipCount = await _pointDispatchProvider.GetDailyChangeHeightAsync(PointDispatchConstants.HOLDER_DAILY_CHANGE_HEIGHT_PREFIX, bizDate);
         do
         {
             dailyChanges =
@@ -137,9 +122,9 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
             }
 
             //update bizDate holder balance
-            await _holderBalanceIndexRepository.BulkAddOrUpdateAsync(saveList);
-
+            await _holderBalanceIndexRepository.BulkAddOrUpdateAsync(saveList);           
             skipCount += dailyChanges.Count;
+            await _pointDispatchProvider.SetDailyChangeHeightAsync(PointDispatchConstants.HOLDER_DAILY_CHANGE_HEIGHT_PREFIX, bizDate,skipCount);
         } while (!dailyChanges.IsNullOrEmpty());
 
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} end...", chainId);
@@ -198,5 +183,46 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
             skipCount += holderBalanceIndices.Count;
         } while (!holderBalanceIndices.IsNullOrEmpty());
+    }
+
+    protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
+    {
+        _logger.LogInformation("SyncHolderBalanceWorker start...");
+        
+        var bizDate = _workerOptionsMonitor.CurrentValue.BizDate;
+        if (bizDate.IsNullOrEmpty())
+        {
+            bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);
+        }
+      
+        var isExecuted = await _pointDispatchProvider.GetDispatchAsync(PointDispatchConstants.SYNC_HOLDER_BALANCE_PREFIX , bizDate);
+        if (isExecuted)
+        {
+            _logger.LogInformation("SyncHolderBalanceWorker has been executed for bizDate: {0}", bizDate);
+            return;
+        }
+        
+        var dateTime = await _distributedCache.GetAsync(PointDispatchConstants.UNISWAP_PRICE_PREFIX + TimeHelper.GetUtcDaySeconds());
+        if (dateTime == null)
+        {
+            _logger.LogInformation("UniswapPriceSnapshotWorker has not executed today.");
+            return;
+        }
+        
+        var chainIds = _workerOptionsMonitor.CurrentValue.ChainIds;
+        if (chainIds.IsNullOrEmpty())
+        {
+            _logger.LogError("SyncHolderBalanceWorker chainIds has no config...");
+            return;
+        }
+
+        foreach (var chainId in _workerOptionsMonitor.CurrentValue.ChainIds)
+        {
+            await HandleHolderDailyChangeAsync(chainId, bizDate);
+            await Task.Delay(5000);
+            await HandleHolderBalanceNoChangesAsync(chainId, bizDate);
+        }
+        
+        await _pointDispatchProvider.SetDispatchAsync(PointDispatchConstants.SYNC_HOLDER_BALANCE_PREFIX , bizDate,true);
     }
 }

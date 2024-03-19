@@ -99,8 +99,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
         if (!hasSendRequest)
         {
-            await _adoptImageService.MarkRequest(adoptId);
             await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
+            await _adoptImageService.MarkRequest(adoptId);
             return output;
         }
 

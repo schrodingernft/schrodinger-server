@@ -3,6 +3,7 @@ using AutoMapper;
 using Google.Protobuf;
 using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.ContractInvoke.Index;
+using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Eto;
 using SchrodingerServer.Users.Index;
@@ -25,5 +26,6 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
             .ForMember(des => des.BizDate, opt
                 => opt.MapFrom(source => source.Date));
         CreateMap<PointDailyRecordEto, PointDailyRecordIndex>();
+        CreateMap<GenerateImage, GenerateOpenAIImage>();
     }
 }

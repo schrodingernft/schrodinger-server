@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using SchrodingerServer.Options;
-using SchrodingerServer.Point;
 using SchrodingerServer.Points;
 using SchrodingerServer.Points.Provider;
 using SchrodingerServer.Symbol.Provider;

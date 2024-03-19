@@ -72,9 +72,18 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
     private async Task ExecuteSyncAsync()
     {
         var grainClient = _clusterClient.GetGrain<ISyncPendingGrain>(GenerateSyncPendingListGrainId());
+
         var pendingList = await grainClient.GetSyncPendingListAsync();
 
         _logger.LogInformation("[Execute] There are a total of {count} tasks to be executed", pendingList.Count);
+
+        if (pendingList.Count > _options.CurrentValue.MaximumNumberPerTask)
+        {
+            _logger.LogWarning(
+                "In order to prevent excessive execution pressure from causing the sync tasks to fail. the number is reduced to {amount} at a time.",
+                _options.CurrentValue.MaximumNumberPerTask);
+            pendingList = pendingList.Take(_options.CurrentValue.MaximumNumberPerTask).ToList();
+        }
 
         await Task.WhenAll(pendingList.Select(HandlerJobExecuteAsync));
 
@@ -122,9 +131,13 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
         => await _clusterClient.GetGrain<ISyncPendingGrain>(GenerateSyncPendingListGrainId())
             .AddOrUpdateSyncPendingList(events);
 
-    private async Task SearchWorkerInitializing() => _latestSubscribeHeight = await _clusterClient
-        .GetGrain<ISubscribeGrain>(GenerateSubscribeHeightGrainId()).GetSubscribeHeightAsync();
+    private async Task SearchWorkerInitializing()
+    {
+        var grainHeight = await _clusterClient.GetGrain<ISubscribeGrain>(GenerateSubscribeHeightGrainId())
+            .GetSubscribeHeightAsync();
+        _latestSubscribeHeight = grainHeight == 0 ? _options.CurrentValue.SubscribeStartHeight : grainHeight;
+    }
 
-    private string GenerateSubscribeHeightGrainId() => GuidHelper.UniqGuid("SubscribeHeight").ToString();
-    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid("SyncPendingList").ToString();
+    private string GenerateSubscribeHeightGrainId() => GuidHelper.UniqGuid("SubscribeStartHeight").ToString();
+    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid("SyncPending").ToString();
 }

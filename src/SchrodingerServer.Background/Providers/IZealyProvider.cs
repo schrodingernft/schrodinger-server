@@ -18,7 +18,8 @@ public interface IZealyProvider
     Task<ZealyUserXpIndex> GetUserXpByIdAsync(string id);
     Task<List<ZealyXpScoreIndex>> GetXpScoresAsync(int skipCount, int maxResultCount);
 
-    Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount);
+    Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount, long startTime,
+        long endTime);
 
     Task UserXpAddOrUpdateAsync(ZealyUserXpIndex zealyUserXp);
     Task XpRecordAddOrUpdateAsync(ZealyUserXpRecordIndex record);
@@ -112,12 +113,23 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         return data;
     }
 
-    public async Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount)
+    public async Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount,
+        long startTime, long endTime)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpRecordIndex>, QueryContainer>>();
 
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.Status).Value(ContractInvokeStatus.Pending.ToString())));
+
+        if (startTime > 0)
+        {
+            mustQuery.Add(q => q.Range(i => i.Field(f => f.CreateTime).GreaterThanOrEquals(startTime)));
+        }
+
+        if (endTime > 0)
+        {
+            mustQuery.Add(q => q.Range(i => i.Field(f => f.CreateTime).LessThanOrEquals(endTime)));
+        }
 
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpRecordIndex> f) =>
             f.Bool(b => b.Must(mustQuery));

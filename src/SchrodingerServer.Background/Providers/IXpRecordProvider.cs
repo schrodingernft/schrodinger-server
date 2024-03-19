@@ -8,6 +8,8 @@ using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.ZealyScore;
 using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.Options;
+using SchrodingerServer.Points;
+using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Zealy.Eto;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
@@ -18,6 +20,7 @@ namespace SchrodingerServer.Background.Providers;
 public interface IXpRecordProvider
 {
     Task CreateRecordAsync(string userId, string address, decimal currentXp, decimal xp);
+    Task SettleAsync(PointSettleDto pointSettleDto);
 }
 
 public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
@@ -27,16 +30,19 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
     private readonly IClusterClient _clusterClient;
     private readonly IObjectMapper _objectMapper;
     private readonly IDistributedEventBus _distributedEventBus;
+    private readonly IPointSettleService _pointSettleService;
 
     public XpRecordProvider(
         IOptionsSnapshot<ZealyScoreOptions> options,
         ILogger<XpRecordProvider> logger,
-        IClusterClient clusterClient, IObjectMapper objectMapper, IDistributedEventBus distributedEventBus)
+        IClusterClient clusterClient, IObjectMapper objectMapper, IDistributedEventBus distributedEventBus,
+        IPointSettleService pointSettleService)
     {
         _logger = logger;
         _clusterClient = clusterClient;
         _objectMapper = objectMapper;
         _distributedEventBus = distributedEventBus;
+        _pointSettleService = pointSettleService;
         _options = options.Value;
     }
 
@@ -79,6 +85,20 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
         {
             _logger.LogError(e, "create record error, userId:{userId}, address:{address}, xp:{xp}", userId, address,
                 xp);
+            throw;
+        }
+    }
+
+    [AutomaticRetry(Attempts = 20, DelaysInSeconds = new[] { 40 })]
+    public async Task SettleAsync(PointSettleDto pointSettleDto)
+    {
+        try
+        {
+            await _pointSettleService.BatchSettleAsync(pointSettleDto);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "call BatchSettleAsync error, bizId:{bizId}", pointSettleDto.BizId);
             throw;
         }
     }

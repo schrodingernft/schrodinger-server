@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
@@ -29,25 +30,25 @@ public interface IXpScoreSettleService
 public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
 {
     private readonly ILogger<XpScoreSettleService> _logger;
-    private readonly IPointSettleService _pointSettleService;
     private readonly IZealyUserXpRecordProvider _recordProvider;
     private readonly ZealyScoreOptions _options;
     private readonly UpdateScoreOptions _updateScoreOptions;
     private readonly IClusterClient _clusterClient;
     private readonly IDistributedEventBus _distributedEventBus;
     private readonly IObjectMapper _objectMapper;
+    private readonly IXpRecordProvider _xpRecordProvider;
 
     public XpScoreSettleService(ILogger<XpScoreSettleService> logger, IOptionsSnapshot<ZealyScoreOptions> options,
-        IPointSettleService pointSettleService,
         IZealyUserXpRecordProvider recordProvider, IOptionsSnapshot<UpdateScoreOptions> updateScoreOptions,
-        IClusterClient clusterClient, IDistributedEventBus distributedEventBus, IObjectMapper objectMapper)
+        IClusterClient clusterClient, IDistributedEventBus distributedEventBus, IObjectMapper objectMapper,
+        IXpRecordProvider xpRecordProvider)
     {
         _logger = logger;
-        _pointSettleService = pointSettleService;
         _recordProvider = recordProvider;
         _clusterClient = clusterClient;
         _distributedEventBus = distributedEventBus;
         _objectMapper = objectMapper;
+        _xpRecordProvider = xpRecordProvider;
         _updateScoreOptions = updateScoreOptions.Value;
         _options = options.Value;
     }
@@ -99,16 +100,8 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
             { Address = record.Address, PointAmount = record.Amount }).ToList();
 
         pointSettleDto.UserPointsInfos = points;
-        try
-        {
-            await _pointSettleService.BatchSettleAsync(pointSettleDto);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "settle error, bizId:{bizId}", bizId);
-            return;
-        }
 
+        BackgroundJob.Enqueue(() => _xpRecordProvider.SettleAsync(pointSettleDto));
         _logger.LogInformation("BatchSettle finish, bizId:{bizId}", bizId);
     }
 

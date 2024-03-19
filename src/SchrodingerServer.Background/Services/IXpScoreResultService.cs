@@ -70,7 +70,9 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
 
     private async Task HandleXpResultAsync(int skipCount, int maxResultCount)
     {
-        var records = await _zealyProvider.GetPendingUserXpsAsync(skipCount, maxResultCount);
+        var startTime = DateTimeOffset.UtcNow.AddDays(-2).ToUnixTimeSeconds();
+        var records =
+            await _zealyProvider.GetPendingUserXpsAsync(skipCount, maxResultCount, startTime: startTime, endTime: 0);
         if (records.IsNullOrEmpty())
         {
             _logger.LogInformation("no pending xp score records");
@@ -122,7 +124,7 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                     result.Message, record.Id);
                 return;
             }
-            
+
             var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
             await _distributedEventBus.PublishAsync(recordEto, false, false);
         }

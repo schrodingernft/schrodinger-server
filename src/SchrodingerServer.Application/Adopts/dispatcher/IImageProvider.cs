@@ -90,7 +90,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         Logger.LogInformation("GenerateImageAsyncAsync Begin. adoptId: {adoptId} ", adoptId);
         var response = await QueryImageInfoByAiAsync(adoptId, imageInfo);
         var images = new List<string>();
-        Logger.LogInformation("GenerateImageAsyncAsync Finish. resp: {resp}", JsonConvert.SerializeObject(response));
+        Logger.LogInformation("GenerateImageAsyncAsync Finish. resp: {resp}", response.info);
         if (response == null || response.images == null || response.images.Count == 0)
         {
             Logger.LogInformation("AutoMaticImageProvider GetImagesAsync autoMaticResponse.images null");

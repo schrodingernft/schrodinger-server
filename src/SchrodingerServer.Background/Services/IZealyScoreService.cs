@@ -171,28 +171,8 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
-
-        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(user.Id);
-        var resultDto = await userXpGrain.GetUserXpInfoAsync();
-
-        if (!resultDto.Success)
-        {
-            _logger.LogError(
-                "get user xp info fail, message:{message}, userId:{userId}",
-                resultDto.Message, user.Id);
-
-            if (resultDto.Message == ZealyErrorMessage.UserXpInfoNotExistCode)
-            {
-                // add user if not exist.
-                await AddUserXpInfoAsync(user.Id, user.Address);
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        var userXp = resultDto.Data.CurrentXp;
+        
+        var userXp = await GetUserXpAsync(user.Id, user.Address);
         if (userXp == 0)
         {
             xp = userXpScore == null ? userDto.Xp : userXpScore.ActualScore;
@@ -218,6 +198,30 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         {
             BackgroundJob.Enqueue(() => _xpRecordProvider.CreateRecordAsync(user.Id, user.Address, userDto.Xp, xp));
         }
+    }
+
+    private async Task<decimal> GetUserXpAsync(string userId, string address)
+    {
+        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(userId);
+        var resultDto = await userXpGrain.GetUserXpInfoAsync();
+
+        if (resultDto.Success)
+        {
+            return resultDto.Data.CurrentXp;
+        }
+
+        _logger.LogError(
+            "get user xp info fail, message:{message}, userId:{userId}",
+            resultDto.Message, userId);
+
+        if (resultDto.Message == ZealyErrorMessage.UserXpInfoNotExistCode)
+        {
+            // add user if not exist.
+            await AddUserXpInfoAsync(userId, address);
+            return 0;
+        }
+
+        throw new UserFriendlyException("get user xp error, message:{message}", resultDto.Message);
     }
 
     private async Task<ZealyUserXpGrainDto> AddUserXpInfoAsync(string userId, string address)

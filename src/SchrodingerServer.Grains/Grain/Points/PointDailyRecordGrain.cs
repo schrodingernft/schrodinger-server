@@ -37,7 +37,10 @@ public class PointDailyRecordGrain : Grain<PointDailyRecordState>, IPointDailyRe
         if (State.Id.IsNullOrEmpty())
         {
             State.Id = this.GetPrimaryKey().ToString();
-            State.CreateTime = DateTime.UtcNow;
+        }
+        if (State.CreateTime == DateTime.MinValue)
+        {
+            State.CreateTime =  DateTime.UtcNow;
         }
         //accumulated points amount
         State.PointAmount = prePointAmount + input.PointAmount;

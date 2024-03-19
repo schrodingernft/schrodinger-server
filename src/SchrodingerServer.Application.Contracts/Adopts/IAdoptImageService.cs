@@ -6,9 +6,9 @@ namespace SchrodingerServer.Adopts;
 
 public interface IAdoptImageService
 {
-    Task<string> GetImageGenerationIdAsync(string adoptId);
+    Task<string> GetRequestIdAsync(string adoptId);
 
-    Task SetImageGenerationIdAsync(string adoptId, string imageGenerationId);
+    Task<string> SetImageGenerationIdNXAsync(string adoptId, string imageGenerationId);
 
     Task<List<string>> GetImagesAsync(string adoptId);
     Task SetImagesAsync(string adoptId,List<string> images);
@@ -19,4 +19,7 @@ public interface IAdoptImageService
     Task SetWatermarkImageInfoAsync(string adoptId, string imageUri, string resizedImage, string selectedImage);
 
     Task<WaterImageGrainInfoDto> GetWatermarkImageInfoAsync(string adoptId);
+    
+    Task<bool> HasSendRequest(string adoptId);
+    Task MarkRequest(string adoptId);
 }

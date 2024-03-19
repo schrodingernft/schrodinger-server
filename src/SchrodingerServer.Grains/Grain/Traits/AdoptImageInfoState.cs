@@ -11,4 +11,6 @@ public class AdoptImageInfoState
     public string ResizedImage { get; set; }
     
     public string ImageUri { get; set; }
+    
+    public bool HasSendRequest { get; set; }
 }

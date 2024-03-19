@@ -31,7 +31,7 @@ public class UserInformationHandler : IDistributedEventHandler<UserInformationEt
         try
         {
             var contact = _objectMapper.Map<UserInformationEto, UserIndex>(eventData);
-            await _userRepository.AddAsync(contact);
+            await _userRepository.AddOrUpdateAsync(contact);
             _logger.LogDebug("HandleEventAsync UserInformationEto success");
         }
         catch (Exception ex)

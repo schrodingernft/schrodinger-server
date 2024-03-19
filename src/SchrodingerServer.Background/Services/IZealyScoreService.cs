@@ -85,11 +85,15 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         {
             _logger.LogError(e, "update zealy score error");
         }
+        finally
+        {
+            await _distributedCache.RemoveAsync(GetCacheKey());
+        }
     }
 
     private async Task<bool> CheckJobAsync()
     {
-        var key = $"{_updateScorePrefix}:{DateTime.UtcNow:yyyy-MM-dd}";
+        var key = GetCacheKey();
         var cache = await _distributedCache.GetAsync(key);
         if (cache != null)
         {
@@ -105,6 +109,11 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         });
 
         return true;
+    }
+
+    private string GetCacheKey()
+    {
+        return $"{_updateScorePrefix}:{DateTime.UtcNow:yyyy-MM-dd}";
     }
 
     private async Task GetUsersAsync(List<ZealyUserIndex> userIndices,
@@ -169,7 +178,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
-        
+
         var userXp = await GetUserXpAsync(user.Id, user.Address);
         if (userXp == 0)
         {

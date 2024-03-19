@@ -2,6 +2,7 @@ namespace SchrodingerServer.Options;
 
 public class StableDiffusionOption
 {
+    public string Prompt { get; set; } = "<lora:pixelcat1000lr08b2e8-000002:0.3>, cute cat standing character, ((pixel art)), ";
     public string SamplerIndex { get; set; } = "DPM++ 2M Karras";
     public string NagativePrompt { get; set; } = "NSFW";
 

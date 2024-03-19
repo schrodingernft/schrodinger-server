@@ -119,11 +119,11 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
 
     public string GetPrompt(GenerateImage imageInfo)
     {
-        var prompt = new StringBuilder("A cute cat with two hands raised, ((pixel art)), <lora:pixelcat30:0.3>,");
+        var prompt = new StringBuilder(_stableDiffusionOption.Prompt);
         foreach (var trait in imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList())
         {
             prompt.Append(trait.traitType);
-            prompt.Append(' ');
+            prompt.Append(':');
             prompt.Append(trait.value);
             prompt.Append(',');
         }

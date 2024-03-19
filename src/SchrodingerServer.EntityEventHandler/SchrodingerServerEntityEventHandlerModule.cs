@@ -8,6 +8,8 @@ using Hangfire.Mongo;
 using Hangfire.Mongo.CosmosDB;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,10 +25,13 @@ using SchrodingerServer.EntityEventHandler.Core.Worker;
 using SchrodingerServer.Grains;
 using SchrodingerServer.MongoDB;
 using SchrodingerServer.Options;
+using StackExchange.Redis;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
 using Volo.Abp.BackgroundWorkers;
+using Volo.Abp.Caching;
+using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict.Tokens;
@@ -37,8 +42,10 @@ namespace SchrodingerServer.EntityEventHandler;
 [DependsOn(typeof(AbpAutofacModule),
     typeof(SchrodingerServerMongoDbModule),
     typeof(AbpAspNetCoreSerilogModule),
+    typeof(AbpBackgroundWorkersModule),
     typeof(SchrodingerServerEntityEventHandlerCoreModule),
     typeof(AbpAspNetCoreSerilogModule),
+    typeof(AbpCachingStackExchangeRedisModule),
     typeof(AbpEventBusRabbitMqModule)
     )]
 public class SchrodingerServerEntityEventHandlerModule : AbpModule
@@ -51,6 +58,8 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
         Configure<PointTradeOptions>(configuration.GetSection("PointTradeOptions"));
         ConfigureHangfire(context, configuration);
         ConfigureGraphQl(context, configuration);
+        ConfigureRedis(context, configuration, context.Services.GetHostingEnvironment());
+        ConfigureCache(configuration);
         context.Services.AddHostedService<SchrodingerServerHostedService>();
         context.Services.AddSingleton<IClusterClient>(o =>
         {
@@ -79,6 +88,8 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
+        context.AddBackgroundWorkerAsync<PointAssemblyTransactionWorker>();
+        context.AddBackgroundWorkerAsync<SyncHolderBalanceWorker>();
         var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
         AsyncHelper.RunSync(async ()=> await client.Connect());
     }
@@ -156,5 +167,24 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
         context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
             new NewtonsoftJsonSerializer()));
         context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
+    }
+    
+    private void ConfigureRedis(
+        ServiceConfigurationContext context,
+        IConfiguration configuration,
+        IWebHostEnvironment hostingEnvironment)
+    {
+       if (!hostingEnvironment.IsDevelopment())
+        {
+            var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+            context.Services
+                .AddDataProtection()
+                .PersistKeysToStackExchangeRedis(redis, "SchrodingerServer-Protection-Keys");
+        }
+    }
+    
+    private void ConfigureCache(IConfiguration configuration)
+    {
+        Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "SchrodingerServer:"; });
     }
 }

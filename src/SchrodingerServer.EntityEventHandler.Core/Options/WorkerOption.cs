@@ -16,5 +16,6 @@ public class WorkerOptions
 
 public class Worker
 {
+    public int Minutes { get; set; } = 10;
     public string Cron { get; set; } = WorkerOptions.DefaultCron;
 }

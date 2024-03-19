@@ -28,6 +28,7 @@ public class SymbolMarketGrainsAutoMapperProfile : Profile
         CreateMap<AdoptImageInfoState, WaterImageGrainInfoDto>();
         CreateMap<ContractInvokeGrainDto, ContractInvokeState>().ReverseMap();;
         CreateMap<PointDailyRecordGrainDto, PointDailyRecordState>().ReverseMap();;
+        CreateMap<PointDailyDispatchGrainDto, PointDailyDispatchState>().ReverseMap();;
         CreateMap<XpRecordState, XpRecordGrainDto>().ReverseMap();
         CreateMap<ZealyUserXpState, ZealyUserXpGrainDto>().ReverseMap();
     }

@@ -51,6 +51,9 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     public async Task UpdateScoreAsync()
     {
+        // not calculate -4
+        return;
+        
         _logger.LogInformation("begin update zealy score recurring job");
 
         // update user

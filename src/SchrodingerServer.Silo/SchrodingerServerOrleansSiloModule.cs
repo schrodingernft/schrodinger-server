@@ -1,6 +1,8 @@
+using AElf.Client.Service;
 using Microsoft.Extensions.DependencyInjection;
 using SchrodingerServer.Grains;
 using SchrodingerServer.Grains.Grain.ApplicationHandler;
+using SchrodingerServer.Grains.Grain.Provider;
 using SchrodingerServer.MongoDB;
 using SchrodingerServer.Options;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
@@ -30,9 +32,11 @@ public class SchrodingerServerOrleansSiloModule : AbpModule
         Configure<ChainOptions>(configuration.GetSection("Chains"));
         Configure<SchrodingerServer.Options.ChainOptions>(configuration.GetSection("Chains"));
         Configure<FaucetsTransferOptions>(configuration.GetSection("Faucets"));
+        Configure<SyncTokenOptions>(configuration.GetSection("Sync"));
+        context.Services.AddSingleton<IContractProvider, ContractProvider>();
         Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
-        
+        context.Services.AddSingleton<IBlockchainClientFactory<AElfClient>, AElfClientFactory>();
+
         context.Services.AddHttpClient();
-        // context.Services.AddSingleton<IContractProvider, ContractProvider>();
     }
 }

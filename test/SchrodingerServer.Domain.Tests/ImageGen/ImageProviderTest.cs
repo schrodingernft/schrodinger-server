@@ -39,7 +39,7 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
                 attributes = new List<Trait>() { new() { traitType = "Clothes", value = "Doraemon" } },
             }
         };
-        var prompt = await _autoMaticImageProvider.QueryPromptAsync(adoptId, gImage);
+        var prompt = _autoMaticImageProvider.GetPrompt(gImage);
         prompt.ShouldNotBeNull();
         prompt.ShouldNotBeEmpty();
         var res = await _autoMaticImageProvider.QueryImageInfoByAiAsync(adoptId, gImage);
@@ -50,5 +50,12 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
             img.ShouldNotBeNull();
             img.ShouldNotBeEmpty();
         }
+    }
+
+    [Fact]
+    public async void TestProviderType()
+    {
+        ProviderType.AutoMatic.ToString().ShouldBe("AutoMatic");
+        ProviderType.Default.ToString().ShouldBe("Default");
     }
 }

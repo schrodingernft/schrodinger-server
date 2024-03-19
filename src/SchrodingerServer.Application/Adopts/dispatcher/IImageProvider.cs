@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
@@ -102,11 +103,6 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         return images;
     }
 
-    private QueryAutoMaticPrompt GetQueryAutoMaticPrompt(GenerateImage imageInfo)
-    {
-        return new QueryAutoMaticPrompt() { traits = imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList() };
-    }
-
     private QueryAutoMaticImage GetQueryAutoMaticImage(GenerateImage imageInfo)
     {
         return new QueryAutoMaticImage()
@@ -122,41 +118,25 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         };
     }
 
-    public async Task<string> QueryPromptAsync(string adoptId, GenerateImage imageInfo)
+    public string GetPrompt(GenerateImage imageInfo)
     {
-        var queryAutoMaticPrompt = GetQueryAutoMaticPrompt(imageInfo);
-        var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryAutoMaticPrompt);
-        using var httpClient = new HttpClient();
-        var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        httpClient.DefaultRequestHeaders.Add("accept", "*/*");
-        var start = DateTime.Now;
-        var response = await httpClient.PostAsync(_traitsOptions.PromptQueryUrl, requestContent);
-        var timeCost = (DateTime.Now - start).Milliseconds;
-        var responseContent = await response.Content.ReadAsStringAsync();
-        if (response.IsSuccessStatusCode)
+        var prompt = new StringBuilder("A cute cat with two hands raised, ((pixel art)), <lora:pixelcat30:0.3>,");
+        foreach (var trait in imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList())
         {
-            var queryPromptResponse = JsonConvert.DeserializeObject<QueryPromptResponse>(responseContent);
-            Logger.LogInformation("AutoMaticImageProvider PromptQueryAsync query success {adoptId} timeCost={timeCost}", adoptId, timeCost);
-            return queryPromptResponse.prompt;
+            prompt.Append(trait.traitType);
+            prompt.Append(' ');
+            prompt.Append(trait.value);
+            prompt.Append(',');
         }
-        else
-        {
-            Logger.LogError("AutoMaticImageProvider PromptQueryAsync query failed {adoptId} timeCost={timeCost}", adoptId, timeCost);
-            return "";
-        }
+
+        return prompt.ToString();
     }
 
 
     public async Task<QueryAutoMaticResponse> QueryImageInfoByAiAsync(string adoptId, GenerateImage imageInfo)
     {
-        var prompt = await QueryPromptAsync(adoptId, imageInfo);
-        if (prompt.IsNullOrEmpty())
-        {
-            return new QueryAutoMaticResponse { };
-        }
-
         var queryImage = GetQueryAutoMaticImage(imageInfo);
-        queryImage.prompt = prompt;
+        queryImage.prompt = GetPrompt(imageInfo);
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
         using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
@@ -273,6 +253,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             Logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success {requestId}", requestId);
             return aiQueryResponse;
         }
+
         Logger.LogError("TraitsActionProvider QueryImageInfoByAiAsync query not success {requestId}", requestId);
         return new AiQueryResponse { };
     }
@@ -287,6 +268,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             {
                 return images;
             }
+
             images = await QueryImages(requestId);
         }
 

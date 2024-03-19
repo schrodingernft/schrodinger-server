@@ -67,6 +67,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         Configure<ContractSyncOptions>(configuration.GetSection("Sync"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
         Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+        Configure<PointContractOptions>(configuration.GetSection("PointContract"));
         
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         ConfigureRedis(context, configuration, hostingEnvironment);

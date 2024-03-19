@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Nest;
 using Newtonsoft.Json;
 using Orleans;
+using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.ContractInvoke.Index;
 using SchrodingerServer.Grains.Grain.ZealyScore;
@@ -15,6 +16,7 @@ using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
 using SchrodingerServer.Zealy.Eto;
+using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.ObjectMapping;
@@ -35,11 +37,14 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
     private readonly IClusterClient _clusterClient;
     private readonly IDistributedEventBus _distributedEventBus;
     private readonly IObjectMapper _objectMapper;
+    private const string _updateScorePrefix = "UpdateZealyScoreInfo";
+    private readonly IDistributedCache<UpdateScoreInfo> _distributedCache;
 
     public XpScoreResultService(IZealyProvider zealyProvider, ILogger<XpScoreResultService> logger,
         INESTRepository<ContractInvokeIndex, string> contractInvokeIndexRepository,
         IOptionsSnapshot<UpdateScoreOptions> options, IClusterClient clusterClient,
-        IDistributedEventBus distributedEventBus, IObjectMapper objectMapper)
+        IDistributedEventBus distributedEventBus, IObjectMapper objectMapper,
+        IDistributedCache<UpdateScoreInfo> distributedCache)
     {
         _zealyProvider = zealyProvider;
         _logger = logger;
@@ -47,11 +52,19 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         _clusterClient = clusterClient;
         _distributedEventBus = distributedEventBus;
         _objectMapper = objectMapper;
+        _distributedCache = distributedCache;
         _options = options.Value;
     }
 
     public async Task HandleXpResultAsync()
     {
+        var jobIsStart = await CheckJobAsync();
+        if (jobIsStart)
+        {
+            _logger.LogWarning("update zealy score recurring job is started");
+            return;
+        }
+
         await HandleXpResultAsync(0, _options.FetchPendingCount);
     }
 
@@ -109,9 +122,7 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                     result.Message, record.Id);
                 return;
             }
-
-            record.Status = result.Data.Status;
-            record.UpdateTime = result.Data.UpdateTime;
+            
             var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
             await _distributedEventBus.PublishAsync(recordEto, false, false);
         }
@@ -119,6 +130,13 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
         {
             _logger.LogError(e, "handle pending record error, record:{record}", JsonConvert.SerializeObject(record));
         }
+    }
+
+    private async Task<bool> CheckJobAsync()
+    {
+        var key = $"{_updateScorePrefix}:{DateTime.UtcNow:yyyy-MM-dd}";
+        var cache = await _distributedCache.GetAsync(key);
+        return cache != null;
     }
 
     private async Task<List<ContractInvokeIndex>> GetContractInvokeTxByIdsAsync(List<string> bizIds)

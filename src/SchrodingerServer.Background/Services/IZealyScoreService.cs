@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AElf.Indexing.Elasticsearch;
 using Hangfire;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -35,15 +34,16 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private readonly ZealyScoreOptions _options;
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
     private readonly IDistributedCache<UpdateScoreInfo> _distributedCache;
+    private readonly IBalanceProvider _balanceProvider;
     private const string _updateScorePrefix = "UpdateZealyScoreInfo";
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger,
         IUserRelationService userRelationService,
         IZealyProvider zealyProvider,
         IZealyClientProvider zealyClientProxyProvider,
-         IXpRecordProvider xpRecordProvider,
+        IXpRecordProvider xpRecordProvider,
         IOptionsSnapshot<ZealyScoreOptions> options,
-        IDistributedCache<UpdateScoreInfo> distributedCache)
+        IDistributedCache<UpdateScoreInfo> distributedCache, IBalanceProvider balanceProvider)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -51,6 +51,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _zealyClientProxyProvider = zealyClientProxyProvider;
         _xpRecordProvider = xpRecordProvider;
         _distributedCache = distributedCache;
+        _balanceProvider = balanceProvider;
         _options = options.Value;
     }
 
@@ -156,7 +157,6 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private async Task HandleUserScoreAsync(ZealyUserIndex user)
     {
         var userDto = await GetZealyUserAsync(user.Id);
-
         if (userDto == null)
         {
             return;
@@ -165,16 +165,16 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
 
-        // todo: get now point from contract
         // call contract can limit zealy request.
         //need to handle in hangfire, call contract fail retry.
-        var point = 0m;
-        if (point == 0)
+        var pointOutput = await _balanceProvider.GetPointsBalanceOutputAsync(user.Address);
+        var userXpAmount = pointOutput.Balance;
+        if (userXpAmount == 0)
         {
             xp = userXpScore == null ? userDto.Xp : userXpScore.ActualScore;
             _logger.LogInformation(
                 "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp},  xp:{xp}",
-                user.Id, userDto.Xp, point, xp);
+                user.Id, userDto.Xp, userXpAmount, xp);
         }
         else
         {
@@ -184,10 +184,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
                 repairScore = userXpScore.ActualScore - userXpScore.RawScore;
             }
 
-            xp = userDto.Xp + repairScore - point;
+            xp = userDto.Xp + repairScore - DecimalHelper.Divide(userXpAmount, 8);
             _logger.LogInformation(
                 "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, xp:{xp}",
-                user.Id, userDto.Xp, point, xp);
+                user.Id, userDto.Xp, userXpAmount, xp);
         }
 
         if (xp > 0)

@@ -149,7 +149,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
             var aiQueryResponse = JsonConvert.DeserializeObject<QueryAutoMaticResponse>(responseContent);
             var images = aiQueryResponse.images.Select(image => "data:image/webp;base64," + image).ToList();
 
-            Logger.LogInformation("AutoMaticImageProvider QueryImageInfoByAiAsync query success {adoptId} requestContent={requestContent} timeCost={timeCost}", adoptId, requestContent, timeCost);
+            Logger.LogInformation("AutoMaticImageProvider QueryImageInfoByAiAsync query success {adoptId} requestContent={requestContent} timeCost={timeCost}", adoptId, jsonString, timeCost);
             return new QueryAutoMaticResponse() { images = images, info = aiQueryResponse.info };
         }
         else

@@ -6,6 +6,7 @@ public class XpRecordState
     public string UserId { get; set; }
     public string Address { get; set; }
     public decimal Xp { get; set; }
+    public decimal CurrentXp { get; set; }
 
     // xp * coefficient
     public decimal Amount { get; set; }

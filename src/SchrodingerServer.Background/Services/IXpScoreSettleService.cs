@@ -106,6 +106,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
         catch (Exception e)
         {
             _logger.LogError(e, "settle error, bizId:{bizId}", bizId);
+            return;
         }
 
         _logger.LogInformation("BatchSettle finish, bizId:{bizId}", bizId);

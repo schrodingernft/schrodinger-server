@@ -17,7 +17,7 @@ namespace SchrodingerServer.Background.Providers;
 
 public interface IXpRecordProvider
 {
-    Task CreateRecordAsync(string userId, string address, decimal xp);
+    Task CreateRecordAsync(string userId, string address, decimal currentXp, decimal xp);
 }
 
 public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
@@ -41,7 +41,7 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
     }
 
     [AutomaticRetry(Attempts = 20, DelaysInSeconds = new[] { 40 })]
-    public async Task CreateRecordAsync(string userId, string address, decimal xp)
+    public async Task CreateRecordAsync(string userId, string address, decimal currentXp, decimal xp)
     {
         try
         {
@@ -52,6 +52,7 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
             {
                 Id = recordId,
                 Xp = xp,
+                CurrentXp = currentXp,
                 Amount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
                 BizId = string.Empty,
                 Status = ContractInvokeStatus.ToBeCreated.ToString(),

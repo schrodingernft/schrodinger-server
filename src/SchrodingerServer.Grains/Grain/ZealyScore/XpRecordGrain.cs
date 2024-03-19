@@ -46,11 +46,20 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
                 Data = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State)
             };
         }
-        
+
         if (!State.Id.IsNullOrEmpty() && State.Status != ContractInvokeStatus.ToBeCreated.ToString())
         {
             result.Success = false;
             result.Message = "record already exist.";
+            return result;
+        }
+
+        var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(input.UserId);
+        var updateResult = await userXpGrain.UpdateXpAsync(input.CurrentXp, input.Xp, input.Amount);
+        if (!updateResult.Success)
+        {
+            result.Success = false;
+            result.Message = updateResult.Message;
             return result;
         }
 
@@ -151,6 +160,13 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
                 Success = true,
                 Data = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State)
             };
+        }
+
+        if (State.Status == ContractInvokeStatus.FinalFailed.ToString())
+        {
+            // rollback user xp
+            var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(State.UserId);
+            await userXpGrain.UpdateXpAsync(State.CurrentXp, State.Xp, State.Amount);
         }
 
         State.Status = status;

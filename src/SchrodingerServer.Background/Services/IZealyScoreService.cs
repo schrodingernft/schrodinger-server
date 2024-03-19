@@ -7,11 +7,15 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Orleans;
 using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
+using SchrodingerServer.Grains.Grain.ZealyScore;
+using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
+using Volo.Abp;
 using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
@@ -35,6 +39,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
     private readonly IDistributedCache<UpdateScoreInfo> _distributedCache;
     private readonly IBalanceProvider _balanceProvider;
+    private readonly IClusterClient _clusterClient;
     private const string _updateScorePrefix = "UpdateZealyScoreInfo";
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger,
@@ -43,7 +48,8 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         IZealyClientProvider zealyClientProxyProvider,
         IXpRecordProvider xpRecordProvider,
         IOptionsSnapshot<ZealyScoreOptions> options,
-        IDistributedCache<UpdateScoreInfo> distributedCache, IBalanceProvider balanceProvider)
+        IDistributedCache<UpdateScoreInfo> distributedCache, IBalanceProvider balanceProvider,
+        IClusterClient clusterClient)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -52,6 +58,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _xpRecordProvider = xpRecordProvider;
         _distributedCache = distributedCache;
         _balanceProvider = balanceProvider;
+        _clusterClient = clusterClient;
         _options = options.Value;
     }
 
@@ -165,16 +172,33 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
 
-        // call contract can limit zealy request.
-        //need to handle in hangfire, call contract fail retry.
-        var pointOutput = await _balanceProvider.GetPointsBalanceOutputAsync(user.Address);
-        var userXpAmount = pointOutput.Balance;
-        if (userXpAmount == 0)
+        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(user.Id);
+        var resultDto = await userXpGrain.GetUserXpInfoAsync();
+
+        if (!resultDto.Success)
+        {
+            _logger.LogError(
+                "get user xp info fail, message:{message}, userId:{userId}",
+                resultDto.Message, user.Id);
+
+            if (resultDto.Message == ZealyErrorMessage.UserXpInfoNotExistCode)
+            {
+                // add user if not exist.
+                await AddUserXpInfoAsync(user.Id, user.Address);
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        var userXp = resultDto.Data.CurrentXp;
+        if (userXp == 0)
         {
             xp = userXpScore == null ? userDto.Xp : userXpScore.ActualScore;
             _logger.LogInformation(
                 "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp},  xp:{xp}",
-                user.Id, userDto.Xp, userXpAmount, xp);
+                user.Id, userDto.Xp, userXp, xp);
         }
         else
         {
@@ -184,16 +208,38 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
                 repairScore = userXpScore.ActualScore - userXpScore.RawScore;
             }
 
-            xp = userDto.Xp + repairScore - DecimalHelper.Divide(userXpAmount, 8);
+            xp = userDto.Xp + repairScore - userXp;
             _logger.LogInformation(
                 "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, xp:{xp}",
-                user.Id, userDto.Xp, userXpAmount, xp);
+                user.Id, userDto.Xp, userXp, xp);
         }
 
         if (xp > 0)
         {
-            BackgroundJob.Enqueue(() => _xpRecordProvider.CreateRecordAsync(user.Id, user.Address, xp));
+            BackgroundJob.Enqueue(() => _xpRecordProvider.CreateRecordAsync(user.Id, user.Address, userDto.Xp, xp));
         }
+    }
+
+    private async Task<ZealyUserXpGrainDto> AddUserXpInfoAsync(string userId, string address)
+    {
+        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(userId);
+        var userDto = new ZealyUserXpGrainDto()
+        {
+            Id = userId,
+            Address = address
+        };
+        var result = await userXpGrain.AddUserXpInfoAsync(userDto);
+
+        if (result.Success)
+        {
+            return result.Data;
+        }
+
+        _logger.LogError(
+            "add user xp info fail, message:{message}, userId:{userId}, address:{address}",
+            result.Message, userId, address);
+
+        throw new UserFriendlyException(result.Message);
     }
 
     private async Task<ZealyUserDto> GetZealyUserAsync(string userId)

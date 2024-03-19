@@ -10,7 +10,6 @@ using AElf.Cryptography;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nest;
 using Newtonsoft.Json;
 using Orleans.Runtime;
 using SchrodingerServer.Adopts.dispatcher;

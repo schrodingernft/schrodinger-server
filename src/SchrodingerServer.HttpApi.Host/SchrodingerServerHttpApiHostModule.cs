@@ -71,6 +71,7 @@ namespace SchrodingerServer
             Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
             Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
             Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
+            Configure<StableDiffusionOption>(configuration.GetSection("StableDiffusionOption"));
             
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);

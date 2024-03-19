@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GraphQL;
@@ -32,6 +33,15 @@ public class UniswapV3Provider : ISingletonDependency
     {
         var tokenId = _uniswapOptions.CurrentValue.TokenId;
         AssertHelper.NotEmpty(tokenId, "tokenId is Empty");
+        if (tokenId.IsNullOrEmpty())
+        {
+            return new TokenResponse
+            {
+                Id = date.ToString(),
+                Date = date,
+                PriceUSD = _uniswapOptions.CurrentValue.DefaultBasePrice,
+            };
+        }
         var resp = await _client.SendQueryAsync<ResponseWrapper<List<TokenResponse>>>(new GraphQLRequest
         {
             Query = @"query($tokenId:String, $date:Int!){

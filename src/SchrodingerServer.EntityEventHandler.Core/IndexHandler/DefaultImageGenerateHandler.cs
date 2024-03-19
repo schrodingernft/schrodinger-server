@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using RedisRateLimiting;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
@@ -18,7 +19,7 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     private readonly IRateDistributeLimiter _rateDistributeLimiter;
     private readonly IObjectMapper _objectMapper;
 
-    public DefaultImageGenerateHandler(ILogger<DefaultImageGenerateHandler> logger, DefaultImageProvider defaultImageProvider, 
+    public DefaultImageGenerateHandler(ILogger<DefaultImageGenerateHandler> logger, DefaultImageProvider defaultImageProvider,
         IRateDistributeLimiter rateDistributeLimiter, IObjectMapper objectMapper)
     {
         _logger = logger;
@@ -31,18 +32,31 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     {
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto  data: {data}", JsonConvert.SerializeObject(eventData));
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
-        var requestId = await HandleAsync(async Task<string> () => await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId,
-            imageInfo));
+        var requestId = await HandleAsync(async Task<string>() => await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId,
+            imageInfo), eventData.AdoptId);
         await _defaultImageProvider.SetRequestId(eventData.AdoptAddressId, requestId);
-            
+
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end");
     }
 
-    private async Task<T> HandleAsync<T>(Func<Task<T>> task)
+    private async Task<T> HandleAsync<T>(Func<Task<T>> task, string adoptId)
     {
         var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
-        await limiter.AcquireAsync();
+        var lease = await limiter.AcquireAsync();
+        if (!lease.IsAcquired)
+        {
+            if (lease.TryGetMetadata(RateLimitMetadataName.RetryAfter.Name, out object retryAfter))
+            {
+                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, retryAfter);
+                await Task.Delay((int)retryAfter);
+            }
+            else
+            {
+                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, 10);
+                await Task.Delay((int)10);
+            }
+        }
+
         return await task();
     }
-    
 }

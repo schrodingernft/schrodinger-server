@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using RedisRateLimiting;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Image;
 using Volo.Abp.DependencyInjection;
@@ -16,7 +17,7 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
     private readonly AutoMaticImageProvider _autoMaticImageProvider;
     private readonly IRateDistributeLimiter _rateDistributeLimiter;
 
-    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRequestLimitProvider requestLimitProvider, IRateDistributeLimiter rateDistributeLimiter)
+    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRateDistributeLimiter rateDistributeLimiter)
     {
         _logger = logger;
         _autoMaticImageProvider = autoMaticImageProvider;
@@ -26,17 +27,32 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
     public async Task HandleEventAsync(AutoMaticImageGenerateEto eventData)
     {
         _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto start, data: {data}", JsonConvert.SerializeObject(eventData));
-        var images =  await HandleAsync(async Task<List<string>> () => await _autoMaticImageProvider.RequestGenerateImage(eventData.AdoptId,
-            eventData.GenerateImage));
+        var images = await HandleAsync(async Task<List<string>>() => await _autoMaticImageProvider.RequestGenerateImage(eventData.AdoptId,
+            eventData.GenerateImage), eventData.AdoptId);
         await _autoMaticImageProvider.SetAIGeneratedImages(eventData.AdoptId, images);
-        await _autoMaticImageProvider.SetRequestId(eventData.AdoptAddressId, eventData.AdoptId); 
+        await _autoMaticImageProvider.SetRequestId(eventData.AdoptAddressId, eventData.AdoptId);
         _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto end");
     }
 
-    private async Task<T> HandleAsync<T>(Func<Task<T>> task)
+    private async Task<T> HandleAsync<T>(Func<Task<T>> task, string adoptId)
     {
-        var limiter = _rateDistributeLimiter.GetRateLimiterInstance("autoMaticImageGenerateHandler");
-        await limiter.AcquireAsync();
+        const string name = "autoMaticImageGenerateHandler";
+        var limiter = _rateDistributeLimiter.GetRateLimiterInstance(name);
+        var lease = await limiter.AcquireAsync();
+        if (!lease.IsAcquired)
+        {
+            if (lease.TryGetMetadata(RateLimitMetadataName.RetryAfter.Name, out object retryAfter))
+            {
+                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, retryAfter);
+                await Task.Delay((int)retryAfter);
+            }
+            else
+            {
+                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, 10);
+                await Task.Delay((int)10);
+            }
+        }
+
         // await _requestLimitProvider.RecordRequestAsync("autoMaticImageGenerateHandler-");
         return await task();
     }

@@ -48,10 +48,4 @@
       </None>
     </ItemGroup>
     
-    <ItemGroup>
-      <Compile Update="Program.cs">
-        <DependentUpon>SchrodingerServerOrleansSiloModule.cs</DependentUpon>
-      </Compile>
-    </ItemGroup>
-    
 </Project>

@@ -85,14 +85,14 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} start...", chainId);
         var skipCount = 0;
         List<HolderDailyChangeDto> dailyChanges;
-        var priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
+        var priceBizDate = GetPriceBizDate(bizDate);
         do
         {
             dailyChanges =
                 await _holderBalanceProvider.GetHolderDailyChangeListAsync(chainId, bizDate, skipCount, MaxResultCount);
             _logger.LogInformation(
                 "GetHolderDailyChangeList chainId:{chainId} skipCount: {skipCount} bizDate:{bizDate} count: {count}",
-                chainId, bizDate, skipCount, dailyChanges?.Count);
+                chainId, skipCount,bizDate , dailyChanges?.Count);
             if (dailyChanges.IsNullOrEmpty())
             {
                 break;
@@ -110,11 +110,11 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
 
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(priceBizDate, symbols.ToList());
 
-            var addressList = realDailyChanges
+            var ids = realDailyChanges
                 .Select(item => IdGenerateHelper.GetHolderBalanceId(chainId, item.Symbol, item.Address)).ToList();
 
             var holderBalanceDict =
-                await _holderBalanceProvider.GetHolderBalanceAsync(chainId, addressList);
+                await _holderBalanceProvider.GetHolderBalanceAsync(chainId, ids);
 
             //get user latest date balance and add change
             var saveList = new List<HolderBalanceIndex>();
@@ -145,11 +145,27 @@ public class SyncHolderBalanceWorker : ISyncHolderBalanceWorker, ISingletonDepen
         _logger.LogInformation("SyncHolderBalanceWorker chainId:{chainId} end...", chainId);
     }
 
+    private static string GetPriceBizDate(string bizDate)
+    {
+        string priceBizDate;
+        if (bizDate.Equals(DateTime.UtcNow.ToString(TimeHelper.Pattern)))
+        {
+            priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
+        }
+        else
+        {
+            priceBizDate = bizDate;
+        }
+
+        return priceBizDate;
+    }
+
     private async Task HandleHolderBalanceNoChangesAsync(string chainId, string bizDate)
     {
         var skipCount = 0;
         List<HolderBalanceIndex> holderBalanceIndices;
-        var priceBizDate = TimeHelper.GetDateStrAddDays(bizDate, -1);
+
+        var priceBizDate = GetPriceBizDate(bizDate);
         do
         {
             holderBalanceIndices = await _holderBalanceProvider.GetPreHolderBalanceListAsync(chainId, bizDate,

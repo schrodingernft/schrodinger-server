@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
@@ -120,11 +119,11 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
 
     public string GetPrompt(GenerateImage imageInfo)
     {
-        var prompt = new StringBuilder("A cute cat with two hands raised, ((pixel art)), <lora:pixelcat30:0.3>,");
+        var prompt = new StringBuilder(_stableDiffusionOption.Prompt);
         foreach (var trait in imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList())
         {
             prompt.Append(trait.traitType);
-            prompt.Append(' ');
+            prompt.Append(':');
             prompt.Append(trait.value);
             prompt.Append(',');
         }
@@ -143,7 +142,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         httpClient.DefaultRequestHeaders.Add("accept", "*/*");
         var start = DateTime.Now;
         var response = await httpClient.PostAsync(_traitsOptions.AutoMaticImageGenerateUrl, requestContent);
-        var timeCost = (DateTime.Now - start).Milliseconds;
+        var timeCost = (DateTime.Now - start).TotalMilliseconds;
         var responseContent = await response.Content.ReadAsStringAsync();
         if (response.IsSuccessStatusCode)
         {
@@ -247,12 +246,14 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
         httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+        var start = DateTime.Now;
         var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageQueryUrl, requestContent);
+        var timeCost = (DateTime.Now - start).TotalMilliseconds;
         if (response.IsSuccessStatusCode)
         {
             string responseContent = await response.Content.ReadAsStringAsync();
             AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
-            Logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success {requestId}", requestId);
+            Logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success {requestId} timeCost={timeCost}", requestId, timeCost);
             return aiQueryResponse;
         }
 

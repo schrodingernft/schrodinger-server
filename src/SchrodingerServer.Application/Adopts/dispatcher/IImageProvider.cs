@@ -115,11 +115,11 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
             seed = imageInfo.seed,
             sampler_index = _stableDiffusionOption.SamplerIndex,
             negative_prompt = _stableDiffusionOption.NegativePrompt,
-            step = _stableDiffusionOption.Step,
+            steps = _stableDiffusionOption.Steps,
             batch_size = _stableDiffusionOption.BatchSize,
             width = _stableDiffusionOption.Width,
             height = _stableDiffusionOption.Height,
-            n_iters = _stableDiffusionOption.NIters
+            n_iter = _stableDiffusionOption.NIter
         };
     }
 

@@ -6,6 +6,7 @@ using RedisRateLimiting;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
+using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.ObjectMapping;
@@ -31,6 +32,14 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
     {
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto  data: {data}", JsonConvert.SerializeObject(eventData));
+        var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
+        var lease = await limiter.AcquireAsync();
+        if (!lease.IsAcquired)
+        {
+            _logger.LogInformation("limit exceeded, will requeue, {AdoptId}", eventData.AdoptId);
+            throw new UserFriendlyException("limit exceeded");
+        }
+
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
         var requestId = await HandleAsync(async Task<string>() => await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId,
             imageInfo), eventData.AdoptId);

@@ -72,8 +72,13 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
 
     public async Task<GrainResultDto<ContractInvokeGrainDto>> ExecuteJobAsync(ContractInvokeGrainDto input)
     {
-        State = _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeState>(input);
-
+        //State = _objectMapper.Map<ContractInvokeGrainDto, ContractInvokeState>(input);
+        //if the data in the grain memory has reached the final state then idempotent return
+        if (IsFinalStatus(State.Status))
+        {
+            return OfContractInvokeGrainResultDto(true);
+        }
+        
         var status = EnumConverter.ConvertToEnum<ContractInvokeStatus>(State.Status);
 
         try
@@ -235,5 +240,11 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
             Success = success,
             Message = message
         };
+    }
+
+    private bool IsFinalStatus(string status)
+    {
+        return status.Equals(ContractInvokeStatus.Success.ToString())
+               || status.Equals(ContractInvokeStatus.FinalFailed.ToString());
     }
 }

@@ -39,7 +39,7 @@ public class QueryAutoMaticImage
 {
     public string prompt { get; set; }
     public string sampler_index { get; set; } = "DPM++ 2M Karras";
-    public string nagative_prompt { get; set; } = "NSFW";
+    public string negative_prompt { get; set; } = "NSFW";
 
     public string sd_model_checkpoint { get; set; } = "revAnimated_v122.safetensors";
     public int step { get; set; }

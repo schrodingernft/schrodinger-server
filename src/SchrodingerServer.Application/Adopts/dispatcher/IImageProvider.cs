@@ -33,7 +33,12 @@ public interface IImageProvider
 public abstract class ImageProvider : IImageProvider
 {
     public abstract ProviderType Type { get; }
-    protected readonly HttpClient Client = new();
+
+    protected readonly HttpClient Client = new(new HttpClientHandler
+    {
+        UseProxy = false
+    });
+
     protected readonly IAdoptImageService AdoptImageService;
     protected readonly ILogger<ImageProvider> Logger;
     protected readonly IDistributedEventBus DistributedEventBus;
@@ -109,7 +114,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         {
             seed = imageInfo.seed,
             sampler_index = _stableDiffusionOption.SamplerIndex,
-            nagative_prompt = _stableDiffusionOption.NagativePrompt,
+            negative_prompt = _stableDiffusionOption.NegativePrompt,
             step = _stableDiffusionOption.Step,
             batch_size = _stableDiffusionOption.BatchSize,
             width = _stableDiffusionOption.Width,

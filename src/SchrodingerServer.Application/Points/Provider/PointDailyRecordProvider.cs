@@ -39,7 +39,7 @@ public class PointDailyRecordProvider : IPointDailyRecordProvider, ISingletonDep
             f.Bool(b => b.Must(mustQuery));
         
         var sorting = new Func<SortDescriptor<PointDailyRecordIndex>, IPromise<IList<ISort>>>(s =>
-            s.Descending(t => t.BizDate));
+            s.Ascending(t => t.CreateTime));
         
         var tuple = await _pointDailyRecordIndexRepository.GetSortListAsync(Filter, skip: skipCount, sortFunc: sorting);
         return tuple.Item2;

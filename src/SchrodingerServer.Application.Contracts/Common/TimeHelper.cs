@@ -114,4 +114,11 @@ public static class TimeHelper
         var dateTime = DateTime.ParseExact(dateString, Pattern, CultureInfo.InvariantCulture);
         return dateTime.AddDays(value).ToString(Pattern);
     }
+    
+    public static long GetUtcDaySeconds()
+    {
+        DateTime nowUtc = DateTime.UtcNow;
+        return new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, 0, 0, 0, DateTimeKind.Utc).ToUtcSeconds();
+    }
+   
 }

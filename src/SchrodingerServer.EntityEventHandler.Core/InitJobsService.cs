@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
@@ -7,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.EntityEventHandler.Core.Options;
-using SchrodingerServer.EntityEventHandler.Core.Worker;
 
 namespace SchrodingerServer.EntityEventHandler.Core;
 
@@ -29,11 +27,6 @@ public class InitJobsService : BackgroundService
     {
         try
         {
-            _recurringJobs.AddOrUpdate<ISyncHolderBalanceWorker>("ISyncHolderBalanceWorker",
-                x => x.Invoke(), _workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("ISyncHolderBalanceWorker")?.Cron ?? WorkerOptions.DefaultCron);
-            
-            _recurringJobs.AddOrUpdate<IPointAssemblyTransactionWorker>("IPointAssemblyTransactionWorker",
-                x => x.Invoke(), _workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault("IPointAssemblyTransactionWorker")?.Cron ?? WorkerOptions.DefaultCron);
         }
         catch (Exception e)
         {

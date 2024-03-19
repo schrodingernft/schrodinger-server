@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
 using SchrodingerServer.Options;
+using SchrodingerServer.Point;
 using SchrodingerServer.Symbol;
 using SchrodingerServer.Token;
 using Volo.Abp.BackgroundWorkers;
@@ -20,7 +21,6 @@ public class UniswapPriceSnapshotWorker : AsyncPeriodicBackgroundWorkerBase
     private readonly IXgrPriceService _xgrPriceService;
     private readonly UniswapV3Provider _uniSwapV3Provider;
     private readonly IDistributedCache<string> _distributedCache;
-    private readonly string _prefix = "UniswapPriceSnapshot-";
 
     public UniswapPriceSnapshotWorker(AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
          IOptionsSnapshot<ZealyUserOptions> options,
@@ -42,8 +42,8 @@ public class UniswapPriceSnapshotWorker : AsyncPeriodicBackgroundWorkerBase
         _logger.LogInformation("begin execute UniswapPriceSnapshotWorker.");
         try
         {
-            var date = GetUtcDay().ToUtcSeconds();
-            var dateTime = await _distributedCache.GetAsync(_prefix + date);
+            var date = TimeHelper.GetUtcDaySeconds();
+            var dateTime = await _distributedCache.GetAsync(PointDispatchConstants.UNISWAP_PRICE_PREFIX + date);
             if (dateTime != null)
             {
                 _logger.LogInformation("UniswapPriceSnapshotWorker has been executed today.");
@@ -53,7 +53,7 @@ public class UniswapPriceSnapshotWorker : AsyncPeriodicBackgroundWorkerBase
             if (tokenRes != null)
             {
                 await _xgrPriceService.SaveXgrDayPriceAsync(true);
-                await _distributedCache.SetAsync(_prefix+date, DateTime.UtcNow.ToUtcSeconds().ToString(),  new DistributedCacheEntryOptions()
+                await _distributedCache.SetAsync(PointDispatchConstants.UNISWAP_PRICE_PREFIX + date, DateTime.UtcNow.ToUtcSeconds().ToString(),  new DistributedCacheEntryOptions()
                 {
                     SlidingExpiration = TimeSpan.FromDays(2)
                 });

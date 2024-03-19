@@ -45,15 +45,10 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         var lease = await limiter.AcquireAsync();
         if (!lease.IsAcquired)
         {
-            if (lease.TryGetMetadata(RateLimitMetadataName.RetryAfter.Name, out object retryAfter))
+            if (lease.TryGetMetadata(RateLimitMetadataName.RetryAfter.Name, out var retryAfter))
             {
-                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, retryAfter);
-                await Task.Delay((int)retryAfter);
-            }
-            else
-            {
-                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, 10);
-                await Task.Delay((int)10);
+                _logger.LogInformation("limit exceeded, retry after {adoptId} {retryAfter} ms", adoptId, (int)retryAfter * 1000);
+                await Task.Delay((int)retryAfter * 1000);
             }
         }
 

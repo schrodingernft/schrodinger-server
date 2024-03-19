@@ -33,6 +33,12 @@ public interface IImageProvider
 public abstract class ImageProvider : IImageProvider
 {
     public abstract ProviderType Type { get; }
+
+    protected readonly HttpClient Client = new(new HttpClientHandler
+    {
+        UseProxy = false
+    });
+
     protected readonly IAdoptImageService AdoptImageService;
     protected readonly ILogger<ImageProvider> Logger;
     protected readonly IDistributedEventBus DistributedEventBus;
@@ -89,7 +95,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         Logger.LogInformation("GenerateImageAsyncAsync Begin. adoptId: {adoptId} ", adoptId);
         var response = await QueryImageInfoByAiAsync(adoptId, imageInfo);
         var images = new List<string>();
-        Logger.LogInformation("GenerateImageAsyncAsync Finish. resp: {resp}", JsonConvert.SerializeObject(response));
+        Logger.LogInformation("GenerateImageAsyncAsync Finish. resp: {resp}", response.info);
         if (response == null || response.images == null || response.images.Count == 0)
         {
             Logger.LogInformation("AutoMaticImageProvider GetImagesAsync autoMaticResponse.images null");
@@ -108,7 +114,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         {
             seed = imageInfo.seed,
             sampler_index = _stableDiffusionOption.SamplerIndex,
-            nagative_prompt = _stableDiffusionOption.NagativePrompt,
+            negative_prompt = _stableDiffusionOption.NegativePrompt,
             step = _stableDiffusionOption.Step,
             batch_size = _stableDiffusionOption.BatchSize,
             width = _stableDiffusionOption.Width,
@@ -137,11 +143,10 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         var queryImage = GetQueryAutoMaticImage(imageInfo);
         queryImage.prompt = GetPrompt(imageInfo);
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
-        using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+        Client.DefaultRequestHeaders.Add("accept", "*/*");
         var start = DateTime.Now;
-        var response = await httpClient.PostAsync(_traitsOptions.AutoMaticImageGenerateUrl, requestContent);
+        var response = await Client.PostAsync(_traitsOptions.AutoMaticImageGenerateUrl, requestContent);
         var timeCost = (DateTime.Now - start).TotalMilliseconds;
         var responseContent = await response.Content.ReadAsStringAsync();
         if (response.IsSuccessStatusCode)
@@ -149,7 +154,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
             var aiQueryResponse = JsonConvert.DeserializeObject<QueryAutoMaticResponse>(responseContent);
             var images = aiQueryResponse.images.Select(image => "data:image/webp;base64," + image).ToList();
 
-            Logger.LogInformation("AutoMaticImageProvider QueryImageInfoByAiAsync query success {adoptId} timeCost={timeCost}", adoptId, timeCost);
+            Logger.LogInformation("AutoMaticImageProvider QueryImageInfoByAiAsync query success {adoptId} requestContent={requestContent} timeCost={timeCost}", adoptId, jsonString, timeCost);
             return new QueryAutoMaticResponse() { images = images, info = aiQueryResponse.info };
         }
         else
@@ -186,12 +191,11 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     {
         try
         {
-            using var httpClient = new HttpClient();
             var jsonString = ImageProviderHelper.ConvertObjectToJsonString(imageInfo);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-            httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+            Client.DefaultRequestHeaders.Add("accept", "*/*");
 
-            var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl, requestContent);
+            var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl, requestContent);
 
             if (response.IsSuccessStatusCode)
             {
@@ -243,11 +247,10 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             requestId = requestId
         };
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
-        using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+        Client.DefaultRequestHeaders.Add("accept", "*/*");
         var start = DateTime.Now;
-        var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageQueryUrl, requestContent);
+        var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageQueryUrl, requestContent);
         var timeCost = (DateTime.Now - start).TotalMilliseconds;
         if (response.IsSuccessStatusCode)
         {

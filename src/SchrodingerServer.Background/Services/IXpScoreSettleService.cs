@@ -5,13 +5,19 @@ using System.Threading.Tasks;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
+using SchrodingerServer.Grains.Grain.ZealyScore;
+using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Zealy;
+using SchrodingerServer.Zealy.Eto;
 using Volo.Abp.DependencyInjection;
+using Volo.Abp.EventBus.Distributed;
+using Volo.Abp.ObjectMapping;
 
 namespace SchrodingerServer.Background.Services;
 
@@ -25,19 +31,23 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
     private readonly ILogger<XpScoreSettleService> _logger;
     private readonly IPointSettleService _pointSettleService;
     private readonly IZealyUserXpRecordProvider _recordProvider;
-    private readonly INESTRepository<ZealyUserXpRecordIndex, string> _zealyUserXpRecordRepository;
     private readonly ZealyScoreOptions _options;
     private readonly UpdateScoreOptions _updateScoreOptions;
+    private readonly IClusterClient _clusterClient;
+    private readonly IDistributedEventBus _distributedEventBus;
+    private readonly IObjectMapper _objectMapper;
 
     public XpScoreSettleService(ILogger<XpScoreSettleService> logger, IOptionsSnapshot<ZealyScoreOptions> options,
         IPointSettleService pointSettleService,
-        INESTRepository<ZealyUserXpRecordIndex, string> zealyUserXpRecordRepository,
-        IZealyUserXpRecordProvider recordProvider, IOptionsSnapshot<UpdateScoreOptions> updateScoreOptions)
+        IZealyUserXpRecordProvider recordProvider, IOptionsSnapshot<UpdateScoreOptions> updateScoreOptions,
+        IClusterClient clusterClient, IDistributedEventBus distributedEventBus, IObjectMapper objectMapper)
     {
         _logger = logger;
         _pointSettleService = pointSettleService;
-        _zealyUserXpRecordRepository = zealyUserXpRecordRepository;
         _recordProvider = recordProvider;
+        _clusterClient = clusterClient;
+        _distributedEventBus = distributedEventBus;
+        _objectMapper = objectMapper;
         _updateScoreOptions = updateScoreOptions.Value;
         _options = options.Value;
     }
@@ -72,7 +82,6 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
 
     private async Task BatchSettleAsync(string bizId, List<ZealyUserXpRecordIndex> records)
     {
-        var points = new List<UserPointInfo>();
         var pointSettleDto = new PointSettleDto()
         {
             ChainId = _options.ChainId,
@@ -80,23 +89,14 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
             PointName = _options.PointName
         };
 
-        foreach (var record in records)
+        var pointRecords = await GetRecordsAsync(records, bizId);
+        if (pointRecords.IsNullOrEmpty())
         {
-            if (record.Status != ContractInvokeStatus.ToBeCreated.ToString())
-            {
-                _logger.LogWarning("record already handle, bizId:{bizId}", bizId);
-                continue;
-            }
-
-            record.BizId = bizId;
-            record.Status = ContractInvokeStatus.Pending.ToString();
-
-            points.Add(new UserPointInfo()
-            {
-                Address = record.Address,
-                PointAmount = record.Amount
-            });
+            return;
         }
+
+        var points = pointRecords.Select(record => new UserPointInfo()
+            { Address = record.Address, PointAmount = record.Amount }).ToList();
 
         pointSettleDto.UserPointsInfos = points;
         try
@@ -105,11 +105,59 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
         }
         catch (Exception e)
         {
-            records.ForEach(t => { t.Status = ContractInvokeStatus.Failed.ToString(); });
             _logger.LogError(e, "settle error, bizId:{bizId}", bizId);
         }
 
-        await _zealyUserXpRecordRepository.BulkAddOrUpdateAsync(records);
         _logger.LogInformation("BatchSettle finish, bizId:{bizId}", bizId);
+    }
+
+    private async Task<List<ZealyUserXpRecordIndex>> GetRecordsAsync(List<ZealyUserXpRecordIndex> records, string bizId)
+    {
+        var pointRecords = new List<ZealyUserXpRecordIndex>();
+
+        foreach (var record in records)
+        {
+            try
+            {
+                var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(record.Id);
+                var result = await recordGrain.GetAsync();
+
+                if (!result.Success)
+                {
+                    _logger.LogError(
+                        "get record grain fail, message:{message}, recordId:{recordId}",
+                        result.Message, record.Id);
+                    continue;
+                }
+
+                if (result.Data.Status != ContractInvokeStatus.ToBeCreated.ToString())
+                {
+                    _logger.LogWarning("record already handled, recordId:{recordId}", record.Id);
+                    continue;
+                }
+
+                var updateResult = await recordGrain.SettleAsync(bizId);
+                if (!updateResult.Success)
+                {
+                    _logger.LogError(
+                        "update record grain status fail, message:{message}, recordId:{recordId}",
+                        result.Message, record.Id);
+                    continue;
+                }
+
+                _logger.LogInformation("settle record, recordId:{recordId}", record.Id);
+                var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
+                await _distributedEventBus.PublishAsync(recordEto, false, false);
+
+                pointRecords.Add(record);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "handle pending record error, recordId:{recordId}", record.Id);
+                continue;
+            }
+        }
+
+        return pointRecords;
     }
 }

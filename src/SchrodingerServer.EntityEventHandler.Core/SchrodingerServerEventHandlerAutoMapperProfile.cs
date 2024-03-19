@@ -6,6 +6,8 @@ using SchrodingerServer.ContractInvoke.Index;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Eto;
 using SchrodingerServer.Users.Index;
+using SchrodingerServer.Zealy;
+using SchrodingerServer.Zealy.Eto;
 
 
 namespace SchrodingerServer.EntityEventHandler.Core;
@@ -25,5 +27,7 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
             .ForMember(des => des.BizDate, opt
                 => opt.MapFrom(source => source.Date));
         CreateMap<PointDailyRecordEto, PointDailyRecordIndex>();
+        
+        CreateMap<XpRecordEto, ZealyUserXpRecordIndex>();
     }
 }

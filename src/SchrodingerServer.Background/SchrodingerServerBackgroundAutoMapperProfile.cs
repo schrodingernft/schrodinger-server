@@ -1,9 +1,9 @@
 using AutoMapper;
-using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.ContractInvoke.Index;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
-using SchrodingerServer.Users.Index;
+using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
+using SchrodingerServer.Zealy.Eto;
 
 namespace SchrodingerServer.Background;
 
@@ -13,5 +13,6 @@ public class SchrodingerServerBackgroundAutoMapperProfile : Profile
     {
         CreateMap<ContractInvokeIndex, ContractInvokeEto>();
         CreateMap<ContractInvokeEto, ContractInvokeGrainDto>().ReverseMap();
+        CreateMap<XpRecordGrainDto, XpRecordEto>().ReverseMap();
     }
 }

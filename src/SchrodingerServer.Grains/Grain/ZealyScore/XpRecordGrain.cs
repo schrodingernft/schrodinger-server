@@ -166,7 +166,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
         {
             // rollback user xp
             var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(State.UserId);
-            await userXpGrain.UpdateXpAsync(State.CurrentXp, State.Xp, State.Amount);
+            await userXpGrain.RollbackXpAsync();
         }
 
         State.Status = status;

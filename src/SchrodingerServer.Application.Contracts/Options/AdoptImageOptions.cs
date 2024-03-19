@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SchrodingerServer.Adopts;
+namespace SchrodingerServer.Options;
 
 public class AdoptImageOptions
 {

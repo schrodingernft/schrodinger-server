@@ -83,16 +83,16 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         _logger.Info("GetAdoptImageInfoAsync, {req}", adoptId);
         var output = new GetAdoptImageInfoOutput();
-        var adoptInfo = await QueryAdoptInfoAsync(adoptId);
-        if (adoptInfo == null)
-        {
-            return output;
-        }
+        // var adoptInfo = await QueryAdoptInfoAsync(adoptId);
+        // if (adoptInfo == null)
+        // {
+        //     return output;
+        // }
 
         output.AdoptImageInfo = new AdoptImageInfo
         {
-            Attributes = adoptInfo.Attributes,
-            Generation = adoptInfo.Generation,
+            Attributes = new List<Attribute>(),
+            Generation = 1,
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
@@ -100,7 +100,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         if (!hasSendRequest)
         {
             await _adoptImageService.MarkRequest(adoptId);
-            await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
+            await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, new GenerateImage(), adoptId);
             return output;
         }
 

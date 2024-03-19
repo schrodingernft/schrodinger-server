@@ -18,7 +18,6 @@ using Microsoft.OpenApi.Models;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
-using SchrodingerServer.Adopts;
 using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common.GraphQL;
 using SchrodingerServer.Faucets;
@@ -32,11 +31,10 @@ using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.UI.MultiTenancy;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
-using Volo.Abp.BlobStoring;
 using Volo.Abp.BlobStoring.Aliyun;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
-// using Volo.Abp.EventBus.RabbitMq;
+using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.Swashbuckle;
@@ -54,7 +52,7 @@ namespace SchrodingerServer
         typeof(SchrodingerServerMongoDbModule),
         typeof(AbpAspNetCoreSerilogModule),
         typeof(AbpSwashbuckleModule),
-        // typeof(AbpEventBusRabbitMqModule),
+        typeof(AbpEventBusRabbitMqModule),
         typeof(AbpBlobStoringAliyunModule)
     )]
     public class SchrodingerServerHttpApiHostModule : AbpModule
@@ -65,7 +63,7 @@ namespace SchrodingerServer
             var hostingEnvironment = context.Services.GetHostingEnvironment();
             Configure<ChainOptions>(configuration.GetSection("Chains"));
             Configure<TraitsOptions>(configuration.GetSection("Traits"));
-            Configure<AdoptImageOptions>(configuration.GetSection("AdoptImage"));
+            Configure<AdoptImageOptions>(configuration.GetSection("AdoptImageOptions"));
             Configure<TransactionFeeOptions>(configuration.GetSection("TransactionFeeInfo"));
             Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
             Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
@@ -73,7 +71,7 @@ namespace SchrodingerServer
             Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
             Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
             Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
-
+            
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
             ConfigureLocalization();

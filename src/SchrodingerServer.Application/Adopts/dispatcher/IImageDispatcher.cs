@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SchrodingerServer.Dtos.TraitsDto;
+using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 
@@ -28,9 +30,9 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
     private readonly ILogger<ImageDispatcher> _logger;
     private readonly Dictionary<string, IImageProvider> _providers;
 
-    public ImageDispatcher(AdoptImageOptions adoptImageOptions, IAdoptImageService adoptImageService, ILogger<ImageDispatcher> logger, IEnumerable<IImageProvider> providers)
+    public ImageDispatcher(IOptionsMonitor<AdoptImageOptions> adoptImageOptions, IAdoptImageService adoptImageService, ILogger<ImageDispatcher> logger, IEnumerable<IImageProvider> providers)
     {
-        _adoptImageOptions = adoptImageOptions;
+        _adoptImageOptions = adoptImageOptions.CurrentValue;
         _adoptImageService = adoptImageService;
         _logger = logger;
         _providers = providers.ToDictionary(x => x.Type.ToString(), y => y);

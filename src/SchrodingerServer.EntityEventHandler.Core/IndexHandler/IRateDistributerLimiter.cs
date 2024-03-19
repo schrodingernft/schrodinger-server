@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using Microsoft.Extensions.Options;
 using RedisRateLimiting;
 using SchrodingerServer.EntityEventHandler.Core.Options;
 using StackExchange.Redis;
@@ -19,10 +20,10 @@ public class RateDistributeLimiter : IRateDistributeLimiter, ISingletonDependenc
     private readonly RateLimitOptions _rateLimitOptions;
     private readonly ConcurrentDictionary<string, RedisTokenBucketRateLimiter<string>> _rateDistributeLimiters = new();
 
-    public RateDistributeLimiter(IConnectionMultiplexer connectionMultiplexer, RateLimitOptions rateLimitOptions)
+    public RateDistributeLimiter(IConnectionMultiplexer connectionMultiplexer, IOptionsMonitor<RateLimitOptions> rateLimitOptions)
     {
         _connectionMultiplexer = connectionMultiplexer;
-        _rateLimitOptions = rateLimitOptions;
+        _rateLimitOptions = rateLimitOptions.CurrentValue;
     }
 
     public RedisTokenBucketRateLimiter<string> GetRateLimiterInstance(string resourceName)

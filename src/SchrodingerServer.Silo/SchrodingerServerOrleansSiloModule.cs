@@ -1,3 +1,4 @@
+using AElf.Client.Service;
 using Microsoft.Extensions.DependencyInjection;
 using SchrodingerServer.Grains;
 using SchrodingerServer.Grains.Grain.ApplicationHandler;
@@ -34,8 +35,8 @@ public class SchrodingerServerOrleansSiloModule : AbpModule
         Configure<SyncTokenOptions>(configuration.GetSection("Sync"));
         context.Services.AddSingleton<IContractProvider, ContractProvider>();
         Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
-        
+        context.Services.AddSingleton<IBlockchainClientFactory<AElfClient>, AElfClientFactory>();
+
         context.Services.AddHttpClient();
-        // context.Services.AddSingleton<IContractProvider, ContractProvider>();
     }
 }

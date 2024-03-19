@@ -3,7 +3,6 @@ namespace SchrodingerServer.Options;
 public class TraitsOptions
 {
     public string ImageGenerateUrl { get; set; }
-    public string PromptQueryUrl { get; set; }
     public string AutoMaticImageGenerateUrl { get; set; }
     public string ImageQueryUrl { get; set; }
     public string IsOverLoadedUrl { get; set; }

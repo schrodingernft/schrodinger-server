@@ -19,8 +19,7 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
     {
         var monitor = Mock.Of<IOptionsMonitor<TraitsOptions>>(x => x.CurrentValue == new TraitsOptions()
         {
-            AutoMaticImageGenerateUrl = "http://fs.iis.pub:13888/sdapi/v1/txt2img",
-            PromptQueryUrl = "http://192.168.11.40:3008/generate-prompt"
+            AutoMaticImageGenerateUrl = "http://fs.iis.pub:13888/sdapi/v1/txt2img"
         });
         var stableDiffusionOption = Mock.Of<IOptionsMonitor<StableDiffusionOption>>(x => x.CurrentValue == new StableDiffusionOption());
         _autoMaticImageProvider = new AutoMaticImageProvider(NullLogger<ImageProvider>.Instance, null, null, monitor, stableDiffusionOption);

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,7 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
     private readonly ILogger<SyncWorker> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IIndexerProvider _indexerProvider;
+    private readonly ConcurrentQueue<string> _finishedQueue;
     private readonly IOptionsMonitor<WorkerOptions> _options;
 
     public SyncWorker(AbpAsyncTimer timer, IOptionsMonitor<WorkerOptions> workerOptions, ILogger<SyncWorker> logger,
@@ -27,6 +29,7 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
         _options = workerOptions;
         _clusterClient = clusterClient;
         _indexerProvider = indexerProvider;
+        _finishedQueue = new();
         Timer.Period = 1000 * _options.CurrentValue.SearchTimer;
     }
 
@@ -70,41 +73,42 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
     {
         var grainClient = _clusterClient.GetGrain<ISyncPendingGrain>(GenerateSyncPendingListGrainId());
         var pendingList = await grainClient.GetSyncPendingListAsync();
-        var tasks = pendingList.Select(t =>
+
+        _logger.LogInformation("[Execute] There are a total of {count} tasks to be executed", pendingList.Count);
+
+        await Task.WhenAll(pendingList.Select(HandlerJobExecuteAsync));
+
+        if (!_finishedQueue.IsEmpty)
         {
-            var jobGrain = _clusterClient.GetGrain<ISyncGrain>(t);
-            return jobGrain.ExecuteJobAsync(new SyncJobGrainDto { Id = t });
-        });
+            var finished = _finishedQueue.ToList();
+            _logger.LogInformation("[Execute] Finished tx count {count} list: {list} ", finished.Count,
+                string.Join(", ", finished));
+            await grainClient.DeleteSyncPendingList(finished);
+            _finishedQueue.Clear();
+        }
+    }
 
-        // var jobGrain =
-        //     _clusterClient.GetGrain<ISyncGrain>("bd9c5cf383629c5eed5de3cf91ad3285ed867f1f64f22f1d8511c26680114ba9");
-        // var tasks = jobGrain.ExecuteJobAsync(new SyncJobGrainDto
-        //     { Id = "bd9c5cf383629c5eed5de3cf91ad3285ed867f1f64f22f1d8511c26680114ba9" });
-        //
-        // var jobGrain =
-        //     _clusterClient.GetGrain<ISyncGrain>("2b228df180515f26556d2694b9fbcc7ade746bdad60c82a1ff95b2989033c010");
-        // var tasks = jobGrain.ExecuteJobAsync(new SyncJobGrainDto
-        //     { Id = "2b228df180515f26556d2694b9fbcc7ade746bdad60c82a1ff95b2989033c010" });
-
-        var tasksResults = await Task.WhenAll(tasks);
-        var finishedJobs = new List<string>();
-        var failedJobs = new List<string>();
-
-        foreach (var result in tasksResults)
+    private async Task HandlerJobExecuteAsync(string transactionId)
+    {
+        try
         {
-            switch (result.Success)
+            _logger.LogDebug("[Execute] Start sync transaction {tx}", transactionId);
+            var jobGrain = _clusterClient.GetGrain<ISyncGrain>(transactionId);
+            var result = await jobGrain.ExecuteJobAsync(new SyncJobGrainDto { Id = transactionId });
+            if (result.Data?.Status == SyncJobStatus.CrossChainTokenCreated)
             {
-                case true when result.Data.Status == SyncJobStatus.CrossChainTokenCreated:
-                    finishedJobs.Add(result.Data.TransactionId);
-                    break;
-                case false:
-                    failedJobs.Add(result.Data.TransactionId);
-                    break;
+                _logger.LogInformation("[Execute] Transaction {tx} token sync finished.", transactionId);
+                _finishedQueue.Enqueue(result.Data.TransactionId);
             }
         }
-
-        var deleteSyncPendingList = finishedJobs.Concat(failedJobs).ToList();
-        if (deleteSyncPendingList.Count > 0) await grainClient.DeleteSyncPendingList(deleteSyncPendingList);
+        catch (TimeoutException)
+        {
+            _logger.LogWarning("Execute job {tx} timeout.", transactionId);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Execute job {tx} failed.", transactionId);
+        }
     }
 
     private async Task UpdateSubscribeHeightAsync(long height)

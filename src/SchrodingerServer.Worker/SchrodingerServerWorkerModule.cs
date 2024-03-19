@@ -76,6 +76,7 @@ public class SchrodingerServerWorkerModule : AbpModule
                     options.ClusterId = configuration["Orleans:ClusterId"];
                     options.ServiceId = configuration["Orleans:ServiceId"];
                 })
+                .Configure<MessagingOptions>(options => options.ResponseTimeout = TimeSpan.FromSeconds(300))
                 .ConfigureApplicationParts(parts =>
                     parts.AddApplicationPart(typeof(SchrodingerServerGrainsModule).Assembly).WithReferences())
                 .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))

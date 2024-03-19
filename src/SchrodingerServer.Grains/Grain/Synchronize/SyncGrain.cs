@@ -39,13 +39,19 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
         {
             State.Id = input.Id;
             State.TransactionId = input.Id;
+            State.Status = SyncJobStatus.TokenCreating;
+        }
+        else
+        {
+            _logger.LogDebug("{txId} status: {status} now", State.TransactionId, State.Status);
         }
 
+        var result = new GrainResultDto<SyncGrainDto>();
         try
         {
             switch (State.Status)
             {
-                case null:
+                case SyncJobStatus.TokenCreating:
                     await HandleTokenCreatingAsync();
                     break;
                 case SyncJobStatus.TokenValidating:
@@ -62,22 +68,23 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
                     break;
                 case SyncJobStatus.CrossChainTokenCreated:
                     break;
+                default:
+                    throw new InvalidOperationException("Invalid status");
             }
 
-            return new GrainResultDto<SyncGrainDto>
-            {
-                Data = _objectMapper.Map<SyncState, SyncGrainDto>(State),
-            };
+            result.Data = _objectMapper.Map<SyncState, SyncGrainDto>(State);
+        }
+        catch (AElf.Client.AElfClientException ce)
+        {
+            _logger.LogError(ce, "When sync task {tx}, the call to sdk failed. Will try again later.", input.Id);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "");
-            return new GrainResultDto<SyncGrainDto>
-            {
-                Success = false,
-                Message = null
-            };
+            _logger.LogError(e, "Sync job {tx} Failed, Synchronization will restart", input.Id);
+            await Resync(input.Id);
         }
+
+        return result;
     }
 
     # region Token crossChain
@@ -89,9 +96,11 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
         var tokenInfo = await _contractProvider.GetTokenInfoAsync(_sourceChainId, tokenSymbol);
 
         // check token is cross chain created
-        if ((await _contractProvider.GetTokenInfoAsync(_targetChainId, tokenSymbol)).Symbol == tokenSymbol)
+        if (await CheckTokenExistAsync(tokenSymbol))
         {
+            _logger.LogWarning("Symbol {symbol} is CrossChainCreated to target chain. ", tokenSymbol);
             State.Status = SyncJobStatus.CrossChainTokenCreated;
+            await WriteStateAsync();
             return;
         }
 
@@ -99,22 +108,6 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
         (State.ValidateTokenTx, State.ValidateTokenTxId) =
             await _contractProvider.SendValidateTokenExist(_sourceChainId, tokenInfo);
         State.Status = SyncJobStatus.TokenValidating;
-        // State.ValidateTokenTx = await _contractProvider.GenerateRawTransactionAsync(MethodName.ValidateTokenInfoExists,
-        //     new ValidateTokenInfoExistsInput
-        //     {
-        //         Symbol = tokenInfo.Symbol,
-        //         TokenName = tokenInfo.TokenName,
-        //         Decimals = tokenInfo.Decimals,
-        //         IsBurnable = tokenInfo.IsBurnable,
-        //         IssueChainId = tokenInfo.IssueChainId,
-        //         Issuer = new Address { Value = tokenInfo.Issuer.Value },
-        //         TotalSupply = tokenInfo.TotalSupply,
-        //         Owner = tokenInfo.Owner,
-        //         ExternalInfo = { tokenInfo.ExternalInfo.Value }
-        //     }, _sourceChainId, tokenAddress);
-        // State.ValidateTokenTxId =
-        //     (await _contractProvider.SendTransactionAsync(_sourceChainId, State.ValidateTokenTx)).TransactionId;
-
         _logger.LogInformation("TransactionId {txId} update status to {status} in HandleTokenCreatingAsync.",
             State.TransactionId, State.Status);
 
@@ -124,7 +117,12 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
     private async Task HandleTokenValidatingAsync()
     {
         var txResult = await _contractProvider.GetTxResultAsync(_sourceChainId, State.ValidateTokenTxId);
-        if (!await CheckTxStatusAsync(txResult)) return;
+        if (!await CheckTxStatusAsync(txResult))
+        {
+            _logger.LogWarning("Validate token exist transaction not ready now.");
+            return;
+        }
+
         if (txResult.BlockNumber == 0) return;
 
         State.ValidateTokenHeight = txResult.BlockNumber;
@@ -171,11 +169,21 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
             return;
         }
 
+        // check token is cross chain created
+        if (await CheckTokenExistAsync(State.Symbol))
+        {
+            _logger.LogWarning("Symbol {symbol} is CrossChainCreated to target chain. ", State.Symbol);
+            State.Status = SyncJobStatus.CrossChainTokenCreated;
+            await WriteStateAsync();
+            return;
+        }
+
         var merklePath = await _contractProvider.GetMerklePathAsync(_sourceChainId, State.ValidateTokenTxId);
         if (merklePath == null) return;
 
         var crossChainMerkleProof =
             await _contractProvider.GetCrossChainMerkleProofContextAsync(_sourceChainId, State.ValidateTokenHeight);
+
         var createTokenParams = new CrossChainCreateTokenInput
         {
             FromChainId = ChainHelper.ConvertBase58ToChainId(_sourceChainId),
@@ -217,7 +225,11 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
     private async Task HandleCrossChainTokenCreatingAsync()
     {
         var txResult = await _contractProvider.GetTxResultAsync(_targetChainId, State.CrossChainCreateTokenTxId);
-        if (!await CheckTxStatusAsync(txResult)) return;
+        if (!await CheckTxStatusAsync(txResult))
+        {
+            _logger.LogWarning("Cross chain create token transaction not ready now.");
+            return;
+        }
 
         State.Status = SyncJobStatus.CrossChainTokenCreated;
 
@@ -230,19 +242,28 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
     private async Task<bool> CheckTxStatusAsync(TransactionResultDto txResult)
     {
-        if (txResult.Status == TransactionState.Mined) return true;
+        switch (txResult.Status)
+        {
+            case TransactionState.Mined:
+                _logger.LogWarning("Transaction {tx} is mined.", txResult.TransactionId);
+                return true;
+            case TransactionState.Pending:
+                _logger.LogWarning("Transaction {tx} is pending.", txResult.TransactionId);
+                return false;
+            default:
+                _logger.LogError("Transaction failed, TxHash id {txHash} update status to failed, error message {msg}.",
+                    State.TransactionId, txResult.Error);
+                throw new Exception($"Transaction failed, status: {State.Status}. error: {txResult.Error}");
+        }
+    }
 
-        if (txResult.Status == TransactionState.Pending) return false;
+    private async Task<bool> CheckTokenExistAsync(string tokenSymbol)
+        => (await _contractProvider.GetTokenInfoAsync(_targetChainId, tokenSymbol)).Symbol == tokenSymbol;
 
-        // When Transaction status is not mined or pending, Transaction is judged to be failed.
-        State.Message = $"Transaction failed, status: {State.Status}. error: {txResult.Error}";
-        State.Status = SyncJobStatus.Failed;
-
+    private async Task Resync(string tx)
+    {
+        State = new SyncState { Id = tx, TransactionId = tx, Status = SyncJobStatus.TokenCreating };
         await WriteStateAsync();
-        _logger.LogWarning("Transaction failed, TxHash id {txHash} update status to {status}.",
-            State.TransactionId, State.Status);
-
-        return false;
     }
 
     #endregion

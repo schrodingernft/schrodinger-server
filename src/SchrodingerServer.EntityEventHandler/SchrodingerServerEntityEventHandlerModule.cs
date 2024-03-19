@@ -1,22 +1,38 @@
+using System;
 using AElf.Indexing.Elasticsearch.Options;
+using GraphQL.Client.Abstractions;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.Newtonsoft;
+using Hangfire;
+using Hangfire.Mongo;
+using Hangfire.Mongo.CosmosDB;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 using Orleans;
 using Orleans.Configuration;
+using Orleans.Providers.MongoDB.Configuration;
+using SchrodingerServer.Common;
+using SchrodingerServer.EntityEventHandler.Core;
+using SchrodingerServer.EntityEventHandler.Core.Options;
+using SchrodingerServer.EntityEventHandler.Core.Worker;
+using SchrodingerServer.Grains;
+using SchrodingerServer.MongoDB;
+using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
-using Volo.Abp.Threading;
-using Orleans.Providers.MongoDB.Configuration;
-using SchrodingerServer.EntityEventHandler;
-using SchrodingerServer.EntityEventHandler.Core;
-using SchrodingerServer.Grains;
-using SchrodingerServer.MongoDB;
 using Volo.Abp.OpenIddict.Tokens;
+using Volo.Abp.Threading;
 
-namespace SchrodingerServer;
+namespace SchrodingerServer.EntityEventHandler;
 
 [DependsOn(typeof(AbpAutofacModule),
     typeof(SchrodingerServerMongoDbModule),
@@ -31,6 +47,10 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
     {
         ConfigureTokenCleanupService();
         var configuration = context.Services.GetConfiguration();
+        Configure<WorkerOptions>(configuration.GetSection("WorkerOptions"));
+        Configure<PointTradeOptions>(configuration.GetSection("PointTradeOptions"));
+        ConfigureHangfire(context, configuration);
+        ConfigureGraphQl(context, configuration);
         context.Services.AddHostedService<SchrodingerServerHostedService>();
         context.Services.AddSingleton<IClusterClient>(o =>
         {
@@ -54,6 +74,8 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
                 .Build();
         });
         ConfigureEsIndexCreation();
+        
+        context.Services.AddSingleton<IHostedService, InitJobsService>();
     }
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
@@ -77,5 +99,62 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
     private void ConfigureTokenCleanupService()
     {
         Configure<TokenCleanupOptions>(x => x.IsCleanupEnabled = false);
+    }
+    
+    private void ConfigureHangfire(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        var mongoType = configuration["Hangfire:MongoType"];
+        var connectionString = configuration["Hangfire:ConnectionString"];
+        if (connectionString.IsNullOrEmpty()) return;
+    
+        if (mongoType.IsNullOrEmpty() ||
+            mongoType.Equals(MongoType.MongoDb.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            context.Services.AddHangfire(x =>
+            {
+                x.UseMongoStorage(connectionString, new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                        BackupStrategy = new CollectionMongoBackupStrategy()
+                    },
+                    CheckConnection = true,
+                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
+                });
+            });
+        }
+        else if (mongoType.Equals(MongoType.DocumentDb.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            context.Services.AddHangfire(config =>
+            {
+                var mongoUrlBuilder = new MongoUrlBuilder(connectionString);
+                var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
+                var opt = new CosmosStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions
+                    {
+                        BackupStrategy = new NoneMongoBackupStrategy(),
+                        MigrationStrategy = new DropMongoMigrationStrategy(),
+                    }
+                };
+                config.UseCosmosStorage(mongoClient, mongoUrlBuilder.DatabaseName, opt);
+            });
+        }
+        
+        context.Services.AddHangfireServer(opt =>
+        {
+            opt.SchedulePollingInterval = TimeSpan.FromMilliseconds(3000);
+            opt.HeartbeatInterval = TimeSpan.FromMilliseconds(3000);
+            opt.Queues = new[] { "default", "notDefault" };
+        });
+    }
+     
+    private void ConfigureGraphQl(ServiceConfigurationContext context,
+        IConfiguration configuration)
+    {
+        context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
+            new NewtonsoftJsonSerializer()));
+        context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
     }
 }

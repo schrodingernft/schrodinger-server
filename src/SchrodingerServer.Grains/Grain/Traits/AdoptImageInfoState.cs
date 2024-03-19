@@ -7,4 +7,8 @@ public class AdoptImageInfoState
     public List<string> Images { get; set; }
     
     public bool HasWatermark { get; set; }
+    
+    public string ResizedImage { get; set; }
+    
+    public string ImageUri { get; set; }
 }

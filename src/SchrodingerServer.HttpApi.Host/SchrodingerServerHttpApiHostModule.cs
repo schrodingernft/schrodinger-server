@@ -20,6 +20,7 @@ using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
 using SchrodingerServer.Adopts;
 using SchrodingerServer.CoinGeckoApi;
+using SchrodingerServer.Common.GraphQL;
 using SchrodingerServer.Faucets;
 using StackExchange.Redis;
 using SchrodingerServer.Grains;
@@ -70,6 +71,8 @@ namespace SchrodingerServer
             Configure<SecurityServerOptions>(configuration.GetSection("SecurityServer"));
             Configure<FaucetsOptions>(configuration.GetSection("Faucets"));
             Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+            Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
+            Configure<AwsS3Option>(configuration.GetSection("AwsS3"));
 
             ConfigureConventionalControllers();
             ConfigureAuthentication(context, configuration);
@@ -253,6 +256,7 @@ namespace SchrodingerServer
             context.Services.AddSingleton(new GraphQLHttpClient(configuration["GraphQL:Configuration"],
                 new NewtonsoftJsonSerializer()));
             context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
+            Configure<GraphQLOptions>(configuration.GetSection("GraphQL"));
         }
 
         public override void OnApplicationInitialization(ApplicationInitializationContext context)

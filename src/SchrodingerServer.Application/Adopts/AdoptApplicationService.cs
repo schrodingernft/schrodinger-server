@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -14,10 +15,12 @@ using Newtonsoft.Json;
 using Orleans.Runtime;
 using Schrodinger;
 using SchrodingerServer.Adopts.provider;
+using SchrodingerServer.AwsS3;
 using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
+using SchrodingerServer.Ipfs;
 using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
@@ -26,6 +29,7 @@ using Volo.Abp.Users;
 using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
+using AdoptInfo = SchrodingerServer.Adopts.provider.AdoptInfo;
 using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 
 namespace SchrodingerServer.Adopts;
@@ -43,12 +47,15 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     private readonly IAdoptGraphQLProvider _adoptGraphQlProvider;
     private readonly IUserActionProvider _userActionProvider;
     private readonly ISecretProvider _secretProvider;
+    private readonly IIpfsAppService _ipfsAppService;
+    private readonly AwsS3Client _awsS3Client;
+    
 
     public AdoptApplicationService(ILogger<AdoptApplicationService> logger, IOptionsMonitor<TraitsOptions> traitsOption,
         IAdoptImageService adoptImageService, IOptionsMonitor<AdoptImageOptions> adoptImageOptions,
         IOptionsMonitor<ChainOptions> chainOptions, IAdoptGraphQLProvider adoptGraphQlProvider, 
         IOptionsMonitor<CmsConfigOptions> cmsConfigOptions, IUserActionProvider userActionProvider, 
-        ISecretProvider secretProvider)
+        ISecretProvider secretProvider, IIpfsAppService ipfsAppService, AwsS3Client awsS3Client)
     {
         _logger = logger;
         _traitsOptions = traitsOption;
@@ -59,6 +66,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         _cmsConfigOptions = cmsConfigOptions;
         _userActionProvider = userActionProvider;
         _secretProvider = secretProvider;
+        _ipfsAppService = ipfsAppService;
+        _awsS3Client = awsS3Client;
     }
 
 
@@ -119,24 +128,68 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         output.AdoptImageInfo.Images = await GetImagesAsync(adoptId, imageGenerationId);
         return output;
     }
-    
+
+    public async Task<bool> IsOverLoadedAsync()
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(_traitsOptions.CurrentValue.IsOverLoadedUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseString = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("IsOverLoadedAsync get result Success");
+                var resp = JsonConvert.DeserializeObject<IsOverLoadedResponse>(responseString);
+                return resp.isOverLoaded;
+            }
+            else
+            {
+                _logger.LogError("IsOverLoadedAsync get result Success fail, {resp}", response.ToString());
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "IsOverLoadedAsync get result Success fail error, {err}", e.ToString());
+            return true;
+        }
+    }
     
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
         _logger.Info("GetWaterMarkImageInfoAsync, {req}", JsonConvert.SerializeObject(input));
-        if (_adoptImageService.HasWatermark(input.AdoptId).Result)
-        {
-            _logger.Info("has already been watermarked, {id}", input.AdoptId);
-            throw new UserFriendlyException("has already been watermarked");
-        }
-        
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
-        _logger.Info("GetImagesAsync, {images}", JsonConvert.SerializeObject(images));
         
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
         {
+            _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
+        }
+
+        var hasWaterMark = await _adoptImageService.HasWatermark(input.AdoptId);
+        if (hasWaterMark)
+        {
+            var info = await _adoptImageService.GetWatermarkImageInfoAsync(input.AdoptId);
+            _logger.Info("GetWatermarkImageInfo from grain, info: {info}", JsonConvert.SerializeObject(info));
+
+            if (info == null || info.ImageUri == null || info.ResizedImage == null)
+            {
+                _logger.Info("Invalid watermark info, uri:{}, resizeImage", info.ImageUri, info.ResizedImage);
+                throw new UserFriendlyException("Invalid watermark info");
+            }
+            
+            var signature = GenerateSignatureWithSecretService(input.AdoptId, info.ImageUri, info.ResizedImage);
+        
+            var response = new GetWaterMarkImageInfoOutput
+            {
+                Image = info.ResizedImage,
+                Signature = signature,
+                ImageUri = info.ImageUri
+            };
+            
+            _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(response));
+            return response;
         }
         
         var adoptInfo = await QueryAdoptInfoAsync(input.AdoptId);
@@ -146,7 +199,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             throw new UserFriendlyException("query adopt info failed adoptId = " + input.AdoptId);
         }
         
-        var waterMarkImage = await GetWatermarkImageAsync(new WatermarkInput()
+        var waterMarkInfo = await GetWatermarkImageAsync(new WatermarkInput()
         {
             sourceImage = input.Image,
             watermark = new WaterMark
@@ -154,17 +207,62 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 text = adoptInfo.Symbol
             }
         });
+        _logger.LogInformation("GetWatermarkImageAsync : {info} ",  JsonConvert.SerializeObject(waterMarkInfo));
 
-        await _adoptImageService.SetWatermarkAsync(input.AdoptId);
-        
-        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, waterMarkImage);
-        _logger.Info("signature from security service  {signatureWithSecretService}", signatureWithSecretService);
-        
-        return new GetWaterMarkImageInfoOutput
+        if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {
-            Image = waterMarkImage,
-            Signature = signatureWithSecretService
+            throw new UserFriendlyException("waterMarkImage empty");
+        }
+
+        var stringArray = waterMarkInfo.processedImage.Split(",");
+        if (stringArray.Length < 2)
+        {
+            _logger.LogInformation("invalid waterMarkInfo");
+            throw new UserFriendlyException("invalid waterMarkInfo");
+        }
+        
+        var base64String = stringArray[1].Trim();
+        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        if (waterImageHash == "")
+        {
+            _logger.LogInformation("upload ipfs failed");
+            throw new UserFriendlyException("upload failed");
+        }
+        
+        var uri = "ipfs://" + waterImageHash;
+        
+        // uploadToS3
+        var s3Url = await uploadToS3Async(base64String, waterImageHash);
+        _logger.LogInformation("upload to s3, url:{url}", s3Url);
+        
+        await _adoptImageService.SetWatermarkImageInfoAsync(input.AdoptId, uri, waterMarkInfo.resized, input.Image);
+
+        var signatureWithSecretService = GenerateSignatureWithSecretService(input.AdoptId, uri, waterMarkInfo.resized);
+        
+        var resp = new GetWaterMarkImageInfoOutput
+        {
+            Image = waterMarkInfo.resized,
+            Signature = signatureWithSecretService,
+            ImageUri = uri
         };
+        _logger.LogInformation("GetWatermarkImageResp {resp} ",  JsonConvert.SerializeObject(resp));
+        
+        return resp;
+    }
+
+    private async Task<string> uploadToS3Async(string base64String, string fileName)
+    {
+        try
+        {
+            byte[] imageBytes = Convert.FromBase64String(base64String);
+            var stream = new MemoryStream(imageBytes);
+            return await _awsS3Client.UpLoadFileForNFTAsync(stream, fileName);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "upload to s3 error, {err}", e.ToString());
+            return string.Empty;
+        }
     }
     
     private string GenerateSignature(byte[] privateKey, string adoptId, string image)
@@ -178,11 +276,12 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return signature.ToHex();
     }
     
-    private string GenerateSignatureWithSecretService(string adoptId, string image)
+    private string GenerateSignatureWithSecretService(string adoptId, string uri, string image)
     {
         var data = new ConfirmInput {
             AdoptId = Hash.LoadFromHex(adoptId),
-            Image = image
+            Image = image,
+            ImageUri = uri 
         };
         var dataHash = HashHelper.ComputeFrom(data);
         var signature =  _secretProvider.GetSignatureFromHashAsync(_chainOptions.PublicKey, dataHash);
@@ -219,7 +318,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         return await _adoptGraphQlProvider.QueryAdoptInfoAsync(adoptId);
     }
     
-    private async Task<string> GetWatermarkImageAsync(WatermarkInput input)
+    private async Task<WatermarkResponse> GetWatermarkImageAsync(WatermarkInput input)
     {
         try
         {
@@ -237,18 +336,18 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 
                 var resp = JsonConvert.DeserializeObject<WatermarkResponse>(responseString);
                
-                return resp.processedImage;
+                return resp;
             }
             else
             {
                 _logger.LogError("Get Watermark Image Success fail, {resp}", response.ToString());
             }
-            return "";
+            return null;
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Get Watermark Image Success fail error, {err}", e.ToString());
-            return "";
+            return null;
         }
     }
     

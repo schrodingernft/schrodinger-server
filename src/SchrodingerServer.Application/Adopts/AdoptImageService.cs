@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Grains.Grain.Traits;
 using SchrodingerServer.Traits;
 using Volo.Abp.DependencyInjection;
@@ -65,9 +66,29 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         await grain.SetWatermarkAsync();
     }
 
-    public Task<bool> HasWatermark(string adoptId)
+    public async Task<bool> HasWatermark(string adoptId)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
-        return grain.HasWatermarkAsync();
+        return await grain.HasWatermarkAsync();
+    }
+    
+    public async Task SetWatermarkImageInfoAsync(string adoptId, string imageUri, string resizedImage, string selectedImage)
+    {
+        var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
+        await grain.SetWatermarkImageInfoAsync(imageUri, resizedImage);
+
+        var images = await grain.GetImagesAsync();
+        var index = images.IndexOf(selectedImage);
+        
+        // only works when there are two images in the list
+        images.RemoveAt((index+1) % 2);
+        await grain.SetImagesAsync(images);
+    }
+
+    public async Task<WaterImageGrainInfoDto> GetWatermarkImageInfoAsync(string adoptId)
+    {
+        var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
+        var grainResult = await grain.GetWatermarkImageInfoAsync();
+        return grainResult.Data;
     }
 }

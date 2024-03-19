@@ -15,6 +15,7 @@ public class TokenController : AbpController
 {
     private readonly ITokenPriceProvider _tokenPriceProvider;
     private readonly ITransactionFeeAppService _transactionFeeAppService;
+    private const string UsdSymbol = "usd";
 
     public TokenController(ITokenPriceProvider tokenPriceProvider, ITransactionFeeAppService transactionFeeAppService)
     {
@@ -31,7 +32,7 @@ public class TokenController : AbpController
     [HttpGet("schrodinger/token-price")]
     public async Task<PriceDto> GetPriceAsync(GetTokenPriceInput input)
     {
-        var price = await _tokenPriceProvider.GetPriceAsync(input.Symbol);
+        var price = await _tokenPriceProvider.GetPriceByCacheAsync(input.Symbol);
         return new PriceDto() { Price = price };
     }
 }

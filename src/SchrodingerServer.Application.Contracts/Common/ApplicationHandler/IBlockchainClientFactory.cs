@@ -1,4 +1,4 @@
-namespace SchrodingerServer.Grains.Grain.ApplicationHandler
+namespace SchrodingerServer.Common.ApplicationHandler
 {
     public interface IBlockchainClientFactory<T> 
         where T : class

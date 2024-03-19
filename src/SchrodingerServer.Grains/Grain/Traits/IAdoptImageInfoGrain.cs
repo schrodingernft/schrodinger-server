@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Options;
 using Volo.Abp.ObjectMapping;
 
@@ -14,6 +15,8 @@ public interface IAdoptImageInfoGrain : IGrainWithStringKey
     Task<List<string>> GetImagesAsync();
     Task SetWatermarkAsync();
     Task<bool> HasWatermarkAsync();
+    Task SetWatermarkImageInfoAsync(string uri, string resizeImage);
+    Task<GrainResultDto<WaterImageGrainInfoDto>> GetWatermarkImageInfoAsync();
 }
 
 public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGrain
@@ -77,4 +80,21 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
         return  Task.FromResult(State.HasWatermark);
     }
     
+    public async Task SetWatermarkImageInfoAsync(string uri, string resizeImage)
+    {
+        State.ImageUri = uri;
+        State.ResizedImage = resizeImage;
+        State.HasWatermark = true;
+        await WriteStateAsync();
+    }
+    
+    public async Task<GrainResultDto<WaterImageGrainInfoDto>> GetWatermarkImageInfoAsync()
+    {
+        return new GrainResultDto<WaterImageGrainInfoDto>
+        {
+            Success = true,
+            Data = _objectMapper.Map<AdoptImageInfoState, WaterImageGrainInfoDto>(State)
+        };
+        
+    }
 }

@@ -63,7 +63,7 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
         _distributedCache = distributedCache;
         _pointDispatchProvider = pointDispatchProvider;
         _distributedLock = distributedLock;
-        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault(_lockKey).Minutes  * 1000);
+        timer.Period =(int)(_workerOptionsMonitor.CurrentValue?.Workers?.GetValueOrDefault(_lockKey).Minutes * 60 * 1000);
 
     }
 

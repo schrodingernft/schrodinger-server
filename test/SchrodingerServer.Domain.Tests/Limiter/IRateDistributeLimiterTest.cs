@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Options;
+using Moq;
 using Nest;
 using SchrodingerServer.EntityEventHandler.Core.IndexHandler;
 using SchrodingerServer.EntityEventHandler.Core.Options;
@@ -16,7 +18,7 @@ public class IRateDistributeLimiterTest : SchrodingerServerDomainTestBase
 
     public IRateDistributeLimiterTest(ITestOutputHelper output) : base(output)
     {
-        _rateDistributeLimiter = new RateDistributeLimiter(GetService<IConnectionMultiplexer>(), new RateLimitOptions()
+        var monitor = Mock.Of<IOptionsMonitor<RateLimitOptions>>(x => x.CurrentValue == new RateLimitOptions()
         {
             RedisRateLimitOptions = new List<RateLimitOption>()
             {
@@ -29,6 +31,7 @@ public class IRateDistributeLimiterTest : SchrodingerServerDomainTestBase
                 }
             }
         });
+        _rateDistributeLimiter = new RateDistributeLimiter(GetService<IConnectionMultiplexer>(), monitor);
     }
 
 

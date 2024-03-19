@@ -37,9 +37,7 @@ public class TraitInfo
 
 public class QueryAutoMaticImage
 {
-    public List<Trait> traits { get; set; }
-
-    // public string prompt { get; set; }
+    public string prompt { get; set; }
     public string sampler_index { get; set; } = "DPM++ 2M Karras";
     public string nagative_prompt { get; set; } = "NSFW";
     public int step { get; set; }
@@ -50,10 +48,20 @@ public class QueryAutoMaticImage
     public int seed { get; set; }
 }
 
+public class QueryAutoMaticPrompt
+{
+    public List<Trait> traits { get; set; }
+}
+
 public class QueryAutoMaticResponse
 {
     public List<string> images { get; set; }
     public string info { get; set; }
+}
+
+public class QueryPromptResponse
+{
+    public string prompt { get; set; }
 }
 
 public class QueryImage

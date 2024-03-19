@@ -19,7 +19,8 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
     {
         var monitor = Mock.Of<IOptionsMonitor<TraitsOptions>>(x => x.CurrentValue == new TraitsOptions()
         {
-            AutoMaticImageGenerateUrl = "http://192.168.11.40:3008/traits-to-image"
+            AutoMaticImageGenerateUrl = "http://fs.iis.pub:13888/sdapi/v1/txt2img",
+            PromptQueryUrl = "http://192.168.11.40:3008/generate-prompt"
         });
         var stableDiffusionOption = Mock.Of<IOptionsMonitor<StableDiffusionOption>>(x => x.CurrentValue == new StableDiffusionOption());
         _autoMaticImageProvider = new AutoMaticImageProvider(NullLogger<ImageProvider>.Instance, null, null, monitor, stableDiffusionOption);
@@ -30,8 +31,6 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
     {
         var path = "./";
         var adoptId = "1234";
-        var prompt =
-            "A cute cat with two hands raised, ((pixel art)), cat add an Alien touch, (wearing Yoshi costume:0.1), Underwater Abyssal Reef background, Wearing a Mushroom Hat, (Has Fire-shaped eyes:1.2), (mouth Biting a Dagger:1.2), Wearing a Sunflower chain, (The cat is accompanied by a Baby Flame cat:1.6), Ditto, Black Bean Pad paw, High-Waiste Shorts";
         var gImage = new GenerateImage()
         {
             newAttributes = new List<Trait>() { new() { traitType = "Background", value = "Fantasy Forest" } },
@@ -40,7 +39,9 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
                 attributes = new List<Trait>() { new() { traitType = "Clothes", value = "Doraemon" } },
             }
         };
-
+        var prompt = await _autoMaticImageProvider.QueryPromptAsync(adoptId, gImage);
+        prompt.ShouldNotBeNull();
+        prompt.ShouldNotBeEmpty();
         var res = await _autoMaticImageProvider.QueryImageInfoByAiAsync(adoptId, gImage);
         res.ShouldNotBeNull();
         res.images.Count.ShouldBe(2);

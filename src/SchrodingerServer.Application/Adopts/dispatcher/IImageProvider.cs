@@ -20,7 +20,7 @@ public interface IImageProvider
     ProviderType Type { get; }
 
     Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
-    
+
     Task SendAIGenerationRequest(string adoptAddressId, string adoptId, GenerateImage imageInfo);
 
     Task SetRequestId(string adoptAddress, string requestId);
@@ -48,7 +48,7 @@ public abstract class ImageProvider : IImageProvider
     {
         await AdoptImageService.SetImageGenerationIdNXAsync(adoptAddressId, requestId);
     }
-    
+
     public async Task SendAIGenerationRequest(string adoptAddressId, string adoptId, GenerateImage imageInfo)
     {
         await PublishAsync(adoptAddressId, adoptId, imageInfo);
@@ -58,10 +58,10 @@ public abstract class ImageProvider : IImageProvider
     {
         await AdoptImageService.SetImagesAsync(adoptId, images);
     }
-    
+
     // public abstract Task<List<string>> GenerateImageAsync(string adoptId, GenerateImage imageInfo);
     public abstract Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
-    
+
     public abstract Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId);
 }
 
@@ -74,14 +74,14 @@ public enum ProviderType
 public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
 {
     public override ProviderType Type { get; } = ProviderType.AutoMatic;
-    private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
-    private readonly IOptionsMonitor<StableDiffusionOption> _stableDiffusionOption;
+    private readonly TraitsOptions _traitsOptions;
+    private readonly StableDiffusionOption _stableDiffusionOption;
 
     public AutoMaticImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService,
         IDistributedEventBus distributedEventBus, IOptionsMonitor<TraitsOptions> traitsOptions, IOptionsMonitor<StableDiffusionOption> stableDiffusionOption) : base(logger, adoptImageService, distributedEventBus)
     {
-        _traitsOptions = traitsOptions;
-        _stableDiffusionOption = stableDiffusionOption;
+        _traitsOptions = traitsOptions.CurrentValue;
+        _stableDiffusionOption = stableDiffusionOption.CurrentValue;
     }
 
     public async Task<List<string>> RequestGenerateImage(string adoptId, GenerateImage imageInfo)
@@ -102,33 +102,67 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         return images;
     }
 
+    private QueryAutoMaticPrompt GetQueryAutoMaticPrompt(GenerateImage imageInfo)
+    {
+        return new QueryAutoMaticPrompt() { traits = imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList() };
+    }
+
     private QueryAutoMaticImage GetQueryAutoMaticImage(GenerateImage imageInfo)
     {
-        var traits = imageInfo.baseImage.attributes.Concat(imageInfo.newAttributes).ToList();
-        var diffusedOption = _stableDiffusionOption.CurrentValue;
         return new QueryAutoMaticImage()
         {
-            traits = traits,
             seed = imageInfo.seed,
-            sampler_index = diffusedOption.SamplerIndex,
-            nagative_prompt = diffusedOption.NagativePrompt,
-            step = diffusedOption.Step,
-            batch_size = diffusedOption.BatchSize,
-            width = diffusedOption.Width,
-            height = diffusedOption.Height,
-            n_iters = diffusedOption.NIters
+            sampler_index = _stableDiffusionOption.SamplerIndex,
+            nagative_prompt = _stableDiffusionOption.NagativePrompt,
+            step = _stableDiffusionOption.Step,
+            batch_size = _stableDiffusionOption.BatchSize,
+            width = _stableDiffusionOption.Width,
+            height = _stableDiffusionOption.Height,
+            n_iters = _stableDiffusionOption.NIters
         };
     }
 
+    public async Task<string> QueryPromptAsync(string adoptId, GenerateImage imageInfo)
+    {
+        var queryAutoMaticPrompt = GetQueryAutoMaticPrompt(imageInfo);
+        var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryAutoMaticPrompt);
+        using var httpClient = new HttpClient();
+        var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+        httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+        var start = DateTime.Now;
+        var response = await httpClient.PostAsync(_traitsOptions.PromptQueryUrl, requestContent);
+        var timeCost = (DateTime.Now - start).Milliseconds;
+        var responseContent = await response.Content.ReadAsStringAsync();
+        if (response.IsSuccessStatusCode)
+        {
+            var queryPromptResponse = JsonConvert.DeserializeObject<QueryPromptResponse>(responseContent);
+            Logger.LogInformation("AutoMaticImageProvider PromptQueryAsync query success {adoptId} timeCost={timeCost}", adoptId, timeCost);
+            return queryPromptResponse.prompt;
+        }
+        else
+        {
+            Logger.LogError("AutoMaticImageProvider PromptQueryAsync query failed {adoptId} timeCost={timeCost}", adoptId, timeCost);
+            return "";
+        }
+    }
+
+
     public async Task<QueryAutoMaticResponse> QueryImageInfoByAiAsync(string adoptId, GenerateImage imageInfo)
     {
+        var prompt = await QueryPromptAsync(adoptId, imageInfo);
+        if (prompt.IsNullOrEmpty())
+        {
+            return new QueryAutoMaticResponse { };
+        }
+
         var queryImage = GetQueryAutoMaticImage(imageInfo);
+        queryImage.prompt = prompt;
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
         using var httpClient = new HttpClient();
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
         httpClient.DefaultRequestHeaders.Add("accept", "*/*");
         var start = DateTime.Now;
-        var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.AutoMaticImageGenerateUrl, requestContent);
+        var response = await httpClient.PostAsync(_traitsOptions.AutoMaticImageGenerateUrl, requestContent);
         var timeCost = (DateTime.Now - start).Milliseconds;
         var responseContent = await response.Content.ReadAsStringAsync();
         if (response.IsSuccessStatusCode)
@@ -139,7 +173,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         }
         else
         {
-            Logger.LogError("AutoMaticImageProvider QueryImageInfoByAiAsync query not success {adoptId} timeCost={timeCost}", adoptId, timeCost);
+            Logger.LogError("AutoMaticImageProvider QueryImageInfoByAiAsync query failed {adoptId} timeCost={timeCost}", adoptId, timeCost);
             return new QueryAutoMaticResponse { };
         }
     }
@@ -148,7 +182,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
     {
         await DistributedEventBus.PublishAsync(new AutoMaticImageGenerateEto() { AdoptAddressId = adoptAddressId, AdoptId = adoptId, GenerateImage = imageInfo });
     }
-    
+
     public override async Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId)
     {
         var images = await AdoptImageService.GetImagesAsync(adoptId);
@@ -199,8 +233,8 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             return "";
         }
     }
-    
-    public  async Task<List<string>> QueryImages(string requestId)
+
+    public async Task<List<string>> QueryImages(string requestId)
     {
         Logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId}", requestId);
         var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);

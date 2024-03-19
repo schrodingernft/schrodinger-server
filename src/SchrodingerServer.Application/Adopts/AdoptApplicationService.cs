@@ -10,6 +10,7 @@ using AElf.Cryptography;
 using AElf.Types;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nest;
 using Newtonsoft.Json;
 using Orleans.Runtime;
 using SchrodingerServer.Adopts.dispatcher;
@@ -163,7 +164,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
-        _logger.Info("GetWaterMarkImageInfoAsync, {req}", JsonConvert.SerializeObject(input));
+        _logger.Info("GetWaterMarkImageInfoAsync, {req}", input.AdoptId);
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
 
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
@@ -171,7 +172,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             _logger.Info("Invalid adopt image, images:{}", JsonConvert.SerializeObject(images));
             throw new UserFriendlyException("Invalid adopt image");
         }
-        
+
         var hasWaterMark = await _adoptImageService.HasWatermark(input.AdoptId);
         if (hasWaterMark)
         {
@@ -180,7 +181,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
             if (info == null || info.ImageUri == null || info.ResizedImage == null)
             {
-                _logger.Info("Invalid watermark info, uri:{}, resizeImage", info.ImageUri, info.ResizedImage);
+                _logger.Info("Invalid watermark info, uri:{0}, resizeImage{1}", info.ImageUri, info.ResizedImage);
                 throw new UserFriendlyException("Invalid watermark info");
             }
 
@@ -193,7 +194,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 ImageUri = info.ImageUri
             };
 
-            _logger.LogInformation("GetWatermarkImageResp {resp} ", JsonConvert.SerializeObject(response));
             return response;
         }
 
@@ -212,7 +212,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 text = adoptInfo.Symbol
             }
         });
-        _logger.LogInformation("GetWatermarkImageAsync : {info} ", JsonConvert.SerializeObject(waterMarkInfo));
+        _logger.LogInformation("GetWatermarkImageAsync : {resized} ", waterMarkInfo.resized);
 
         if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {
@@ -227,12 +227,13 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         }
 
         var base64String = stringArray[1].Trim();
-        string waterImageHash = await _ipfsAppService.UploadFile( base64String, input.AdoptId);
+        string waterImageHash = await _ipfsAppService.UploadFile(base64String, input.AdoptId);
         if (waterImageHash == "")
         {
             _logger.LogInformation("upload ipfs failed");
             throw new UserFriendlyException("upload failed");
         }
+
         var uri = "ipfs://" + waterImageHash;
 
         // uploadToS3
@@ -249,7 +250,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             Signature = signatureWithSecretService,
             ImageUri = uri
         };
-        _logger.LogInformation("GetWatermarkImageResp {resp} ", JsonConvert.SerializeObject(resp));
+        _logger.LogInformation("GetWatermarkImageResp {Signature} {ImageUri}", resp.Signature, resp.ImageUri);
 
         return resp;
     }
@@ -315,13 +316,13 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             var jsonString = ImageProviderHelper.ConvertObjectToJsonString(input);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
             httpClient.DefaultRequestHeaders.Add("accept", "*/*");
-
+            var start = DateTime.Now;
             var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageProcessUrl, requestContent);
-
+            var cost = (DateTime.Now - start).TotalMilliseconds;
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("Get Watermark Image Success");
+                _logger.LogInformation("Get Watermark Image Success timeCost={cost}", cost);
 
                 var resp = JsonConvert.DeserializeObject<WatermarkResponse>(responseString);
 

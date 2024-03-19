@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Options;
 using Volo.Abp.DependencyInjection;
@@ -17,9 +18,11 @@ public class AwsS3Client : ISingletonDependency
     private readonly AwsS3Option _awsS3Option;
 
     private AmazonS3Client _amazonS3Client;
+    private readonly ILogger<AwsS3Client> _logger;
 
-    public AwsS3Client(IOptionsSnapshot<AwsS3Option> awsS3Option)
+    public AwsS3Client(IOptionsSnapshot<AwsS3Option> awsS3Option, ILogger<AwsS3Client> logger)
     {
+        _logger = logger;
         _awsS3Option = awsS3Option.Value;
         InitAmazonS3Client();
     }
@@ -46,8 +49,10 @@ public class AwsS3Client : ISingletonDependency
             Key = _awsS3Option.S3KeySchrodinger + "/" + fileName,
             CannedACL = S3CannedACL.PublicRead,
         };
+        var start = DateTime.Now;
         var putObjectResponse = await _amazonS3Client.PutObjectAsync(putObjectRequest);
-
+        var timeCost = (DateTime.Now - start).TotalMilliseconds;
+        _logger.LogInformation("UpLoadFileForNFTAsync cost time: {timeCost}ms", timeCost);
         UriBuilder uriBuilder = new UriBuilder
         {
             Scheme = HttpSchema,

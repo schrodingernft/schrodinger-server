@@ -134,3 +134,12 @@ public class GenerateImageFromAiRes
 {
     public string requestId { get; set; }
 }
+
+
+public class GenerateOpenAIImage
+{
+    public List<Trait> newAttributes { get; set; }
+    public BaseImage baseImage { get; set; }
+
+    public int numImages { get; set; }
+}

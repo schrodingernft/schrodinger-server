@@ -181,7 +181,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         _traitsOptions = traitsOptions;
     }
 
-    public async Task<string> RequestGenerateImage(string adoptId, GenerateImage imageInfo)
+    public async Task<string> RequestGenerateImage(string adoptId, GenerateOpenAIImage imageInfo)
     {
         try
         {
@@ -261,7 +261,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     public override async Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId)
     {
         var images = await AdoptImageService.GetImagesAsync(adoptId);
-        if (images.Count == 0)
+        if (images.IsNullOrEmpty())
         {
             var requestId = await AdoptImageService.GetRequestIdAsync(adoptAddressId);
             if (string.IsNullOrEmpty(requestId))
@@ -270,11 +270,11 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             }
 
             images = await QueryImages(requestId);
-        }
-
-        if (images.Count > 0)
-        {
-            await SetAIGeneratedImages(adoptId, images);
+            
+            if (!images.IsNullOrEmpty())
+            {
+                await SetAIGeneratedImages(adoptId, images);
+            }
         }
 
         return images;

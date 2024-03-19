@@ -29,7 +29,7 @@ namespace SchrodingerServer.EntityEventHandler.Core
 
             Configure<RateLimitOptions>(configuration.GetSection("RateLimitOptions"));
             Configure<StableDiffusionOption>(configuration.GetSection("StableDiffusionOption"));
-            Configure<TraitsOptions>(configuration.GetSection("TraitsOptions"));
+            Configure<TraitsOptions>(configuration.GetSection("Traits"));
         }
     }
 }

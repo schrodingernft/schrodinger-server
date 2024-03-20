@@ -98,11 +98,13 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
         if (!hasSendRequest)
         {
+            _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
             await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
             await _adoptImageService.MarkRequest(adoptId);
             return output;
         }
 
+        _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
         var provider = _imageDispatcher.CurrentProvider();
         output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
         return output;
@@ -110,7 +112,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     private GenerateImage AdoptInfo2GenerateImage(AdoptInfo adoptInfo)
     {
-        var seed = CurrentUser.IsAuthenticated ? BitConverter.ToInt32(CurrentUser.GetId().ToByteArray(), 0) 
+        var seed = CurrentUser.IsAuthenticated
+            ? BitConverter.ToInt32(CurrentUser.GetId().ToByteArray(), 0)
             : new Random().Next();
         var imageInfo = new GenerateImage
         {

@@ -270,6 +270,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         if (images.IsNullOrEmpty())
         {
             var requestId = await AdoptImageService.GetRequestIdAsync(adoptAddressId);
+            Logger.LogInformation("GetImagesAsync requestId: {adoptId} {requestId}", adoptId, requestId);
             if (string.IsNullOrEmpty(requestId))
             {
                 return images;

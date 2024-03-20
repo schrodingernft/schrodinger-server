@@ -6,8 +6,12 @@ using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Newtonsoft.Json;
+using Orleans;
+using SchrodingerServer.Grains.Grain.ZealyScore;
+using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.ScoreRepair.Dtos;
 using SchrodingerServer.Zealy;
+using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.ObjectMapping;
 
@@ -18,13 +22,16 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
     private readonly ILogger<XpScoreRepairAppService> _logger;
     private readonly INESTRepository<ZealyXpScoreIndex, string> _zealyXpScoreRepository;
     private readonly IObjectMapper _objectMapper;
+    private readonly IClusterClient _clusterClient;
 
     public XpScoreRepairAppService(ILogger<XpScoreRepairAppService> logger,
-        INESTRepository<ZealyXpScoreIndex, string> zealyXpScoreRepository, IObjectMapper objectMapper)
+        INESTRepository<ZealyXpScoreIndex, string> zealyXpScoreRepository, IObjectMapper objectMapper,
+        IClusterClient clusterClient)
     {
         _logger = logger;
         _zealyXpScoreRepository = zealyXpScoreRepository;
         _objectMapper = objectMapper;
+        _clusterClient = clusterClient;
     }
 
     public async Task UpdateScoreRepairDataAsync(List<UpdateXpScoreRepairDataDto> input)
@@ -79,6 +86,18 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
             TotalCount = scoreInfos.totalCount,
             Data = _objectMapper.Map<List<ZealyXpScoreIndex>, List<XpScoreRepairDataDto>>(scoreInfos.data)
         };
+    }
+
+    public async Task<UserXpInfoDto> GetUserXpAsync(string userId)
+    {
+        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(userId);
+        var result = await userXpGrain.GetUserXpInfoAsync();
+        if (!result.Success)
+        {
+            throw new UserFriendlyException($"get user xp info fail, message:{result.Message}");
+        }
+
+        return _objectMapper.Map<ZealyUserXpGrainDto, UserXpInfoDto>(result.Data);
     }
 
     private async Task<(List<ZealyXpScoreIndex> data, long totalCount)> GetXpDataAsync(

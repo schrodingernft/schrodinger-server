@@ -11,5 +11,6 @@ public class ZealyUserXpGrainDto
     public decimal CurrentXp { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
+    public bool IsRollback { get; set; }
     public List<RecordInfo> RecordInfos { get; set; } = new();
 }

@@ -125,6 +125,9 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                 return;
             }
 
+            _logger.LogInformation(
+                "modify record status success, recordId:{recordId}, bizId:{bizId}, status:{status}",
+                record.Id, record.BizId ?? "-", contractInfo.Status);
             var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
             await _distributedEventBus.PublishAsync(recordEto, false, false);
         }

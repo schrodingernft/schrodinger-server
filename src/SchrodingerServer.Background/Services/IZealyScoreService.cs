@@ -88,7 +88,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         }
         finally
         {
-            await _distributedCache.RemoveAsync(GetCacheKey());
+           // await _distributedCache.RemoveAsync(GetCacheKey());
         }
     }
 
@@ -114,7 +114,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
     private string GetCacheKey()
     {
-        return $"{_updateScorePrefix}:{DateTime.UtcNow:yyyy-MM-dd}-1";
+        return $"{_updateScorePrefix}:{DateTime.UtcNow:yyyy-MM-dd}-2";
     }
 
     private async Task GetUsersAsync(List<ZealyUserIndex> userIndices,

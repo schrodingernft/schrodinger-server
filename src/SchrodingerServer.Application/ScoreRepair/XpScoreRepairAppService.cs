@@ -23,15 +23,20 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
     private readonly INESTRepository<ZealyXpScoreIndex, string> _zealyXpScoreRepository;
     private readonly IObjectMapper _objectMapper;
     private readonly IClusterClient _clusterClient;
+    private readonly INESTRepository<ZealyUserIndex, string> _zealyUserRepository;
+    private readonly INESTRepository<ZealyUserXpRecordIndex, string> _zealyXpRecordRepository;
 
     public XpScoreRepairAppService(ILogger<XpScoreRepairAppService> logger,
         INESTRepository<ZealyXpScoreIndex, string> zealyXpScoreRepository, IObjectMapper objectMapper,
-        IClusterClient clusterClient)
+        IClusterClient clusterClient, INESTRepository<ZealyUserIndex, string> zealyUserRepository,
+        INESTRepository<ZealyUserXpRecordIndex, string> zealyXpRecordRepository)
     {
         _logger = logger;
         _zealyXpScoreRepository = zealyXpScoreRepository;
         _objectMapper = objectMapper;
         _clusterClient = clusterClient;
+        _zealyUserRepository = zealyUserRepository;
+        _zealyXpRecordRepository = zealyXpRecordRepository;
     }
 
     public async Task UpdateScoreRepairDataAsync(List<UpdateXpScoreRepairDataDto> input)
@@ -88,16 +93,35 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
         };
     }
 
-    public async Task<UserXpInfoDto> GetUserXpAsync(string userId)
+    public async Task<UserXpInfoDto> GetUserXpAsync(UserXpInfoRequestDto input)
     {
-        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(userId);
-        var result = await userXpGrain.GetUserXpInfoAsync();
-        if (!result.Success)
+        if (input.Address.IsNullOrEmpty() && input.UserId.IsNullOrEmpty())
         {
-            throw new UserFriendlyException($"get user xp info fail, message:{result.Message}");
+            return null;
         }
 
-        return _objectMapper.Map<ZealyUserXpGrainDto, UserXpInfoDto>(result.Data);
+        if (!input.UserId.IsNullOrEmpty() && input.UserId.Length > 5)
+        {
+            return await GetUserXpByIdAsync(input.UserId);
+        }
+
+        var userInfo = await GetUserXpByAddressAsync(input.Address);
+        if (userInfo == null)
+        {
+            throw new UserFriendlyException("user not exist.");
+        }
+
+        return await GetUserXpByIdAsync(userInfo.Id);
+    }
+
+    public async Task<XpRecordPageResultDto> GetUserRecordsAsync(string userId, int skipCount, int maxResultCount)
+    {
+        var result = new XpRecordPageResultDto();
+        var records = await GetRecordsAsync(userId, skipCount, maxResultCount);
+        result.Data = _objectMapper.Map<List<ZealyUserXpRecordIndex>, List<XpRecordDto>>(records.data);
+        result.TotalCount = records.totalCount;
+
+        return result;
     }
 
     private async Task<(List<ZealyXpScoreIndex> data, long totalCount)> GetXpDataAsync(
@@ -136,5 +160,55 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
 
         var (totalCount, data) = await _zealyXpScoreRepository.GetListAsync(Filter);
         return data;
+    }
+
+    public async Task<ZealyUserIndex> GetUserXpByAddressAsync(string address)
+    {
+        if (address.IsNullOrEmpty())
+        {
+            return null;
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserIndex>, QueryContainer>>();
+        mustQuery.Add(q => q.Term(i =>
+            i.Field(f => f.Address).Value(address)));
+
+        QueryContainer Filter(QueryContainerDescriptor<ZealyUserIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        return await _zealyUserRepository.GetAsync(Filter);
+    }
+
+    private async Task<(long totalCount, List<ZealyUserXpRecordIndex> data)> GetRecordsAsync(string userId,
+        int skipCount, int maxResultCount)
+    {
+        if (userId.IsNullOrEmpty())
+        {
+            throw new UserFriendlyException("userId can not be null");
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpRecordIndex>, QueryContainer>>();
+        mustQuery.Add(q => q.Term(i =>
+            i.Field(f => f.UserId).Value(userId)));
+
+        QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpRecordIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        var (totalCount, data) =
+            await _zealyXpRecordRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
+
+        return (totalCount, data);
+    }
+
+    private async Task<UserXpInfoDto> GetUserXpByIdAsync(string userId)
+    {
+        var userXpGrain = _clusterClient.GetGrain<IZealyUserXpGrain>(userId);
+        var result = await userXpGrain.GetUserXpInfoAsync();
+        if (!result.Success)
+        {
+            throw new UserFriendlyException($"get user xp info fail, message:{result.Message}");
+        }
+
+        return _objectMapper.Map<ZealyUserXpGrainDto, UserXpInfoDto>(result.Data);
     }
 }

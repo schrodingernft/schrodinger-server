@@ -8,5 +8,6 @@ public interface IXpScoreRepairAppService
 {
     Task UpdateScoreRepairDataAsync(List<UpdateXpScoreRepairDataDto> input);
     Task<XpScoreRepairDataPageDto> GetXpScoreRepairDataAsync(XpScoreRepairDataRequestDto input);
-    Task<UserXpInfoDto> GetUserXpAsync(string userId);
+    Task<UserXpInfoDto> GetUserXpAsync(UserXpInfoRequestDto input);
+    Task<XpRecordPageResultDto> GetUserRecordsAsync(string userId, int skipCount, int maxResultCount);
 }

@@ -34,5 +34,6 @@ public class SchrodingerServerApplicationAutoMapperProfile : Profile
         
         CreateMap<RecordInfo, RecordInfoDto>();
         CreateMap<ZealyUserXpGrainDto, UserXpInfoDto>();
+        CreateMap<ZealyUserXpRecordIndex, XpRecordDto>();
     }
 }

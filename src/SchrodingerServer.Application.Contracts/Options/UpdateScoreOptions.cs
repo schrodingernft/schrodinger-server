@@ -8,7 +8,7 @@ public class UpdateScoreOptions
     public int UpdateXpScoreResultPeriod { get; set; } = 20;
     
     // minutes
-    public int SettleXpScorePeriod { get; set; } = 10;
+    public int SettleXpScorePeriod { get; set; } = 3;
     public int FetchPendingCount { get; set; } = 300;
     public int FetchSettleCount { get; set; } = 400;
     public int SettleCount { get; set; } = 20;

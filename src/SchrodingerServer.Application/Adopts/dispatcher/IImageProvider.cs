@@ -28,6 +28,8 @@ public interface IImageProvider
     Task SetAIGeneratedImages(string adoptId, List<string> images);
 
     Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId);
+
+    Task<bool> HasRequestId(string adoptAddressId);
 }
 
 public abstract class ImageProvider : IImageProvider
@@ -42,6 +44,7 @@ public abstract class ImageProvider : IImageProvider
     protected readonly IAdoptImageService AdoptImageService;
     protected readonly ILogger<ImageProvider> Logger;
     protected readonly IDistributedEventBus DistributedEventBus;
+    private IImageProvider _imageProviderImplementation;
 
     protected ImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService, IDistributedEventBus distributedEventBus)
     {
@@ -69,6 +72,7 @@ public abstract class ImageProvider : IImageProvider
     public abstract Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
 
     public abstract Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId);
+    public abstract Task<bool> HasRequestId(string adoptAddressId);
 }
 
 public enum ProviderType
@@ -173,6 +177,11 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
     {
         var images = await AdoptImageService.GetImagesAsync(adoptId);
         return images;
+    }
+
+    public override Task<bool> HasRequestId(string adoptAddressId)
+    {
+        return Task.FromResult(true);
     }
 }
 
@@ -285,5 +294,11 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         }
 
         return images;
+    }
+
+    public override async Task<bool> HasRequestId(string adoptAddressId)
+    {
+        var requestId = await AdoptImageService.GetRequestIdAsync(adoptAddressId);
+        return string.IsNullOrEmpty(requestId);
     }
 }

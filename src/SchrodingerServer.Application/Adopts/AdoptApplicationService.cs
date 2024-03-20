@@ -95,7 +95,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
-        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
+        var provider = _imageDispatcher.CurrentProvider();
+        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId) && await provider.HasRequestId(aelfAddress);
         if (!hasSendRequest)
         {
             _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
@@ -105,7 +106,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         }
 
         _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
-        var provider = _imageDispatcher.CurrentProvider();
         output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
         return output;
     }

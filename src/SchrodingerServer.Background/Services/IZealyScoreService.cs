@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf;
 using Hangfire;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -160,6 +161,11 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         {
             try
             {
+                // assert address
+                if (!ValidAddress(user.Address))
+                {
+                    continue;
+                }
                 await HandleUserScoreAsync(user);
             }
             catch (Exception e)
@@ -269,6 +275,25 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         {
             _logger.LogError(e, "get user score from zealy error, userId:{userId}", userId);
             return null;
+        }
+    }
+    
+    private bool ValidAddress(string address)
+    {
+        try
+        {
+            var isValid = AddressHelper.VerifyFormattedAddress(address);
+            if (!isValid)
+            {
+                _logger.LogInformation("invalid address: {address}", address);
+            }
+
+            return isValid;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "valid address error", address);
+            return false;
         }
     }
 }

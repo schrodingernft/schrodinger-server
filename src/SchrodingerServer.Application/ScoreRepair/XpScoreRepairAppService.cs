@@ -93,19 +93,19 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
         };
     }
 
-    public async Task<UserXpInfoDto> GetUserXpAsync(string userId, string address)
+    public async Task<UserXpInfoDto> GetUserXpAsync(UserXpInfoRequestDto input)
     {
-        if (!userId.IsNullOrEmpty())
-        {
-            return await GetUserXpByIdAsync(userId);
-        }
-
-        if (address.IsNullOrEmpty())
+        if (input.Address.IsNullOrEmpty() && input.UserId.IsNullOrEmpty())
         {
             return null;
         }
 
-        var userInfo = await GetUserXpByAddressAsync(address);
+        if (!input.UserId.IsNullOrEmpty() && input.UserId.Length > 5)
+        {
+            return await GetUserXpByIdAsync(input.UserId);
+        }
+
+        var userInfo = await GetUserXpByAddressAsync(input.Address);
         if (userInfo == null)
         {
             throw new UserFriendlyException("user not exist.");

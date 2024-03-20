@@ -36,9 +36,9 @@ public class ScoreRepairController : AbpControllerBase
     }
 
     [HttpGet("user-xp-info")]
-    public async Task<UserXpInfoDto> GetUserXpAsync(string userId, string address)
+    public async Task<UserXpInfoDto> GetUserXpAsync(UserXpInfoRequestDto input)
     {
-        return await _repairAppService.GetUserXpAsync(userId, address);
+        return await _repairAppService.GetUserXpAsync(input);
     }
 
     [HttpGet("user-records")]

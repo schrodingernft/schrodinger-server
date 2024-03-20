@@ -61,6 +61,7 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
             var recordId = $"{userId}-{DateTime.UtcNow:yyyy-MM-dd}";
             _logger.LogInformation("begin create, recordId:{recordId}", recordId);
 
+            var remark = $"add-score-{pointOutput}";
             var recordDto = new XpRecordGrainDto
             {
                 Id = recordId,
@@ -71,7 +72,7 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
                 Status = ContractInvokeStatus.ToBeCreated.ToString(),
                 UserId = userId,
                 Address = address,
-                Remark = "clean-score"
+                Remark = remark
             };
 
             var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(recordId);

@@ -209,9 +209,9 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadAsStringAsync();
-                Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId);
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
+                Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId + " " + aiQueryResponse.requestId);
                 return aiQueryResponse.requestId;
             }
             else

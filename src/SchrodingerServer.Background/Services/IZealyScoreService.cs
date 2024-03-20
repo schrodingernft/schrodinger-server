@@ -89,7 +89,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         }
         finally
         {
-            await _distributedCache.RemoveAsync(GetCacheKey());
+            //await _distributedCache.RemoveAsync(GetCacheKey());
         }
     }
 

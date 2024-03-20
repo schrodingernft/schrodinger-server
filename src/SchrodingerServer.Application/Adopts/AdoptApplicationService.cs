@@ -167,7 +167,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
-        _logger.Info("GetWaterMarkImageInfoAsync, {req}", input.AdoptId);
+        _logger.Info("GetWaterMarkImageInfoAsync, AdoptId: {req}, dataLength: {length}", input.AdoptId, 
+            input.Image.Length);
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
 
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
@@ -215,10 +216,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 text = adoptInfo.Symbol
             }
         });
-        _logger.LogInformation("GetWatermarkImageAsync : {resized} ", waterMarkInfo.resized);
 
         if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {
+            _logger.LogError("waterMarkImage empty, input: {input}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException("waterMarkImage empty");
         }
 

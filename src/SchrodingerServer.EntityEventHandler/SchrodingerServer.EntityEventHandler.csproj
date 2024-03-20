@@ -26,6 +26,7 @@
         <ProjectReference Include="..\SchrodingerServer.Application.Contracts\SchrodingerServer.Application.Contracts.csproj" />
         <ProjectReference Include="..\SchrodingerServer.Grains\SchrodingerServer.Grains.csproj" />
         <ProjectReference Include="..\SchrodingerServer.MongoDB\SchrodingerServer.MongoDB.csproj" />
+        <ProjectReference Include="..\SchrodingerServer.Common\SchrodingerServer.Common.csproj" />
     </ItemGroup>
     
 

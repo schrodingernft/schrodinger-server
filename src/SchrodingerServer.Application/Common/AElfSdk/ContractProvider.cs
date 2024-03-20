@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using SchrodingerServer.Common.AElfSdk.Dtos;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Threading;
 

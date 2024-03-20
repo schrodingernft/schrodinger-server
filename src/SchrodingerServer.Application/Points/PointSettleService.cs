@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using AElf.Types;
 using Google.Protobuf;
@@ -8,9 +7,9 @@ using Microsoft.Extensions.Options;
 using Orleans;
 using Schrodinger;
 using SchrodingerServer.Common;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.ContractInvoke.Eto;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
-using SchrodingerServer.Options;
 using SchrodingerServer.Users.Dto;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;

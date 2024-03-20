@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SchrodingerServer.Common.Dtos;
 using SchrodingerServer.Common.HttpClient;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 using Volo.Abp.DependencyInjection;
 using HttpMethod = System.Net.Http.HttpMethod;
 

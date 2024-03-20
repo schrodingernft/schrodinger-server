@@ -6,11 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
-using SchrodingerServer.Options;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
 

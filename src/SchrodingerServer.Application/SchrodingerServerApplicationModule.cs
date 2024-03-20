@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SchrodingerServer.Common;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Grains;
 using SchrodingerServer.Options;
 using Volo.Abp.Account;

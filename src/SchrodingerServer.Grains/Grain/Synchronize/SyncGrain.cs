@@ -106,7 +106,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
         State.Symbol = tokenInfo.Symbol;
         (State.ValidateTokenTx, State.ValidateTokenTxId) =
-            await _contractProvider.SendValidateTokenExist(_sourceChainId, tokenInfo);
+            await _contractProvider.SendValidateTokenExistAsync(_sourceChainId, tokenInfo);
         State.Status = SyncJobStatus.TokenValidating;
         _logger.LogInformation("TransactionId {txId} update status to {status} in HandleTokenCreatingAsync.",
             State.TransactionId, State.Status);

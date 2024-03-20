@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Background.Services;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Threading;
 

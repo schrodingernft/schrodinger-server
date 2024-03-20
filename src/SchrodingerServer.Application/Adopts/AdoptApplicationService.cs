@@ -16,16 +16,15 @@ using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Adopts.provider;
 using SchrodingerServer.AwsS3;
 using SchrodingerServer.Common;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Dtos.Adopts;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Ipfs;
-using SchrodingerServer.Options;
 using SchrodingerServer.Users;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.Users;
-using Attribute = SchrodingerServer.Dtos.Adopts.Attribute;
 using ConfirmInput = Schrodinger.ConfirmInput;
 using Trait = SchrodingerServer.Dtos.TraitsDto.Trait;
 

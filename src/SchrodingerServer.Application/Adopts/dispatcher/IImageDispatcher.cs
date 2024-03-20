@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Dtos.TraitsDto;
-using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 

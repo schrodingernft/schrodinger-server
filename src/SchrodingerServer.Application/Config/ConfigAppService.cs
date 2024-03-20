@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Options;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Config;

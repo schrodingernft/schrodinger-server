@@ -6,7 +6,7 @@ using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Points;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Zealy;

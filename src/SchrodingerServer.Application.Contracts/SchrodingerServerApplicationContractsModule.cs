@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 using Volo.Abp.Account;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;

@@ -9,8 +9,8 @@ using Nest;
 using Newtonsoft.Json;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.ContractInvoke.Index;
-using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;
 

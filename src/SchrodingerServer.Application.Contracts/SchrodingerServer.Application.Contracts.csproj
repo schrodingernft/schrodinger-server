@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SchrodingerServer.Domain.Shared\SchrodingerServer.Domain.Shared.csproj" />
     <ProjectReference Include="..\SchrodingerServer.Domain\SchrodingerServer.Domain.csproj" />
+    <ProjectReference Include="..\SchrodingerServer.Common\SchrodingerServer.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Dtos.Adopts;
-using SchrodingerServer.Options;
 using Volo.Abp.ObjectMapping;
 
 namespace SchrodingerServer.Grains.Grain.Traits;

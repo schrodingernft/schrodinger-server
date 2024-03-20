@@ -44,7 +44,9 @@
     
     <ItemGroup>
       <ProjectReference Include="..\SchrodingerServer.Application.Contracts\SchrodingerServer.Application.Contracts.csproj" />
-      <ProjectReference Include="..\SchrodingerServer.Domain.Shared\SchrodingerServer.Domain.Shared.csproj" />
+        <ProjectReference Include="..\SchrodingerServer.Domain.Shared\SchrodingerServer.Domain.Shared.csproj" />
+        <ProjectReference Include="..\SchrodingerServer.Signature\SchrodingerServer.Signature.csproj" />
+        <ProjectReference Include="..\SchrodingerServer.Common\SchrodingerServer.Common.csproj" />
     </ItemGroup>
 
 

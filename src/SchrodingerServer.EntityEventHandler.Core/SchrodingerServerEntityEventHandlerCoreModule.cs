@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.EntityEventHandler.Core.IndexHandler;
 using SchrodingerServer.EntityEventHandler.Core.Options;
-using SchrodingerServer.Options;
 using StackExchange.Redis;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Modularity;

@@ -1,5 +1,6 @@
 using Hangfire;
 using Microsoft.Extensions.Options;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Options;
 using SchrodingerServer.Symbol;
 using Volo.Abp.DependencyInjection;

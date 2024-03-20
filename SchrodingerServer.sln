@@ -51,6 +51,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Worker.Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Background", "src\SchrodingerServer.Background\SchrodingerServer.Background.csproj", "{B91CC1AC-11E6-41E6-B693-1697D257A42B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Signature", "src\SchrodingerServer.Signature\SchrodingerServer.Signature.csproj", "{9442494E-FAEA-4434-AECB-13D853E2776F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchrodingerServer.Common", "src\SchrodingerServer.Common\SchrodingerServer.Common.csproj", "{2AA267BF-E3C5-4DD5-893C-5AFB94439FB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -145,6 +149,14 @@ Global
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9442494E-FAEA-4434-AECB-13D853E2776F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9442494E-FAEA-4434-AECB-13D853E2776F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9442494E-FAEA-4434-AECB-13D853E2776F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9442494E-FAEA-4434-AECB-13D853E2776F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2AA267BF-E3C5-4DD5-893C-5AFB94439FB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AA267BF-E3C5-4DD5-893C-5AFB94439FB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AA267BF-E3C5-4DD5-893C-5AFB94439FB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AA267BF-E3C5-4DD5-893C-5AFB94439FB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -172,6 +184,8 @@ Global
 		{0F99AB53-AEE0-411B-8A72-D7F3795BEF22} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{F52CDEDE-06E0-4517-8947-A08377509A55} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 		{B91CC1AC-11E6-41E6-B693-1697D257A42B} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{9442494E-FAEA-4434-AECB-13D853E2776F} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{2AA267BF-E3C5-4DD5-893C-5AFB94439FB5} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}

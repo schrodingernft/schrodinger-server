@@ -11,10 +11,10 @@ public class ChainInfo
 {
     public string BaseUrl { get; set; }
     public string PrivateKey { get; set; }
-    
     public string PointTxPublicKey { get; set; }
     public string TokenContractAddress { get; set; }
     public string CrossChainContractAddress { get; set; }
+    public List<string> ManagerAccountPublicKeys { get; set; }
 }
 
 public class FaucetsTransferOptions

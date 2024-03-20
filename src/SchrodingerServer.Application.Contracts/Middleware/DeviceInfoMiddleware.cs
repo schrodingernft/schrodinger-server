@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
-using SchrodingerServer.Options;
+using SchrodingerServer.Common.Options;
 
 namespace SchrodingerServer.Middleware;
 

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
 using SchrodingerServer.Common;
+using SchrodingerServer.Common.Options;
 using SchrodingerServer.Options;
 using SchrodingerServer.Zealy;
 using Volo.Abp.DependencyInjection;

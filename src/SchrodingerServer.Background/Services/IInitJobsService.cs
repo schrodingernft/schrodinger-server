@@ -24,10 +24,10 @@ public class InitJobsService : IInitJobsService, ISingletonDependency
     
     public void InitRecurringJob()
     {
-        /*_recurringJobs.AddOrUpdate<IZealyScoreService>("IZealyScoreService",
+        _recurringJobs.AddOrUpdate<IZealyScoreService>("IZealyScoreService",
             x => x.UpdateScoreAsync(), _options.RecurringCorn);
         _recurringJobs.AddOrUpdate<IXgrPriceService>("IXgrPriceService",
-            x => x.SaveXgrDayPriceAsync(false), _options.PriceRecurringCorn);*/
+            x => x.SaveXgrDayPriceAsync(false), _options.PriceRecurringCorn);
         _recurringJobs.AddOrUpdate<IXgrPriceService>("IXgrPriceService",
             x => x.SaveUniqueXgrDayPriceAsync(true), _options.GatePriceRecurringCorn);
     }

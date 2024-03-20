@@ -35,6 +35,7 @@ using Polly;
 using SchrodingerServer.CoinGeckoApi;
 using SchrodingerServer.Common.GraphQL;
 using SchrodingerServer.Points;
+using SchrodingerServer.Token;
 using StackExchange.Redis;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
@@ -67,6 +68,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         Configure<ContractSyncOptions>(configuration.GetSection("Sync"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
         Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+        Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
         
         var hostingEnvironment = context.Services.GetHostingEnvironment();
         ConfigureRedis(context, configuration, hostingEnvironment);
@@ -74,6 +76,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         ConfigureCache(configuration);
         context.Services.AddHostedService<SchrodingerServerHostService>();
         context.Services.AddSingleton<IPointSettleService, PointSettleService>();
+        context.Services.AddTransient<IExchangeProvider, GateIoProvider>();
         context.Services.AddHttpClient();
         ConfigureHangfire(context, configuration);
         ConfigureZealyClient(context, configuration);

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Orleans;
 using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
@@ -9,18 +10,24 @@ namespace SchrodingerServer.Grains.Grain.ZealyScore;
 public interface IXpRecordGrain : IGrainWithStringKey
 {
     Task<GrainResultDto<XpRecordGrainDto>> CreateAsync(XpRecordGrainDto input);
+
+    Task<GrainResultDto<XpRecordGrainDto>> HandleRecordAsync(RecordInfo input, string userId,
+        string address);
+
     Task<GrainResultDto<XpRecordGrainDto>> GetAsync();
-    Task<GrainResultDto<XpRecordGrainDto>> SettleAsync(string bizId);
+    Task<GrainResultDto<XpRecordGrainDto>> SetStatusToPendingAsync(string bizId);
     Task<GrainResultDto<XpRecordGrainDto>> SetFinalStatusAsync(string status);
 }
 
 public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
 {
     private readonly IObjectMapper _objectMapper;
+    private readonly ILogger<XpRecordGrain> _logger;
 
-    public XpRecordGrain(IObjectMapper objectMapper)
+    public XpRecordGrain(IObjectMapper objectMapper, ILogger<XpRecordGrain> logger)
     {
         _objectMapper = objectMapper;
+        _logger = logger;
     }
 
     public override async Task OnActivateAsync()
@@ -38,6 +45,17 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
     public async Task<GrainResultDto<XpRecordGrainDto>> CreateAsync(XpRecordGrainDto input)
     {
         var result = new GrainResultDto<XpRecordGrainDto>();
+
+        var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(input.UserId);
+        // update xp
+        var updateResult = await userXpGrain.UpdateXpAsync(input.CurrentXp, input.Xp, input.Amount);
+        if (!updateResult.Success)
+        {
+            result.Success = false;
+            result.Message = updateResult.Message;
+            return result;
+        }
+
         if (!State.Id.IsNullOrEmpty() && State.Status == ContractInvokeStatus.ToBeCreated.ToString())
         {
             return new GrainResultDto<XpRecordGrainDto>()
@@ -54,22 +72,66 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
             return result;
         }
 
-        var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(input.UserId);
-        var updateResult = await userXpGrain.UpdateXpAsync(input.CurrentXp, input.Xp, input.Amount);
-        if (!updateResult.Success)
-        {
-            result.Success = false;
-            result.Message = updateResult.Message;
-            return result;
-        }
-
         State = _objectMapper.Map<XpRecordGrainDto, XpRecordState>(input);
         State.Id = this.GetPrimaryKeyString();
         State.Status = ContractInvokeStatus.ToBeCreated.ToString();
         State.CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         State.UpdateTime = State.CreateTime;
-
         await WriteStateAsync();
+
+        // clear record info.
+        try
+        {
+            await userXpGrain.ClearRecordInfo(DateTime.UtcNow.ToString("yyyy-MM-dd"));
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "ClearRecordInfo error, userId:{userId}", State.UserId);
+        }
+
+        return new GrainResultDto<XpRecordGrainDto>()
+        {
+            Success = true,
+            Data = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State)
+        };
+    }
+
+    public async Task<GrainResultDto<XpRecordGrainDto>> HandleRecordAsync(RecordInfo input, string userId,
+        string address)
+    {
+        if (!State.Id.IsNullOrEmpty())
+        {
+            var recordDto = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State);
+            recordDto.Status = ContractInvokeStatus.ToBeCreated.ToString();
+
+            return new GrainResultDto<XpRecordGrainDto>()
+            {
+                Success = true,
+                Data = recordDto
+            };
+        }
+
+        State.Id = this.GetPrimaryKeyString();
+        State.Xp = input.Xp;
+        State.CurrentXp = input.CurrentXp;
+        State.Amount = input.Amount;
+        State.UserId = userId;
+        State.Address = address;
+        State.Status = ContractInvokeStatus.ToBeCreated.ToString();
+        State.CreateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        State.UpdateTime = State.CreateTime;
+        await WriteStateAsync();
+
+        // update xp
+        try
+        {
+            var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(userId);
+            await userXpGrain.ClearRecordInfo(input.Date);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "ClearRecordInfo error, userId:{userId}", State.UserId);
+        }
 
         return new GrainResultDto<XpRecordGrainDto>()
         {
@@ -95,7 +157,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
         });
     }
 
-    public async Task<GrainResultDto<XpRecordGrainDto>> SettleAsync(string bizId)
+    public async Task<GrainResultDto<XpRecordGrainDto>> SetStatusToPendingAsync(string bizId)
     {
         var result = new GrainResultDto<XpRecordGrainDto>();
         if (State.Id.IsNullOrEmpty())

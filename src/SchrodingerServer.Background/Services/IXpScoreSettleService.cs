@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AElf.Indexing.Elasticsearch;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,7 +11,6 @@ using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.ZealyScore;
 using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.Options;
-using SchrodingerServer.Points;
 using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Zealy;
 using SchrodingerServer.Zealy.Eto;
@@ -63,22 +61,21 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
         }
 
         _logger.LogInformation("need to settle records count:{count}", records.Count);
-        await RecordBatchSettleAsync(0, records);
+        await RecordBatchSettleAsync(records);
     }
 
-    private async Task RecordBatchSettleAsync(int skipCount, List<ZealyUserXpRecordIndex> records)
+    private async Task RecordBatchSettleAsync(List<ZealyUserXpRecordIndex> records)
     {
-        var bizId = $"{Guid.NewGuid().ToString()}-{DateTime.UtcNow:yyyy-MM-dd}";
-        var settleRecords = records.Skip(skipCount).Take(_updateScoreOptions.SettleCount).ToList();
-        if (settleRecords.Count == 0)
+        var recurCount = (records.Count / _updateScoreOptions.SettleCount) + 1;
+        for (var i = 0; i < recurCount; i++)
         {
-            return;
+            var bizId = $"{Guid.NewGuid().ToString()}-{DateTime.UtcNow:yyyy-MM-dd}";
+            var skipCount = _updateScoreOptions.SettleCount * i;
+            var settleRecords = records.Skip(skipCount).Take(_updateScoreOptions.SettleCount).ToList();
+
+            if (settleRecords.IsNullOrEmpty()) return;
+            await BatchSettleAsync(bizId, settleRecords);
         }
-
-        await BatchSettleAsync(bizId, settleRecords);
-
-        skipCount = skipCount + _updateScoreOptions.SettleCount;
-        await RecordBatchSettleAsync(skipCount, records);
     }
 
     private async Task BatchSettleAsync(string bizId, List<ZealyUserXpRecordIndex> records)
@@ -101,7 +98,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
 
         pointSettleDto.UserPointsInfos = points;
 
-        BackgroundJob.Enqueue(() => _xpRecordProvider.SettleAsync(pointSettleDto));
+        BackgroundJob.Enqueue(() => _xpRecordProvider.SetStatusToPendingAsync(pointSettleDto));
         _logger.LogInformation("BatchSettle finish, bizId:{bizId}", bizId);
     }
 
@@ -130,7 +127,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
                     continue;
                 }
 
-                var updateResult = await recordGrain.SettleAsync(bizId);
+                var updateResult = await recordGrain.SetStatusToPendingAsync(bizId);
                 if (!updateResult.Success)
                 {
                     _logger.LogError(

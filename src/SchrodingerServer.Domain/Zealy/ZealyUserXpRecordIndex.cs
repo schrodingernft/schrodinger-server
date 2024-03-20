@@ -20,4 +20,5 @@ public class ZealyUserXpRecordIndex : SchrodingerEntity<string>, IIndexBuild
     public long CreateTime { get; set; }
     public long UpdateTime { get; set; }
     public long UseRepairTime { get; set; }
+    public string Remark { get; set; }
 }

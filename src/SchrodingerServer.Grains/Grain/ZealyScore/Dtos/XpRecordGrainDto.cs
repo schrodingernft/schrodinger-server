@@ -14,4 +14,5 @@ public class XpRecordGrainDto
     public string Status { get; set; }
     public long CreateTime { get; set; }
     public long UpdateTime { get; set; }
+    public string Remark { get; set; }
 }

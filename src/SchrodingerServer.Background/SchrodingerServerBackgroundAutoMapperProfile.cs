@@ -14,5 +14,6 @@ public class SchrodingerServerBackgroundAutoMapperProfile : Profile
         CreateMap<ContractInvokeIndex, ContractInvokeEto>();
         CreateMap<ContractInvokeEto, ContractInvokeGrainDto>().ReverseMap();
         CreateMap<XpRecordGrainDto, XpRecordEto>().ReverseMap();
+        CreateMap<XpRecordGrainDto, AddXpRecordEto>().ReverseMap();
     }
 }

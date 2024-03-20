@@ -16,4 +16,5 @@ public class XpRecordEto
     public string Status { get; set; }
     public long CreateTime { get; set; }
     public long UpdateTime { get; set; }
+    public string Remark { get; set; }
 }

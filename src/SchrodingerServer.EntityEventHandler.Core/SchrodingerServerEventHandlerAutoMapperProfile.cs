@@ -31,5 +31,6 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
         CreateMap<GenerateImage, GenerateOpenAIImage>();
         
         CreateMap<XpRecordEto, ZealyUserXpRecordIndex>();
+        CreateMap<AddXpRecordEto, ZealyUserXpRecordIndex>();
     }
 }

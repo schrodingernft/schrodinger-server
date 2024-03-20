@@ -1,3 +1,5 @@
+using SchrodingerServer.Grains.State.ZealyScore;
+
 namespace SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 
 public class ZealyUserXpGrainDto
@@ -7,10 +9,7 @@ public class ZealyUserXpGrainDto
 
     public decimal LastXp { get; set; }
     public decimal CurrentXp { get; set; }
-    public decimal SendAmount { get; set; }
-    public decimal SendXp { get; set; }
-    public decimal LastSendAmount { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
-    public DateTime HandleXpTime { get; set; }
+    public List<RecordInfo> RecordInfos { get; set; } = new();
 }

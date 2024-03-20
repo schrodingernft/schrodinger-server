@@ -182,7 +182,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var userXp = await GetUserXpAsync(user.Id, user.Address);
         if (userXp == 0)
         {
-            xp = userXpScore == null ? userDto.Xp : userXpScore.ActualScore;
+            xp = userXpScore == null ? userDto.Xp : userDto.Xp + (userXpScore.ActualScore - userXpScore.RawScore);
             _logger.LogInformation(
                 "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp},  xp:{xp}",
                 user.Id, userDto.Xp, userXp, xp);

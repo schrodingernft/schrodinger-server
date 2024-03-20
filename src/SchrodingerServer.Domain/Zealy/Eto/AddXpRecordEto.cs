@@ -1,12 +1,14 @@
-namespace SchrodingerServer.Grains.State.ZealyScore;
+using Volo.Abp.EventBus;
 
-public class XpRecordState
+namespace SchrodingerServer.Zealy.Eto;
+
+[EventName("AddXpRecordEto")]
+public class AddXpRecordEto
 {
     public string Id { get; set; }
     public string UserId { get; set; }
     public string Address { get; set; }
     public decimal Xp { get; set; }
-    public decimal CurrentXp { get; set; }
 
     // xp * coefficient
     public decimal Amount { get; set; }

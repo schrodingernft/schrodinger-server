@@ -110,10 +110,11 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     private GenerateImage AdoptInfo2GenerateImage(AdoptInfo adoptInfo)
     {
-        var gb = CurrentUser.GetId().ToByteArray();
+        var seed = CurrentUser.IsAuthenticated ? BitConverter.ToInt32(CurrentUser.GetId().ToByteArray(), 0) 
+            : new Random().Next();
         var imageInfo = new GenerateImage
         {
-            seed = BitConverter.ToInt32(gb, 0),
+            seed = seed,
             newAttributes = new List<Trait> { },
             baseImage = new BaseImage
             {

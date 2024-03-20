@@ -123,6 +123,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
 
                 if (result.Data.Status != ContractInvokeStatus.ToBeCreated.ToString())
                 {
+                    await _distributedEventBus.PublishAsync(_objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data), false, false);
                     _logger.LogWarning("record already handled, recordId:{recordId}", record.Id);
                     continue;
                 }
@@ -137,7 +138,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
                 }
 
                 _logger.LogInformation("settle record, recordId:{recordId}", record.Id);
-                var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
+                var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(updateResult.Data);
                 await _distributedEventBus.PublishAsync(recordEto, false, false);
 
                 pointRecords.Add(record);

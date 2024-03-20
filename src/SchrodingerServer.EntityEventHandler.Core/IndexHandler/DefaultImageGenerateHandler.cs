@@ -43,6 +43,10 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
         var requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
         // var requestId = await HandleAsync(async Task<string>() => , eventData.AdoptId);
+        if ("" == requestId)
+        {
+            return;
+        }
         await _defaultImageProvider.SetRequestId(eventData.AdoptAddressId, requestId);
 
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end data: {data} requestId={requestId}", JsonConvert.SerializeObject(eventData), requestId);

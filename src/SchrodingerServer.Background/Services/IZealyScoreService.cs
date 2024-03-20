@@ -179,31 +179,34 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
 
+        var repairScore = 0m;
+        if (userXpScore != null)
+        {
+            repairScore = userXpScore.ActualScore - userXpScore.RawScore;
+        }
+
+        var currentXp = userDto.Xp + repairScore;
+
         var userXp = await GetUserXpAsync(user.Id, user.Address);
+
         if (userXp == 0)
         {
-            xp = userXpScore == null ? userDto.Xp : userDto.Xp + (userXpScore.ActualScore - userXpScore.RawScore);
+            xp = currentXp;
             _logger.LogInformation(
-                "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp},  xp:{xp}",
-                user.Id, userDto.Xp, userXp, xp);
+                "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp},  xp:{xp}, currentXp:{currentXp}",
+                user.Id, userDto.Xp, userXp, xp, currentXp);
         }
         else
         {
-            var repairScore = 0m;
-            if (userXpScore != null)
-            {
-                repairScore = userXpScore.ActualScore - userXpScore.RawScore;
-            }
-
-            xp = userDto.Xp + repairScore - userXp;
+            xp = currentXp - userXp;
             _logger.LogInformation(
-                "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, xp:{xp}",
-                user.Id, userDto.Xp, userXp, xp);
+                "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, xp:{xp}, currentXp:{currentXp}",
+                user.Id, userDto.Xp, userXp, xp, currentXp);
         }
 
         if (xp > 0)
         {
-            BackgroundJob.Enqueue(() => _xpRecordProvider.CreateRecordAsync(user.Id, user.Address, userDto.Xp, xp));
+            BackgroundJob.Enqueue(() => _xpRecordProvider.CreateRecordAsync(user.Id, user.Address, currentXp, xp));
         }
     }
 

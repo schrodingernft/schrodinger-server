@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Threading.Tasks;
-using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver.Linq;
+using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
 using SchrodingerServer.Config;
+using SchrodingerServer.Options;
 using SchrodingerServer.Symbol.Index;
 using SchrodingerServer.Symbol.Provider;
 using SchrodingerServer.Token;
+using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Symbol;
@@ -18,6 +19,8 @@ namespace SchrodingerServer.Symbol;
 public interface IXgrPriceService
 {
     Task SaveXgrDayPriceAsync(bool isGen0);
+    
+    Task SaveUniqueXgrDayPriceAsync(bool isGen0);
 }
 
 
@@ -30,6 +33,9 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
     private readonly UniswapV3Provider _uniswapV3Provider;
     private readonly ISymbolDayPriceProvider _symbolDayPriceProvider;
     private readonly ILogger<XgrPriceService> _logger;
+    private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
+    private readonly IExchangeProvider _exchangeProvider;
+    private readonly IDistributedCache<string> _distributedCache;
     private const int QueryOnceLimit = 100;
     private readonly string _dateTimeFormat = "yyyyMMdd";
     
@@ -39,6 +45,9 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
         IConfigAppService configAppService,
         UniswapV3Provider uniswapV3Provider,
         ISymbolDayPriceProvider symbolDayPriceProvider,
+        IOptionsMonitor<ExchangeOptions> exchangeOptions,
+        IExchangeProvider exchangeProvider,
+        IDistributedCache<string> distributedCache,
         ILogger<XgrPriceService> logger)
     {
         _schrodingerSymbolProvider = schrodingerSymbolProvider;
@@ -47,7 +56,10 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
         _configAppService = configAppService;
         _uniswapV3Provider = uniswapV3Provider;
         _symbolDayPriceProvider = symbolDayPriceProvider;
+        _exchangeOptions = exchangeOptions;
         _logger = logger;
+        _exchangeProvider = exchangeProvider;
+        _distributedCache = distributedCache;
     }
 
     public async Task SaveXgrDayPriceAsync(bool isGen0)
@@ -85,7 +97,24 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
         }
        
     }
-    
+
+    public async Task SaveUniqueXgrDayPriceAsync(bool isGen0)
+    {
+        var date = TimeHelper.GetUtcDaySeconds();
+        var dateTime = await _distributedCache.GetAsync(PointDispatchConstants.UNISWAP_PRICE_PREFIX + date);
+        if (dateTime != null)
+        {
+            _logger.LogInformation("UniswapPriceSnapshotWorker has been executed today.");
+            return;
+        }
+
+        await SaveXgrDayPriceAsync(isGen0);
+        await _distributedCache.SetAsync(PointDispatchConstants.UNISWAP_PRICE_PREFIX + date, DateTime.UtcNow.ToUtcSeconds().ToString(),  new DistributedCacheEntryOptions()
+        {
+            SlidingExpiration = TimeSpan.FromDays(2)
+        });
+    }
+
     private DateTime getUTCDay()
     {
         DateTime nowUtc = DateTime.UtcNow;
@@ -107,11 +136,25 @@ public class XgrPriceService : IXgrPriceService,ISingletonDependency
             bool isGen0Symbol  = GetIsGen0FromSymbol(symbol);
             if (isGen0 && isGen0Symbol)
             {
-                var tokenResponse  = await _uniswapV3Provider.GetLatestUSDPriceAsync(date);
-                if (tokenResponse != null )
+                if (_exchangeOptions.CurrentValue.UseUniswap)
                 {
-                    usdPrice = Convert.ToDecimal(tokenResponse.PriceUSD);
+                    var tokenResponse  = await _uniswapV3Provider.GetLatestUSDPriceAsync(date);
+                    if (tokenResponse != null )
+                    {
+                        usdPrice = Convert.ToDecimal(tokenResponse.PriceUSD);
+                    }
                 }
+                else
+                {
+                    var gateIo = _exchangeOptions.CurrentValue.GateIo;
+                    var tokenExchange  = await _exchangeProvider.LatestAsync(gateIo.FromSymbol,gateIo.ToSymbol);
+                    if (tokenExchange != null)
+                    {
+                        var symbolUsdPrice = await _tokenPriceProvider.GetPriceByCacheAsync(gateIo.ToSymbol);
+                        usdPrice = tokenExchange.Exchange * symbolUsdPrice;
+                    }
+                }
+
             }else if(!isGen0 && !isGen0Symbol)
             {
                 var listingDto = await _symbolPriceGraphProvider.GetNFTListingsAsync(getMyNftListingsDto);

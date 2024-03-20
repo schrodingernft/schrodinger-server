@@ -20,12 +20,13 @@ public class UniswapPriceSnapshotWorker : AsyncPeriodicBackgroundWorkerBase
     private readonly IXgrPriceService _xgrPriceService;
     private readonly UniswapV3Provider _uniSwapV3Provider;
     private readonly IDistributedCache<string> _distributedCache;
-
+    private readonly IOptionsMonitor<ExchangeOptions> _exchangeOptions;
     public UniswapPriceSnapshotWorker(AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
          IOptionsSnapshot<ZealyUserOptions> options,
         ILogger<UniswapPriceSnapshotWorker> logger,
         IXgrPriceService xgrPriceService,
         UniswapV3Provider uniSwapV3Provider,
+        IOptionsMonitor<ExchangeOptions> exchangeOptions,
         IDistributedCache<string> distributedCache) : base(timer,
         serviceScopeFactory)
     {
@@ -34,10 +35,15 @@ public class UniswapPriceSnapshotWorker : AsyncPeriodicBackgroundWorkerBase
         timer.Period = options.Value.Period  * 1000;
         _uniSwapV3Provider = uniSwapV3Provider;
         _distributedCache = distributedCache;
+        _exchangeOptions = exchangeOptions;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
+        if (!_exchangeOptions.CurrentValue.UseUniswap)
+        {
+            return;
+        }
         _logger.LogInformation("begin execute UniswapPriceSnapshotWorker.");
         try
         {

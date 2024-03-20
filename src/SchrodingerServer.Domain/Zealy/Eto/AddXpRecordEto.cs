@@ -8,6 +8,7 @@ public class AddXpRecordEto
     public string Id { get; set; }
     public string UserId { get; set; }
     public string Address { get; set; }
+    public decimal CurrentXp { get; set; }
     public decimal Xp { get; set; }
 
     // xp * coefficient

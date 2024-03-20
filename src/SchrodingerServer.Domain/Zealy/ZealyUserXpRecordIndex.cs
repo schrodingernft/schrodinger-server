@@ -1,4 +1,3 @@
-using System;
 using AElf.Indexing.Elasticsearch;
 using Nest;
 using SchrodingerServer.Entities;
@@ -12,6 +11,7 @@ public class ZealyUserXpRecordIndex : SchrodingerEntity<string>, IIndexBuild
     [Keyword] public string Address { get; set; }
 
     public decimal Xp { get; set; }
+    public decimal CurrentXp { get; set; }
 
     // xp * coefficient
     public decimal Amount { get; set; }

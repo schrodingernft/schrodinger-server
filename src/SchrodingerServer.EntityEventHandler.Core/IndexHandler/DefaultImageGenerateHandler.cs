@@ -45,7 +45,7 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         // var requestId = await HandleAsync(async Task<string>() => , eventData.AdoptId);
         await _defaultImageProvider.SetRequestId(eventData.AdoptAddressId, requestId);
 
-        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end");
+        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end data: {data} requestId={requestId}", JsonConvert.SerializeObject(eventData), requestId);
     }
 
     // private async Task<T> HandleAsync<T>(Func<Task<T>> task, string adoptId)

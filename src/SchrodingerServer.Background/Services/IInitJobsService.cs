@@ -27,6 +27,6 @@ public class InitJobsService : IInitJobsService, ISingletonDependency
         _recurringJobs.AddOrUpdate<IZealyScoreService>("IZealyScoreService",
             x => x.UpdateScoreAsync(), "0 0/5 * * * ?");
         _recurringJobs.AddOrUpdate<IXgrPriceService>("IXgrPriceService",
-            x => x.SaveXgrDayPriceAsync(false), _options.RecurringCorn);
+            x => x.SaveXgrDayPriceAsync(false), _options.PriceRecurringCorn);
     }
 }

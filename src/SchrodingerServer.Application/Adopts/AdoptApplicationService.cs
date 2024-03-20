@@ -95,22 +95,25 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
-        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
+        var provider = _imageDispatcher.CurrentProvider();
+        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId) && await provider.HasRequestId(aelfAddress);
         if (!hasSendRequest)
         {
+            _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
             await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
             await _adoptImageService.MarkRequest(adoptId);
             return output;
         }
 
-        var provider = _imageDispatcher.CurrentProvider();
+        _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
         output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
         return output;
     }
 
     private GenerateImage AdoptInfo2GenerateImage(AdoptInfo adoptInfo)
     {
-        var seed = CurrentUser.IsAuthenticated ? BitConverter.ToInt32(CurrentUser.GetId().ToByteArray(), 0) 
+        var seed = CurrentUser.IsAuthenticated
+            ? BitConverter.ToInt32(CurrentUser.GetId().ToByteArray(), 0)
             : new Random().Next();
         var imageInfo = new GenerateImage
         {

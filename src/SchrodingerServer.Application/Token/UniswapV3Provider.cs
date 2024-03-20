@@ -32,7 +32,6 @@ public class UniswapV3Provider : ISingletonDependency
     public async Task<TokenResponse> GetLatestUSDPriceAsync(long date)
     {
         var tokenId = _uniswapOptions.CurrentValue.TokenId;
-        AssertHelper.NotEmpty(tokenId, "tokenId is Empty");
         if (tokenId.IsNullOrEmpty())
         {
             return new TokenResponse

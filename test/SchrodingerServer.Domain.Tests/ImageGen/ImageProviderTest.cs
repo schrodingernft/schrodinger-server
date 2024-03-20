@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -32,16 +33,31 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
         var adoptId = "1234";
         var gImage = new GenerateImage()
         {
-            newAttributes = new List<Trait>() { new() { traitType = "Background", value = "Fantasy Forest" } },
+            newAttributes = new List<Trait>()
+            {
+                new() { traitType = "Background", value = "Parallel Dimension Gateway" },
+                new()
+                {
+                    traitType = "Breed",
+                    value = "Exotic Shorthair"
+                },
+                new()
+                {
+                    traitType = "Pet",
+                    value = "Baby Snail"
+                },
+            },
             baseImage = new BaseImage()
             {
-                attributes = new List<Trait>() { new() { traitType = "Clothes", value = "Doraemon" } },
+                attributes = new List<Trait>() { new() { traitType = "Clothes", value = "Velvet Top" } },
             }
         };
         var prompt = _autoMaticImageProvider.GetPrompt(gImage);
         prompt.ShouldNotBeNull();
         prompt.ShouldNotBeEmpty();
+        var start = DateTime.Now;
         var res = await _autoMaticImageProvider.QueryImageInfoByAiAsync(adoptId, gImage);
+        var cost = (DateTime.Now - start).TotalMilliseconds;
         res.ShouldNotBeNull();
         res.images.Count.ShouldBe(2);
         foreach (var img in res.images)

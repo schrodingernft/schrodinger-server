@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SchrodingerServer.Common;
 using SchrodingerServer.Options;
-using SchrodingerServer.Point;
 using SchrodingerServer.Symbol;
 using SchrodingerServer.Token;
 using Volo.Abp.BackgroundWorkers;

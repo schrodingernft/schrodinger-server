@@ -75,6 +75,10 @@ public class PointDailyRecordService : IPointDailyRecordService, ISingletonDepen
                 Address = dto.Address,
                 PointAmount = CalcPointAmount(dto, pointInfo, symbolPrice)
             };
+            if (input.PointAmount == 0)
+            {
+                continue;
+            }
             input.Id = IdGenerateHelper.GetPointDailyRecord(chainId, input.BizDate, input.PointName, input.Address);
             _logger.LogInformation(
                 "Handle point daily record id:{id} symbolPrice:{symbolPrice} pointAmount:{pointAmount}", input.Id,

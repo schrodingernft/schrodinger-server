@@ -19,13 +19,12 @@ using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Ipfs;
 
-
 public class IpfsAppService : ISingletonDependency, IIpfsAppService
 {
     private readonly ILogger<IpfsAppService> _logger;
     private readonly IOptionsMonitor<IpfsOptions> _options;
-    
-    public IpfsAppService(ILogger<IpfsAppService> logger, 
+
+    public IpfsAppService(ILogger<IpfsAppService> logger,
         IOptionsMonitor<IpfsOptions> ipfsOption)
     {
         _logger = logger;
@@ -38,7 +37,7 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
         {
             var url = _options.CurrentValue.Url;
             var request = new HttpRequestMessage(HttpMethod.Post, url);
-        
+
             request.Headers.Add("Authorization", _options.CurrentValue.Token);
             request.Content = JsonContent.Create(new Dictionary<string, object>());
 
@@ -54,15 +53,15 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
                 },
                 pinataMetadata = new PinataMetadata
                 {
-                    name = name 
+                    name = name
                 }
             };
             var jsonString = JsonConvert.SerializeObject(ipfsBody);
-        
+
             request.Content = new StringContent(jsonString, Encoding.UTF8, "application/json");
 
             var client = new HttpClient();
-        
+
             var response = await client.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
@@ -71,7 +70,7 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
                 var resp = JsonConvert.DeserializeObject<IpfsResponse>(responseString);
                 return resp.IpfsHash;
             }
-    
+
             _logger.LogError("UploadIpfs Success fail, name: {name}, resp: {resp}", name, response.ToString());
             return "";
         }
@@ -81,7 +80,7 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
             return "";
         }
     }
-    
+
     public async Task<string> UploadFile(string base64String, string name)
     {
         try
@@ -89,27 +88,29 @@ public class IpfsAppService : ISingletonDependency, IIpfsAppService
             var content = new MultipartFormDataContent();
             byte[] imageBytes = Convert.FromBase64String(base64String);
             var fileContent = new ByteArrayContent(imageBytes);
-            
+
             fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
             content.Add(fileContent, "file", name);
-            
+
             var url = _options.CurrentValue.PinFileUrl;
             var request = new HttpRequestMessage(HttpMethod.Post, url);
-        
+
             request.Headers.Add("Authorization", _options.CurrentValue.Token);
             request.Content = content;
-            
+
             var client = new HttpClient();
-        
+
+            var start = DateTime.Now;
             var response = await client.SendAsync(request);
+            var cost = (DateTime.Now - start).TotalMilliseconds;
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("UploadIpfs Success, name: {name} resp: {resp}", name, response.ToString());
+                _logger.LogInformation("UploadIpfs Success, name: {name} resp: {resp} timeCost={cost}", name, response.ToString(), cost);
                 var responseString = await response.Content.ReadAsStringAsync();
                 var resp = JsonConvert.DeserializeObject<IpfsResponse>(responseString);
                 return resp.IpfsHash;
             }
-    
+
             _logger.LogError("UploadIpfs Success fail, name: {name}, resp: {resp}", name, response.ToString());
             return "";
         }

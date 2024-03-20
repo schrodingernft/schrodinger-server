@@ -114,6 +114,16 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
         return await GetUserXpByIdAsync(userInfo.Id);
     }
 
+    public async Task<XpRecordPageResultDto> GetUserRecordsAsync(string userId, int skipCount, int maxResultCount)
+    {
+        var result = new XpRecordPageResultDto();
+        var records = await GetRecordsAsync(userId, skipCount, maxResultCount);
+        result.Data = _objectMapper.Map<List<ZealyUserXpRecordIndex>, List<XpRecordDto>>(records.data);
+        result.TotalCount = records.totalCount;
+
+        return result;
+    }
+
     private async Task<(List<ZealyXpScoreIndex> data, long totalCount)> GetXpDataAsync(
         XpScoreRepairDataRequestDto input)
     {
@@ -167,6 +177,27 @@ public class XpScoreRepairAppService : IXpScoreRepairAppService, ISingletonDepen
             f.Bool(b => b.Must(mustQuery));
 
         return await _zealyUserRepository.GetAsync(Filter);
+    }
+
+    private async Task<(long totalCount, List<ZealyUserXpRecordIndex> data)> GetRecordsAsync(string userId,
+        int skipCount, int maxResultCount)
+    {
+        if (userId.IsNullOrEmpty())
+        {
+            throw new UserFriendlyException("userId can not be null");
+        }
+
+        var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpRecordIndex>, QueryContainer>>();
+        mustQuery.Add(q => q.Term(i =>
+            i.Field(f => f.UserId).Value(userId)));
+
+        QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpRecordIndex> f) =>
+            f.Bool(b => b.Must(mustQuery));
+
+        var (totalCount, data) =
+            await _zealyXpRecordRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
+
+        return (totalCount, data);
     }
 
     private async Task<UserXpInfoDto> GetUserXpByIdAsync(string userId)

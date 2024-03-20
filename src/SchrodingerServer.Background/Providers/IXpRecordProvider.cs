@@ -53,7 +53,7 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
     {
         try
         {
-            var recordId = $"{userId}-{DateTime.UtcNow:yyyy-MM-dd}";
+            var recordId = $"{userId}-{DateTime.UtcNow:yyyy-MM-dd}-1";
             _logger.LogInformation("begin create, recordId:{recordId}", recordId);
 
             var recordDto = new XpRecordGrainDto

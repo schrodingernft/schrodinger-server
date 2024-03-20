@@ -56,6 +56,8 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
         try
         {
             var pointOutput = await _balanceProvider.GetBalanceAsync(address);
+            _logger.LogInformation("GetBalanceAsync: {pointOutput}", pointOutput);
+            
             var recordId = $"{userId}-{DateTime.UtcNow:yyyy-MM-dd}";
             _logger.LogInformation("begin create, recordId:{recordId}", recordId);
 

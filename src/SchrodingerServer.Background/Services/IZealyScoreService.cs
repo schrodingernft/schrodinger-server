@@ -75,10 +75,10 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
             _logger.LogInformation("begin update zealy score recurring job");
             // update user
-            await _userRelationService.AddUserRelationAsync();
+            //await _userRelationService.AddUserRelationAsync();
 
             // wait es synchronization
-            await Task.Delay(1000);
+            //await Task.Delay(1000);
 
             await HandleUserScoreAsync();
             _logger.LogInformation("finish update zealy score recurring job");
@@ -180,8 +180,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
 
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
-
-
+        
         var userXp = await GetUserXpAsync(user.Id, user.Address);
         if (userXp == 0)
         {

@@ -299,6 +299,6 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     public override async Task<bool> HasRequestId(string adoptAddressId)
     {
         var requestId = await AdoptImageService.GetRequestIdAsync(adoptAddressId);
-        return string.IsNullOrEmpty(requestId);
+        return !string.IsNullOrEmpty(requestId);
     }
 }

@@ -18,7 +18,7 @@ public interface IAdoptImageInfoGrain : IGrainWithStringKey
     Task SetWatermarkImageInfoAsync(string uri, string resizeImage);
 
     Task<GrainResultDto<WaterImageGrainInfoDto>> GetWatermarkImageInfoAsync();
-    
+
     Task<bool> HasSendRequest();
     Task MarkRequest();
 }
@@ -41,7 +41,7 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
 
     public async Task<string> SetImageGenerationIdNXAsync(string imageGenerationId)
     {
-        if (State.ImageGenerationId == null)
+        if (State.ImageGenerationId.IsNullOrEmpty())
         {
             State.ImageGenerationId = imageGenerationId;
             await WriteStateAsync();
@@ -97,7 +97,7 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
         await WriteStateAsync();
     }
 
-    
+
     public async Task<GrainResultDto<WaterImageGrainInfoDto>> GetWatermarkImageInfoAsync()
     {
         return new GrainResultDto<WaterImageGrainInfoDto>
@@ -105,14 +105,13 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
             Success = true,
             Data = _objectMapper.Map<AdoptImageInfoState, WaterImageGrainInfoDto>(State)
         };
-        
     }
 
     public Task<bool> HasSendRequest()
     {
         return Task.FromResult(State.HasSendRequest);
     }
-    
+
     public async Task MarkRequest()
     {
         State.HasSendRequest = true;

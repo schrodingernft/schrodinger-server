@@ -27,7 +27,7 @@ public class XpScoreResultWorker : AsyncPeriodicBackgroundWorkerBase
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         _logger.LogInformation("XpScoreResultWorker begin");
-        //await _xpScoreResultService.HandleXpResultAsync();
+        await _xpScoreResultService.HandleXpResultAsync();
         _logger.LogInformation("XpScoreResultWorker finish");
     }
 }

@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Orleans;
 using SchrodingerServer.Background.Dtos;
 using SchrodingerServer.Background.Providers;
+using SchrodingerServer.Common;
 using SchrodingerServer.ContractInvoke.Index;
 using SchrodingerServer.Grains.Grain.ZealyScore;
 using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
@@ -100,6 +101,15 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
             if (contractInfo == null)
             {
+                var time = DateTimeOffset.UtcNow.AddHours(-_options.SetFailHours).ToUnixTimeSeconds();
+                if (record.UpdateTime < time)
+                {
+                    _logger.LogWarning(
+                        "because contract info is null, record will set to final fail, time:{time}, record:{record}", time,
+                        JsonConvert.SerializeObject(record));
+                    await SetFinalStatusAsync(record.Id, ContractInvokeStatus.FinalFailed.ToString(), record.BizId);
+                }
+
                 _logger.LogWarning(
                     "modify record status fail, contract info is null, recordId:{recordId}, bizId:{bizId}",
                     record.Id, record.BizId ?? "-");
@@ -107,27 +117,32 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             }
 
             // update grain
-            var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(record.Id);
-            var result = await recordGrain.SetFinalStatusAsync(contractInfo.Status);
-
-            if (!result.Success)
-            {
-                _logger.LogError(
-                    "upgrade record grain status fail, message:{message}, orderId:{orderId}",
-                    result.Message, record.Id);
-                return;
-            }
-
-            _logger.LogInformation(
-                "modify record status success, recordId:{recordId}, bizId:{bizId}",
-                record.Id, record.BizId ?? "-");
-            var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
-            await _distributedEventBus.PublishAsync(recordEto, false, false);
+            await SetFinalStatusAsync(record.Id, contractInfo.Status, record.BizId);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "handle pending record error, record:{record}", JsonConvert.SerializeObject(record));
         }
+    }
+    
+    private async Task SetFinalStatusAsync(string orderId, string status, string bizId)
+    {
+        var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(orderId);
+        var result = await recordGrain.SetFinalStatusAsync(status);
+
+        if (!result.Success)
+        {
+            _logger.LogError(
+                "upgrade record grain status fail, message:{message}, orderId:{orderId}",
+                result.Message, orderId);
+            return;
+        }
+
+        _logger.LogInformation(
+            "modify record status success, recordId:{recordId}, bizId:{bizId}, status:{status}",
+            orderId, bizId ?? "-", status);
+        var recordEto = _objectMapper.Map<XpRecordGrainDto, XpRecordEto>(result.Data);
+        await _distributedEventBus.PublishAsync(recordEto, false, false);
     }
 
     private async Task<bool> CheckJobAsync()

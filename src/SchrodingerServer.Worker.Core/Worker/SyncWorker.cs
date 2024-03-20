@@ -139,5 +139,5 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
     }
 
     private string GenerateSubscribeHeightGrainId() => GuidHelper.UniqGuid("SubscribeStartHeight").ToString();
-    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid("SyncPending").ToString();
+    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid("SyncPendingList").ToString();
 }

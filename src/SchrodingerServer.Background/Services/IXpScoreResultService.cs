@@ -58,13 +58,6 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
 
     public async Task HandleXpResultAsync()
     {
-        var jobIsStart = await CheckJobAsync();
-        if (jobIsStart)
-        {
-            _logger.LogWarning("update zealy score recurring job is started");
-            return;
-        }
-
         await HandleXpResultAsync(0, _options.FetchPendingCount);
     }
 

@@ -134,7 +134,6 @@ public class ZealyUserXpGrain : Grain<ZealyUserXpState>, IZealyUserXpGrain
         State.IsRollback = true;
         State.UpdateTime = DateTime.UtcNow;
         await WriteStateAsync();
-
         return Success();
     }
 

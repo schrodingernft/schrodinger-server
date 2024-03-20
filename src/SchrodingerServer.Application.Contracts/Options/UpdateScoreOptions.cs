@@ -5,7 +5,7 @@ public class UpdateScoreOptions
     public string RecurringCorn { get; set; } = "0 0 0 * * ?";
     
     // minutes
-    public int UpdateXpScoreResultPeriod { get; set; } = 20;
+    public int UpdateXpScoreResultPeriod { get; set; } = 3;
     
     // minutes
     public int SettleXpScorePeriod { get; set; } = 3;

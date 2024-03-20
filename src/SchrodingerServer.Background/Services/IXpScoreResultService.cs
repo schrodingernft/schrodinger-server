@@ -63,9 +63,9 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
 
     private async Task HandleXpResultAsync(int skipCount, int maxResultCount)
     {
-        var startTime = DateTimeOffset.UtcNow.AddDays(-2).ToUnixTimeSeconds();
+        //var startTime = DateTimeOffset.UtcNow.AddDays(-2).ToUnixTimeSeconds();
         var records =
-            await _zealyProvider.GetPendingUserXpsAsync(skipCount, maxResultCount, startTime: startTime, endTime: 0);
+            await _zealyProvider.GetPendingUserXpsAsync(skipCount, maxResultCount, startTime: 0, endTime: 0);
         if (records.IsNullOrEmpty())
         {
             _logger.LogInformation("no pending xp score records");

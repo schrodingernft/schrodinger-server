@@ -33,18 +33,20 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
     private readonly IObjectMapper _objectMapper;
     private readonly IDistributedEventBus _distributedEventBus;
     private readonly IPointSettleService _pointSettleService;
+    private readonly IBalanceProvider _balanceProvider;
 
     public XpRecordProvider(
         IOptionsSnapshot<ZealyScoreOptions> options,
         ILogger<XpRecordProvider> logger,
         IClusterClient clusterClient, IObjectMapper objectMapper, IDistributedEventBus distributedEventBus,
-        IPointSettleService pointSettleService)
+        IPointSettleService pointSettleService, IBalanceProvider balanceProvider)
     {
         _logger = logger;
         _clusterClient = clusterClient;
         _objectMapper = objectMapper;
         _distributedEventBus = distributedEventBus;
         _pointSettleService = pointSettleService;
+        _balanceProvider = balanceProvider;
         _options = options.Value;
     }
 
@@ -53,6 +55,7 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
     {
         try
         {
+            var pointOutput = await _balanceProvider.GetBalanceAsync(address);
             var recordId = $"{userId}-{DateTime.UtcNow:yyyy-MM-dd}";
             _logger.LogInformation("begin create, recordId:{recordId}", recordId);
 
@@ -61,11 +64,12 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
                 Id = recordId,
                 Xp = xp,
                 CurrentXp = currentXp,
-                Amount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
+                Amount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8) - pointOutput,
                 BizId = string.Empty,
                 Status = ContractInvokeStatus.ToBeCreated.ToString(),
                 UserId = userId,
-                Address = address
+                Address = address,
+                Remark = "clean-score"
             };
 
             var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(recordId);

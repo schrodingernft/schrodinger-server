@@ -39,6 +39,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     private List<ZealyXpScoreIndex> _zealyXpScores = new();
     private readonly IDistributedCache<UpdateScoreInfo> _distributedCache;
     private readonly IClusterClient _clusterClient;
+    private readonly IBalanceProvider _balanceProvider;
     private const string _updateScorePrefix = "UpdateZealyScoreInfo";
 
     public ZealyScoreService(ILogger<ZealyScoreService> logger,
@@ -48,7 +49,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         IXpRecordProvider xpRecordProvider,
         IOptionsSnapshot<ZealyScoreOptions> options,
         IDistributedCache<UpdateScoreInfo> distributedCache,
-        IClusterClient clusterClient)
+        IClusterClient clusterClient, IBalanceProvider balanceProvider)
     {
         _logger = logger;
         _userRelationService = userRelationService;
@@ -57,6 +58,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         _xpRecordProvider = xpRecordProvider;
         _distributedCache = distributedCache;
         _clusterClient = clusterClient;
+        _balanceProvider = balanceProvider;
         _options = options.Value;
     }
 
@@ -179,6 +181,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
         var xp = 0m;
         var userXpScore = _zealyXpScores.FirstOrDefault(t => t.Id == user.Id);
 
+
         var userXp = await GetUserXpAsync(user.Id, user.Address);
         if (userXp == 0)
         {
@@ -195,7 +198,8 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
                 repairScore = userXpScore.ActualScore - userXpScore.RawScore;
             }
 
-            xp = userDto.Xp + repairScore - userXp;
+            //xp = userDto.Xp + repairScore - userXp;
+            xp = userDto.Xp + repairScore;
             _logger.LogInformation(
                 "calculate xp, userId:{userId}, responseXp:{responseXp}, userXp:{userXp}, xp:{xp}",
                 user.Id, userDto.Xp, userXp, xp);

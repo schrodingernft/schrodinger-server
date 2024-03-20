@@ -27,7 +27,7 @@ public class UserRelationWorker : AsyncPeriodicBackgroundWorkerBase
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         _logger.LogInformation("begin execute UserRelationWorker.");
-        await _userRelationService.AddUserRelationAsync();
+      //  await _userRelationService.AddUserRelationAsync();
         _logger.LogInformation("finish execute UserRelationWorker.");
     }
 }

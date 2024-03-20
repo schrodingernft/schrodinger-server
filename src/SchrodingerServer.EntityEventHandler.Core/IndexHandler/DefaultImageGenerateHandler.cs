@@ -32,13 +32,13 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
     {
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto  data: {data}", JsonConvert.SerializeObject(eventData));
-        var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
-        var lease = await limiter.AcquireAsync();
-        if (!lease.IsAcquired)
-        {
-            _logger.LogInformation("limit exceeded, will requeue, {AdoptId}", eventData.AdoptId);
-            throw new UserFriendlyException("limit exceeded");
-        }
+        // var limiter = _rateDistributeLimiter.GetRateLimiterInstance("defaultImageGenerateHandler");
+        // var lease = await limiter.AcquireAsync();
+        // if (!lease.IsAcquired)
+        // {
+        //     _logger.LogInformation("limit exceeded, will requeue, {AdoptId}", eventData.AdoptId);
+        //     throw new UserFriendlyException("limit exceeded");
+        // }
 
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
         var requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);

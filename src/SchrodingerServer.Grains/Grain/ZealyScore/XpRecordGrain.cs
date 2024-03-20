@@ -224,16 +224,16 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
             };
         }
 
+        State.Status = status;
+        State.UpdateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        
         if (State.Status == ContractInvokeStatus.FinalFailed.ToString())
         {
             // rollback user xp
             var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(State.UserId);
             await userXpGrain.RollbackXpAsync();
         }
-
-        State.Status = status;
-        State.UpdateTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
+        
         await WriteStateAsync();
         return new GrainResultDto<XpRecordGrainDto>()
         {

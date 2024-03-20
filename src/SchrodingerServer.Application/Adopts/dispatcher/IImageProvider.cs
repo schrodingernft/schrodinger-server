@@ -205,10 +205,11 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             Client.DefaultRequestHeaders.Add("accept", "*/*");
 
             var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl, requestContent);
+            var responseString = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
             {
-                var responseString = await response.Content.ReadAsStringAsync();
+                
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
                 Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId + " " + aiQueryResponse.requestId);
@@ -216,7 +217,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             }
             else
             {
-                Logger.LogError("TraitsActionProvider GenerateImageByAiAsync generate error {adoptId}", adoptId);
+                Logger.LogError("TraitsActionProvider GenerateImageByAiAsync generate error {adoptId} response{response}", adoptId, responseString);
             }
 
             return "";

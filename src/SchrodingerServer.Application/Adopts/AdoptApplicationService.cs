@@ -102,8 +102,11 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
             await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
             await _adoptImageService.MarkRequest(adoptId);
+
+            var images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
+            output.AdoptImageInfo.Images = images;
             return output;
-        }                                                                                                                                  
+        }
 
         _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
         output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);

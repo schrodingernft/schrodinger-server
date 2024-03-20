@@ -71,6 +71,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
         {
             var bizId = $"{Guid.NewGuid().ToString()}-{DateTime.UtcNow:yyyy-MM-dd}";
             var skipCount = _updateScoreOptions.SettleCount * i;
+            _logger.LogDebug("skip count:{count}", skipCount);
             var settleRecords = records.Skip(skipCount).Take(_updateScoreOptions.SettleCount).ToList();
 
             if (settleRecords.IsNullOrEmpty()) return;

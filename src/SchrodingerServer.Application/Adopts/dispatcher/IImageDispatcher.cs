@@ -11,6 +11,7 @@ namespace SchrodingerServer.Adopts.dispatcher;
 public interface IImageDispatcher
 {
     IImageProvider GetProviderByName(string providerName);
+    IImageProvider CurrentProvider();
 }
 
 public class ImageDispatcher : IImageDispatcher, ISingletonDependency
@@ -29,7 +30,7 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
     }
 
 
-    private IImageProvider CurrentProvider()
+    public IImageProvider CurrentProvider()
     {
         if (_providers.TryGetValue(_adoptImageOptions.ImageProvider, out var provider))
         {

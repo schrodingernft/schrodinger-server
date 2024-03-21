@@ -97,8 +97,9 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
         var requestInfo = await _adoptImageService.GetRequestInfoAsync(adoptId);
         var hasSendRequest = requestInfo.HasSendRequest;
-        var provider = _imageDispatcher.GetProviderByName(requestInfo.ProviderName);
+        // var provider = _imageDispatcher.GetProviderByName(requestInfo.ProviderName);
 
+        var provider = _imageDispatcher.CurrentProvider();
         if (!hasSendRequest || !await provider.RequestIdIsNotNullOrEmptyAsync(adoptAddressId))
         {
             _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request", adoptId);

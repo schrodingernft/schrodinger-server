@@ -48,8 +48,7 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         {
             _handlerReporter.RecordAiImageLimitExceed(ResourceName);
             _logger.LogInformation("limit exceeded, will requeue, {AdoptId}", eventData.AdoptId);
-            return;
-            // throw new UserFriendlyException("limit exceeded");
+            throw new UserFriendlyException("limit exceeded");
         }
 
         _handlerReporter.RecordAiImageGen(ResourceName);

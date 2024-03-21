@@ -99,8 +99,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var hasSendRequest = requestInfo.HasSendRequest;
         var provider = _imageDispatcher.GetProviderByName(requestInfo.ProviderName);
         
-        hasSendRequest = hasSendRequest || await provider.RequestIdIsNotNullOrEmptyAsync(adoptAddressId);
-        if (!hasSendRequest)
+        if (!hasSendRequest || !await provider.RequestIdIsNotNullOrEmptyAsync(adoptAddressId))
         {
             _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
             await provider.SendAIGenerationRequestAsync(adoptAddressId, adoptId, AdoptInfo2GenerateImage(adoptInfo));

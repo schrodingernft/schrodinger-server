@@ -22,11 +22,9 @@ public class DefinitionContants
 public class HandlerReporter : IHandlerReporter, ISingletonDependency
 {
     private readonly Counter _aiImageGenCounter;
-    private readonly Histogram _aiImageGenHistogram;
 
-    public HandlerReporter(Histogram aiImageGenHistogram)
+    public HandlerReporter()
     {
-        _aiImageGenHistogram = aiImageGenHistogram;
         _aiImageGenCounter = MetricsReporter.RegistryCounters(DefinitionContants.AiImageGenName, DefinitionContants.AiImageGenLabels);
     }
 

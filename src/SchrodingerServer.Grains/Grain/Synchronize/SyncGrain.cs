@@ -48,6 +48,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
         var result = new GrainResultDto<SyncGrainDto>();
         State.TransactionId = input.Id;
+        await WriteStateAsync();
 
         try
         {
@@ -93,10 +94,9 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
     private async Task HandleTokenCreatingAsync()
     {
-        var tokenSymbol = _contractProvider.ParseLogEvents<TokenCreated>(
-            await _contractProvider.GetTxResultAsync(_sourceChainId, State.TransactionId)).Symbol;
-
-        if (string.IsNullOrEmpty(tokenSymbol))
+        var tokenCreated = _contractProvider.ParseLogEvents<TokenCreated>(
+            await _contractProvider.GetTxResultAsync(_sourceChainId, State.TransactionId));
+        if (tokenCreated == null || string.IsNullOrEmpty(tokenCreated.Symbol))
         {
             _logger.LogWarning("Transaction {tx} don't have TokenCreated event, please check! ", State.TransactionId);
             State.Status = SyncJobStatus.CrossChainTokenCreated;
@@ -104,6 +104,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
             return;
         }
 
+        var tokenSymbol = tokenCreated.Symbol;
         var tokenInfo = await _contractProvider.GetTokenInfoAsync(_sourceChainId, tokenSymbol);
 
         // check token is cross chain created
@@ -150,7 +151,6 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
     {
         // Check MainChain Index SideChain
         // First, the main chain must index to the transaction height of the side chain.
-        // var indexHeight = await _contractProvider.GetSideChainIndexHeightAsync(_targetChainId, _sourceChainId);
         var indexHeight = await GetSideChainIndexHeightAsync();
         if (indexHeight < State.ValidateTokenHeight)
         {
@@ -172,9 +172,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
     private async Task HandleWaitingIndexingAsync()
     {
-        // var indexHeight = await _contractProvider.GetIndexHeightAsync(_sourceChainId);
         var indexHeight = await GetMainChainIndexHeightAsync();
-
         if (indexHeight < State.MainChainIndexHeight)
         {
             _logger.LogInformation(

@@ -29,7 +29,8 @@ public class IndexBlockHeightWorker : AsyncPeriodicBackgroundWorkerBase
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         _logger.LogDebug("[IndexBlockHeightWorker] Start to update index block height in grain.");
-        var grainClient = _clusterClient.GetGrain<IIndexBlockHeightGrain>(GuidHelper.UniqGuid(_options.CurrentValue.IndexBlockHeightGrainId).ToString());
+        var grainClient = _clusterClient.GetGrain<IIndexBlockHeightGrain>(GuidHelper
+            .UniqGuid(_options.CurrentValue.IndexBlockHeightGrainId).ToString());
         var updateSideChainIndexHeightResult = await grainClient.UpdateSideChainIndexHeightAsync(
             _options.CurrentValue.TargetChainId, _options.CurrentValue.SourceChainId);
 

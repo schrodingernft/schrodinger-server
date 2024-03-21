@@ -65,6 +65,7 @@ public class ZealyScoreService : IZealyScoreService, ISingletonDependency
     {
         try
         {
+            return;
             var jobIsStart = await CheckJobAsync();
             if (!jobIsStart)
             {

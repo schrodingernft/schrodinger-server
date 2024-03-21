@@ -14,5 +14,5 @@ public class UpdateScoreOptions
     public int FetchPendingCount { get; set; } = 300;
     public int FetchSettleCount { get; set; } = 400;
     public int SettleCount { get; set; } = 20;
-    public int SetFailHours { get; set; } = 1;
+    public int SetFailHours { get; set; } = 10;
 }

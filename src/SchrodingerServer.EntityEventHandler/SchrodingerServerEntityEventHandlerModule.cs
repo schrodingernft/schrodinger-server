@@ -18,6 +18,7 @@ using MongoDB.Driver;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Providers.MongoDB.Configuration;
+using Prometheus;
 using SchrodingerServer.Common;
 using SchrodingerServer.EntityEventHandler.Core;
 using SchrodingerServer.EntityEventHandler.Core.Options;
@@ -47,10 +48,10 @@ namespace SchrodingerServer.EntityEventHandler;
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpCachingStackExchangeRedisModule),
     typeof(AbpEventBusRabbitMqModule)
-    )]
+)]
 public class SchrodingerServerEntityEventHandlerModule : AbpModule
 {
-  public override void ConfigureServices(ServiceConfigurationContext context)
+    public override void ConfigureServices(ServiceConfigurationContext context)
     {
         ConfigureTokenCleanupService();
         var configuration = context.Services.GetConfiguration();
@@ -68,7 +69,7 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
                 .UseMongoDBClient(configuration["Orleans:MongoDBClient"])
                 .UseMongoDBClustering(options =>
                 {
-                    options.DatabaseName = configuration["Orleans:DataBase"];;
+                    options.DatabaseName = configuration["Orleans:DataBase"];
                     options.Strategy = MongoDBMembershipStrategy.SingleDocument;
                 })
                 .Configure<ClusterOptions>(options =>
@@ -83,15 +84,17 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
                 .Build();
         });
         ConfigureEsIndexCreation();
-        
+
+        ConfigureMetrics(context, configuration);
         context.Services.AddSingleton<IHostedService, InitJobsService>();
     }
+
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
     {
         context.AddBackgroundWorkerAsync<PointAssemblyTransactionWorker>();
         context.AddBackgroundWorkerAsync<SyncHolderBalanceWorker>();
         var client = context.ServiceProvider.GetRequiredService<IClusterClient>();
-        AsyncHelper.RunSync(async ()=> await client.Connect());
+        AsyncHelper.RunSync(async () => await client.Connect());
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)
@@ -105,19 +108,19 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
     {
         Configure<IndexCreateOption>(x => { x.AddModule(typeof(SchrodingerServerDomainModule)); });
     }
-    
+
     //Disable TokenCleanupService
     private void ConfigureTokenCleanupService()
     {
         Configure<TokenCleanupOptions>(x => x.IsCleanupEnabled = false);
     }
-    
+
     private void ConfigureHangfire(ServiceConfigurationContext context, IConfiguration configuration)
     {
         var mongoType = configuration["Hangfire:MongoType"];
         var connectionString = configuration["Hangfire:ConnectionString"];
         if (connectionString.IsNullOrEmpty()) return;
-    
+
         if (mongoType.IsNullOrEmpty() ||
             mongoType.Equals(MongoType.MongoDb.ToString(), StringComparison.OrdinalIgnoreCase))
         {
@@ -152,7 +155,7 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
                 config.UseCosmosStorage(mongoClient, mongoUrlBuilder.DatabaseName, opt);
             });
         }
-        
+
         context.Services.AddHangfireServer(opt =>
         {
             opt.SchedulePollingInterval = TimeSpan.FromMilliseconds(3000);
@@ -160,7 +163,7 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
             opt.Queues = new[] { "default", "notDefault" };
         });
     }
-     
+
     private void ConfigureGraphQl(ServiceConfigurationContext context,
         IConfiguration configuration)
     {
@@ -168,13 +171,13 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
             new NewtonsoftJsonSerializer()));
         context.Services.AddScoped<IGraphQLClient>(sp => sp.GetRequiredService<GraphQLHttpClient>());
     }
-    
+
     private void ConfigureRedis(
         ServiceConfigurationContext context,
         IConfiguration configuration,
         IWebHostEnvironment hostingEnvironment)
     {
-       if (!hostingEnvironment.IsDevelopment())
+        if (!hostingEnvironment.IsDevelopment())
         {
             var redis = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
             context.Services
@@ -182,9 +185,19 @@ public class SchrodingerServerEntityEventHandlerModule : AbpModule
                 .PersistKeysToStackExchangeRedis(redis, "SchrodingerServer-Protection-Keys");
         }
     }
-    
+
     private void ConfigureCache(IConfiguration configuration)
     {
         Configure<AbpDistributedCacheOptions>(options => { options.KeyPrefix = "SchrodingerServer:"; });
+    }
+
+    private void ConfigureMetrics(ServiceConfigurationContext context, IConfiguration configuration)
+    {
+        context.Services.AddMetricServer(options =>
+        {
+            var metricsOption = configuration.GetSection("Metrics").Get<MetricsOption>();
+            options.Port = metricsOption.Port;
+        });
+        context.Services.AddHealthChecks();
     }
 }

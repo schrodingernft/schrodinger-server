@@ -36,7 +36,7 @@ namespace SchrodingerServer.EntityEventHandler.Core
             Configure<StableDiffusionOption>(configuration.GetSection("StableDiffusionOption"));
             Configure<TraitsOptions>(configuration.GetSection("Traits"));
         }
-        
+
         private void ConfigureDistributedLocking(ServiceConfigurationContext context, IConfiguration configuration)
         {
             context.Services.AddSingleton<IDistributedLockProvider>(sp =>

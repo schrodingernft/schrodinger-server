@@ -1,10 +1,10 @@
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using AElf.Types;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Orleans;
 using Schrodinger;
 using SchrodingerServer.Common;
@@ -71,8 +71,8 @@ public class PointSettleService : IPointSettleService, ISingletonDependency
             BizType = dto.PointName,
             ContractAddress = chainInfo.SchrodingerContractAddress,
             ContractMethod = chainInfo.ContractMethod,
-            Param = batchSettleInput.ToByteString().ToBase64()
-            //ParamJson = JsonSerializer.Serialize(dto)
+            Param = batchSettleInput.ToByteString().ToBase64(),
+            ParamJson = JsonConvert.SerializeObject(dto)
         };
         var contractInvokeGrain = _clusterClient.GetGrain<IContractInvokeGrain>(dto.BizId);
         var result = await contractInvokeGrain.CreateAsync(input);

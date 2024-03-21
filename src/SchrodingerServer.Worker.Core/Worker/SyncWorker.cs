@@ -73,19 +73,8 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
     {
         var grainClient = _clusterClient.GetGrain<ISyncPendingGrain>(GenerateSyncPendingListGrainId());
 
-        var pendingList = await grainClient.GetSyncPendingListAsync();
-
-        _logger.LogInformation("[Execute] There are a total of {count} tasks to be executed", pendingList.Count);
-
-        if (pendingList.Count > _options.CurrentValue.MaximumNumberPerTask)
-        {
-            _logger.LogWarning(
-                "In order to prevent excessive execution pressure from causing the sync tasks to fail. the number is reduced to {amount} at a time.",
-                _options.CurrentValue.MaximumNumberPerTask);
-            pendingList = pendingList.Take(_options.CurrentValue.MaximumNumberPerTask).ToList();
-        }
-
-        await Task.WhenAll(pendingList.Select(HandlerJobExecuteAsync));
+        await Task.WhenAll(ScheduleTasks(await grainClient.GetSyncPendingListAsync())
+            .Select(HandlerJobExecuteAsync));
 
         if (!_finishedQueue.IsEmpty)
         {
@@ -138,6 +127,43 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
         _latestSubscribeHeight = grainHeight == 0 ? _options.CurrentValue.SubscribeStartHeight : grainHeight;
     }
 
-    private string GenerateSubscribeHeightGrainId() => GuidHelper.UniqGuid(_options.CurrentValue.SubscribeStartHeightGrainId).ToString();
-    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid(_options.CurrentValue.SyncPendingListGrainId).ToString();
+    private List<string> ScheduleTasks(List<string> sourceList)
+    {
+        _logger.LogInformation("[Execute] There are a total of {count} tasks to be executed", sourceList.Count);
+
+        if (sourceList.Count <= _options.CurrentValue.MaximumNumberPerTask) return sourceList;
+
+        //  Execution Accelerate
+        var targetLength = sourceList.Count;
+        if (targetLength > _options.CurrentValue.SyncExecutionAccelerationThreshold)
+        {
+            targetLength = _options.CurrentValue.SyncExecutionAccelerationThreshold;
+            _logger.LogWarning("Due to task blocking, the number of executed tasks will be increased to {amount}.",
+                targetLength);
+        }
+        else
+        {
+            targetLength = _options.CurrentValue.MaximumNumberPerTask;
+            _logger.LogWarning(
+                "In order to prevent excessive execution pressure from causing the sync tasks to fail. the number is reduced to {amount} at a time.",
+                targetLength);
+        }
+
+        var resultList = new List<string>();
+        var tempList = new List<string>(sourceList);
+        for (var i = 0; i < targetLength; i++)
+        {
+            var index = new Random().Next(0, tempList.Count);
+            resultList.Add(tempList[index]);
+            tempList.RemoveAt(index);
+        }
+
+        return resultList;
+    }
+
+    private string GenerateSubscribeHeightGrainId() =>
+        GuidHelper.UniqGuid(_options.CurrentValue.SubscribeStartHeightGrainId).ToString();
+
+    private string GenerateSyncPendingListGrainId() =>
+        GuidHelper.UniqGuid(_options.CurrentValue.SyncPendingListGrainId).ToString();
 }

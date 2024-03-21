@@ -21,6 +21,8 @@ public interface IAdoptImageInfoGrain : IGrainWithStringKey
 
     Task<bool> HasSendRequest();
     Task MarkRequest(string providerName = null);
+
+    Task SetRequestInfo(string providerName = null);
     Task<RequestInfo> GetRequestInfo(string adoptId);
 }
 
@@ -114,6 +116,17 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
     }
 
     public async Task MarkRequest(string providerName = null)
+    {
+        State.HasSendRequest = true;
+        if (providerName != null)
+        {
+            State.ProviderName = providerName;
+        }
+
+        await WriteStateAsync();
+    }
+
+    public async Task SetRequestInfo(string providerName = null)
     {
         State.HasSendRequest = true;
         if (providerName != null)

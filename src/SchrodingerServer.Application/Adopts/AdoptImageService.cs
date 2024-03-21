@@ -107,6 +107,6 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
     public async Task MarkRequest(string adoptId, string providerName = null)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
-        await grain.MarkRequest(providerName);
+        await grain.SetRequestInfo(providerName);
     }
 }

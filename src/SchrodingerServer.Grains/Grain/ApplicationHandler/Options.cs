@@ -28,6 +28,6 @@ public class FaucetsTransferOptions
 public class SyncTokenOptions
 {
     public string TargetChainId { get; set; } = "AELF";
-    public string SourceChainId { get; set; } = "tDVW";
+    public string SourceChainId { get; set; } = "tDVV";
     public string IndexBlockHeightGrainId { get; set; } = "IndexBlockHeight";
 }

@@ -3,7 +3,7 @@ namespace SchrodingerServer.Worker.Core.Options;
 public class WorkerOptions
 {
     public int SearchTimer { get; set; } = 10;
-    public string SyncSourceChainId { get; set; } = "tDVW";
+    public string SyncSourceChainId { get; set; } = "tDVV";
     public long BackFillBatchSize { get; set; } = 9999;
     public long SubscribeStartHeight { get; set; } = 109103273;
     public int MaximumNumberPerTask { get; set; } = 10;

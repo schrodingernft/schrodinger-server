@@ -6,10 +6,11 @@ using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Orleans;
+using SchrodingerServer.Common;
 using SchrodingerServer.Grains.Grain.ApplicationHandler;
-using SchrodingerServer.Grains.Grain.Provider;
 using SchrodingerServer.Grains.State.Sync;
 using Volo.Abp.ObjectMapping;
+using IContractProvider = SchrodingerServer.Grains.Grain.Provider.IContractProvider;
 
 namespace SchrodingerServer.Grains.Grain.Synchronize;
 
@@ -38,7 +39,6 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
         if (string.IsNullOrEmpty(State.Id))
         {
             State.Id = input.Id;
-            State.TransactionId = input.Id;
             State.Status = SyncJobStatus.TokenCreating;
         }
         else
@@ -47,6 +47,9 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
         }
 
         var result = new GrainResultDto<SyncGrainDto>();
+        State.TransactionId = input.Id;
+        await WriteStateAsync();
+
         try
         {
             switch (State.Status)
@@ -91,14 +94,23 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
     private async Task HandleTokenCreatingAsync()
     {
-        var tokenSymbol = _contractProvider.ParseLogEvents<TokenCreated>(
-            await _contractProvider.GetTxResultAsync(_sourceChainId, State.TransactionId)).Symbol;
+        var tokenCreated = _contractProvider.ParseLogEvents<TokenCreated>(
+            await _contractProvider.GetTxResultAsync(_sourceChainId, State.TransactionId));
+        if (tokenCreated == null || string.IsNullOrEmpty(tokenCreated.Symbol))
+        {
+            _logger.LogWarning("Transaction {tx} don't have TokenCreated event, please check! ", State.TransactionId);
+            State.Status = SyncJobStatus.CrossChainTokenCreated;
+            await WriteStateAsync();
+            return;
+        }
+
+        var tokenSymbol = tokenCreated.Symbol;
         var tokenInfo = await _contractProvider.GetTokenInfoAsync(_sourceChainId, tokenSymbol);
 
         // check token is cross chain created
         if (await CheckTokenExistAsync(tokenSymbol))
         {
-            _logger.LogWarning("Symbol {symbol} is CrossChainCreated to target chain. ", tokenSymbol);
+            _logger.LogWarning("Symbol {symbol} is CrossChain to target chain. ", tokenSymbol);
             State.Status = SyncJobStatus.CrossChainTokenCreated;
             await WriteStateAsync();
             return;
@@ -139,7 +151,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
     {
         // Check MainChain Index SideChain
         // First, the main chain must index to the transaction height of the side chain.
-        var indexHeight = await _contractProvider.GetSideChainIndexHeightAsync(_targetChainId, _sourceChainId);
+        var indexHeight = await GetSideChainIndexHeightAsync();
         if (indexHeight < State.ValidateTokenHeight)
         {
             _logger.LogInformation(
@@ -160,7 +172,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
 
     private async Task HandleWaitingIndexingAsync()
     {
-        var indexHeight = await _contractProvider.GetIndexHeightAsync(_sourceChainId);
+        var indexHeight = await GetMainChainIndexHeightAsync();
         if (indexHeight < State.MainChainIndexHeight)
         {
             _logger.LogInformation(
@@ -172,7 +184,7 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
         // check token is cross chain created
         if (await CheckTokenExistAsync(State.Symbol))
         {
-            _logger.LogWarning("Symbol {symbol} is CrossChainCreated to target chain. ", State.Symbol);
+            _logger.LogWarning("Symbol {symbol} is CrossChain to target chain, no need create again. ", State.Symbol);
             State.Status = SyncJobStatus.CrossChainTokenCreated;
             await WriteStateAsync();
             return;
@@ -264,6 +276,28 @@ public class SyncGrain : Grain<SyncState>, ISyncGrain
     {
         State = new SyncState { Id = tx, TransactionId = tx, Status = SyncJobStatus.TokenCreating };
         await WriteStateAsync();
+    }
+
+    private async Task<long> GetSideChainIndexHeightAsync()
+    {
+        var indexHeight = await GrainFactory.GetGrain<IIndexBlockHeightGrain>(GuidHelper
+            .UniqGuid(_syncOptions.CurrentValue.IndexBlockHeightGrainId).ToString()).GetSideChainIndexHeightAsync();
+
+        _logger.LogDebug("Now SideChain index height {indexHeight} from grain", indexHeight);
+
+        return indexHeight == 0
+            ? await _contractProvider.GetSideChainIndexHeightAsync(_targetChainId, _sourceChainId)
+            : indexHeight;
+    }
+
+    private async Task<long> GetMainChainIndexHeightAsync()
+    {
+        var indexHeight = await GrainFactory.GetGrain<IIndexBlockHeightGrain>(GuidHelper
+            .UniqGuid(_syncOptions.CurrentValue.IndexBlockHeightGrainId).ToString()).GetMainChainIndexHeightAsync();
+
+        _logger.LogDebug("Now MainChain index height {indexHeight} from grain", indexHeight);
+
+        return indexHeight == 0 ? await _contractProvider.GetIndexHeightAsync(_sourceChainId) : indexHeight;
     }
 
     #endregion

@@ -32,7 +32,7 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
 
     public async Task HandleEventAsync(AutoMaticImageGenerateEto eventData)
     {
-        _handlerReporter.RecordAiImageHandleAsync(ResourceName);
+        _handlerReporter.RecordAiImageHandle(ResourceName);
         _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto start, data: {data}", JsonConvert.SerializeObject(eventData));
         var hasSendRequest = await _adoptImageService.HasSendRequest(eventData.AdoptId);
         if (hasSendRequest) return;
@@ -40,12 +40,12 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
         var lease = await limiter.AcquireAsync();
         if (!lease.IsAcquired)
         {
-            _handlerReporter.RecordAiImageLimitExceedAsync(ResourceName);
+            _handlerReporter.RecordAiImageLimitExceed(ResourceName);
             _logger.LogInformation("limit exceeded, will requeue, {AdoptId}", eventData.AdoptId);
             throw new UserFriendlyException("limit exceeded");
         }
 
-        _handlerReporter.RecordAiImageGenAsync(ResourceName);
+        _handlerReporter.RecordAiImageGen(ResourceName);
         var images = await _autoMaticImageProvider.RequestGenerateImage(eventData.AdoptId, eventData.GenerateImage);
         await _autoMaticImageProvider.SetAIGeneratedImages(eventData.AdoptId, images);
         await _autoMaticImageProvider.SetRequestId(eventData.AdoptAddressId, eventData.AdoptId);

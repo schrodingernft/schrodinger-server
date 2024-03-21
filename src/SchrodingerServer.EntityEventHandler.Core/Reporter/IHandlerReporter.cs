@@ -5,9 +5,9 @@ namespace SchrodingerServer.EntityEventHandler.Core.Reporter;
 
 public interface IHandlerReporter
 {
-    public void RecordAiImageGenAsync(string resourceName, int count = 1);
-    public void RecordAiImageHandleAsync(string resourceName, int count = 1);
-    public void RecordAiImageLimitExceedAsync(string resourceName, int count = 1);
+    public void RecordAiImageGen(string resourceName, int count = 1);
+    public void RecordAiImageHandle(string resourceName, int count = 1);
+    public void RecordAiImageLimitExceed(string resourceName, int count = 1);
 }
 
 public class DefinitionContants
@@ -28,17 +28,17 @@ public class HandlerReporter : IHandlerReporter, ISingletonDependency
         _aiImageGenCounter = MetricsReporter.RegistryCounters(DefinitionContants.AiImageGenName, DefinitionContants.AiImageGenLabels);
     }
 
-    public void RecordAiImageGenAsync(string resourceName, int count = 1)
+    public void RecordAiImageGen(string resourceName, int count = 1)
     {
         _aiImageGenCounter.WithLabels(resourceName, DefinitionContants.AiImageGenCallName).Inc(count);
     }
 
-    public void RecordAiImageHandleAsync(string resourceName, int count = 1)
+    public void RecordAiImageHandle(string resourceName, int count = 1)
     {
         _aiImageGenCounter.WithLabels(resourceName, DefinitionContants.AiImageHandleName).Inc(count);
     }
 
-    public void RecordAiImageLimitExceedAsync(string resourceName, int count = 1)
+    public void RecordAiImageLimitExceed(string resourceName, int count = 1)
     {
         _aiImageGenCounter.WithLabels(resourceName, DefinitionContants.AiImageLimitExceedName).Inc(count);
     }

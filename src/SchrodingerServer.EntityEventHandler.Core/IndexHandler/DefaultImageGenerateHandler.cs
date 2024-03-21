@@ -36,7 +36,7 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
 
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
     {
-        _handlerReporter.RecordAiImageHandleAsync(ResourceName);
+        _handlerReporter.RecordAiImageHandle(ResourceName);
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto  data: {data}", JsonConvert.SerializeObject(eventData));
         var requestId = await _adoptImageService.GetRequestIdAsync(eventData.AdoptId);
         var hasSendRequest = await _adoptImageService.HasSendRequest(eventData.AdoptId) && !string.IsNullOrWhiteSpace(requestId);
@@ -45,12 +45,12 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         var lease = await limiter.AcquireAsync();
         if (!lease.IsAcquired)
         {
-            _handlerReporter.RecordAiImageLimitExceedAsync(ResourceName);
+            _handlerReporter.RecordAiImageLimitExceed(ResourceName);
             _logger.LogInformation("limit exceeded, will requeue, {AdoptId}", eventData.AdoptId);
             throw new UserFriendlyException("limit exceeded");
         }
 
-        _handlerReporter.RecordAiImageGenAsync(ResourceName);
+        _handlerReporter.RecordAiImageGen(ResourceName);
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
         requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto1 end data: {data} requestId={requestId}", JsonConvert.SerializeObject(eventData), requestId);

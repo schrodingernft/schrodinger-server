@@ -11,7 +11,7 @@ public interface IZealyUserXpGrain : IGrainWithStringKey
     Task<GrainResultDto<ZealyUserXpGrainDto>> GetUserXpInfoAsync();
     Task<GrainResultDto<ZealyUserXpGrainDto>> UpdateXpAsync(decimal currentXp, decimal sendXp, decimal sendAmount);
     Task<GrainResultDto<ZealyUserXpGrainDto>> ClearRecordInfo(string date);
-    Task<GrainResultDto<ZealyUserXpGrainDto>> RollbackXpAsync();
+    Task<GrainResultDto<ZealyUserXpGrainDto>> RollbackXpAsync(decimal sendXp);
 }
 
 public class ZealyUserXpGrain : Grain<ZealyUserXpState>, IZealyUserXpGrain
@@ -109,7 +109,7 @@ public class ZealyUserXpGrain : Grain<ZealyUserXpState>, IZealyUserXpGrain
         return Success();
     }
 
-    public async Task<GrainResultDto<ZealyUserXpGrainDto>> RollbackXpAsync()
+    public async Task<GrainResultDto<ZealyUserXpGrainDto>> RollbackXpAsync(decimal sendXp)
     {
         var result = new GrainResultDto<ZealyUserXpGrainDto>();
 
@@ -127,9 +127,9 @@ public class ZealyUserXpGrain : Grain<ZealyUserXpState>, IZealyUserXpGrain
             return result;
         }
 
-        State.CurrentXp = State.LastXp;
-        State.LastXp = State.TempXp;
-
+        var lastXp = State.CurrentXp - sendXp;
+        State.CurrentXp = lastXp > 0 ? lastXp : 0m;
+        
         //disable next rollback
         State.IsRollback = true;
         State.UpdateTime = DateTime.UtcNow;

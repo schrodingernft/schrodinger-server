@@ -105,9 +105,11 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
                 if (record.UpdateTime < time)
                 {
                     _logger.LogWarning(
-                        "because contract info is null, record will set to final fail, time:{time}, record:{record}", time,
+                        "because contract info is null, record will set to final fail, time:{time}, record:{record}",
+                        time,
                         JsonConvert.SerializeObject(record));
-                    await SetFinalStatusAsync(record.Id, ContractInvokeStatus.FinalFailed.ToString(), record.BizId);
+                    await SetFinalStatusAsync(record.Id, ContractInvokeStatus.FinalFailed.ToString(), record.BizId,
+                        "rollback");
                 }
 
                 _logger.LogWarning(
@@ -124,11 +126,11 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             _logger.LogError(e, "handle pending record error, record:{record}", JsonConvert.SerializeObject(record));
         }
     }
-    
-    private async Task SetFinalStatusAsync(string orderId, string status, string bizId)
+
+    private async Task SetFinalStatusAsync(string orderId, string status, string bizId, string remark = "")
     {
         var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(orderId);
-        var result = await recordGrain.SetFinalStatusAsync(status);
+        var result = await recordGrain.SetFinalStatusAsync(status, remark);
 
         if (!result.Success)
         {

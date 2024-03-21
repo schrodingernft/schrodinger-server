@@ -21,6 +21,8 @@ public interface IBalanceProvider
 {
     Task<GetPointsBalanceOutput> GetPointsBalanceOutputAsync(string address);
     Task<List<RankingDetailIndexerDto>> GetOperatorPointsActionSumAsync(string address);
+
+    Task<decimal> GetBalanceAsync(string address);
 }
 
 public class BalanceProvider : IBalanceProvider, ISingletonDependency
@@ -37,17 +39,29 @@ public class BalanceProvider : IBalanceProvider, ISingletonDependency
         _options = options.Value;
     }
 
+    public async Task<decimal> GetBalanceAsync(string address)
+    {
+        var pointDtos = await GetOperatorPointsActionSumAsync(address);
+        var pointDto = pointDtos.FirstOrDefault(t => t.PointsName == "XPSGR-4");
+        if (pointDto == null)
+        {
+            return 0;
+        }
+
+        return pointDto.Amount;
+    }
+
     public async Task<GetPointsBalanceOutput> GetPointsBalanceOutputAsync(string address)
     {
         var pointDtos = await GetOperatorPointsActionSumAsync(address);
         var pointDto = pointDtos.FirstOrDefault();
-        
+
         var param = new GetPointsBalanceInput();
         param.Address = Address.FromBase58(address);
         param.PointName = "XPSGR-4";
         param.DappId = Hash.LoadFromHex(pointDto.DappId);
         param.Domain = pointDto.Domain;
-        
+
         var output = await CallTransactionAsync<GetPointsBalanceOutput>("GetPointsBalance", param,
             _options.ContractAddress, _options.ChainId);
         return output;
@@ -82,10 +96,11 @@ public class BalanceProvider : IBalanceProvider, ISingletonDependency
     public async Task<List<RankingDetailIndexerDto>> GetOperatorPointsActionSumAsync(
         string address)
     {
-        var indexerResult = await _graphQlClientFactory.GetClient(GraphQLClientEnum.PointPlatform).SendQueryAsync<RankingDetailIndexerQueryDto>(new GraphQLRequest
-        {
-            Query =
-                @"query($dappId:String!, $address:String!, $domain:String!){
+        var indexerResult = await _graphQlClientFactory.GetClient(GraphQLClientEnum.PointPlatform)
+            .SendQueryAsync<RankingDetailIndexerQueryDto>(new GraphQLRequest
+            {
+                Query =
+                    @"query($dappId:String!, $address:String!, $domain:String!){
                     getPointsSumByAction(input: {dappId:$dappId,address:$address,domain:$domain}){
                         totalRecordCount,
                         data{
@@ -102,13 +117,13 @@ public class BalanceProvider : IBalanceProvider, ISingletonDependency
                     }
                 }
             }",
-            Variables = new
-            {
-                dappId = string.Empty,
-                domain = string.Empty,
-                address = address
-            }
-        });
+                Variables = new
+                {
+                    dappId = string.Empty,
+                    domain = string.Empty,
+                    address = address
+                }
+            });
 
         return indexerResult.Data.GetPointsSumByAction.Data;
     }

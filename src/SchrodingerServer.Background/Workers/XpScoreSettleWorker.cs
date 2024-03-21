@@ -26,7 +26,7 @@ public class XpScoreSettleWorker : AsyncPeriodicBackgroundWorkerBase
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
         _logger.LogInformation("begin execute XpScoreSettleWorker.");
-        await _scoreSettleService.BatchSettleAsync();
+        //await _scoreSettleService.BatchSettleAsync();
         _logger.LogInformation("finish execute XpScoreSettleWorker.");
     }
 }

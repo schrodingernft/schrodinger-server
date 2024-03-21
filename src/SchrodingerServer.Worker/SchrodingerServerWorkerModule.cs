@@ -34,6 +34,7 @@ public class SchrodingerServerWorkerModule : AbpModule
     {
         var configuration = context.Services.GetConfiguration();
         Configure<WorkerOptions>(configuration.GetSection("Worker"));
+        Configure<IndexBlockHeightOptions>(configuration.GetSection("IndexBlockHeight"));
         context.Services.AddHttpClient();
 
         ConfigureGraphQl(context, configuration);
@@ -44,6 +45,7 @@ public class SchrodingerServerWorkerModule : AbpModule
     {
         StartOrleans(context.ServiceProvider);
         context.AddBackgroundWorkerAsync<SyncWorker>();
+        context.AddBackgroundWorkerAsync<IndexBlockHeightWorker>();
     }
 
     public override void OnApplicationShutdown(ApplicationShutdownContext context)

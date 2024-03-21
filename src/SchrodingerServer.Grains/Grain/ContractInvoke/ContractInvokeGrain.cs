@@ -125,15 +125,10 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         State.Sender = client.GetAddressFromPrivateKey(chainInfo.PrivateKey);
         State.TransactionId = txId;
         State.Status = ContractInvokeStatus.Pending.ToString();
+        //Send Transaction
+        await SendTransactionAsync(State.ChainId, signedTransaction);
+
         var oriStatus = State.Status;
-        try
-        {
-            await SendTransactionAsync(State.ChainId, signedTransaction.ToByteArray().ToHex());
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "SendTransaction error, txId:{txId}", txId);
-        }
         _logger.LogInformation(
             "HandleCreatedAsync Contract bizId {bizId} txHash:{txHash} invoke status {oriStatus} to {status}",
             State.BizId, State.TransactionId, oriStatus, State.Status);
@@ -219,10 +214,17 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         await WriteStateAsync();
     }
     
-    private async Task<SendTransactionOutput> SendTransactionAsync(string chainId, string rawTx)
+    private async Task SendTransactionAsync(string chainId, Transaction signedTransaction)
     {
-        var client = _blockchainClientFactory.GetClient(chainId);
-        return await client.SendTransactionAsync(new SendTransactionInput() { RawTransaction = rawTx });
+        try
+        {
+            var client = _blockchainClientFactory.GetClient(chainId);
+            await client.SendTransactionAsync(new SendTransactionInput { RawTransaction = signedTransaction.ToByteArray().ToHex() });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "SendTransaction error, txId:{txId}", signedTransaction.GetHash().ToHex());
+        }
     }
 
     private async Task<(long, Transaction)> GenerateRawTransaction(string methodName, string param, string chainId,

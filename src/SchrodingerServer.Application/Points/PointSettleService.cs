@@ -71,8 +71,8 @@ public class PointSettleService : IPointSettleService, ISingletonDependency
             BizType = dto.PointName,
             ContractAddress = chainInfo.SchrodingerContractAddress,
             ContractMethod = chainInfo.ContractMethod,
-            Param = batchSettleInput.ToByteString().ToBase64(),
-            ParamJson = JsonConvert.SerializeObject(dto)
+            Param = batchSettleInput.ToByteString().ToBase64()
+            //ParamJson = JsonConvert.SerializeObject(dto)
         };
         var contractInvokeGrain = _clusterClient.GetGrain<IContractInvokeGrain>(dto.BizId);
         var result = await contractInvokeGrain.CreateAsync(input);

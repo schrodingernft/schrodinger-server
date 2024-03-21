@@ -1,19 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Options;
-using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 
 namespace SchrodingerServer.Adopts.dispatcher;
 
 public interface IImageDispatcher
 {
-    IImageProvider CurrentProvider();
+    IImageProvider GetProviderByName(string providerName);
 }
 
 public class ImageDispatcher : IImageDispatcher, ISingletonDependency
@@ -32,7 +29,7 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
     }
 
 
-    public IImageProvider CurrentProvider()
+    private IImageProvider CurrentProvider()
     {
         if (_providers.TryGetValue(_adoptImageOptions.ImageProvider, out var provider))
         {
@@ -41,5 +38,15 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
 
         _logger.LogError("Get AI Provider Failed");
         return _defaultImageProvider;
+    }
+
+    public IImageProvider GetProviderByName(string providerName)
+    {
+        if (providerName.IsNullOrEmpty())
+        {
+            return CurrentProvider();
+        }
+
+        return _providers.TryGetValue(providerName, out var provider) ? provider : _defaultImageProvider;
     }
 }

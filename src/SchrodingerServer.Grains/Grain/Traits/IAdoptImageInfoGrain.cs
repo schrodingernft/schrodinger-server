@@ -20,7 +20,8 @@ public interface IAdoptImageInfoGrain : IGrainWithStringKey
     Task<GrainResultDto<WaterImageGrainInfoDto>> GetWatermarkImageInfoAsync();
 
     Task<bool> HasSendRequest();
-    Task MarkRequest();
+    Task MarkRequest(string providerName = null);
+    Task<RequestInfo> GetRequestInfo(string adoptId);
 }
 
 public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGrain
@@ -112,9 +113,19 @@ public class AdoptImageInfoGrain : Grain<AdoptImageInfoState>, IAdoptImageInfoGr
         return Task.FromResult(State.HasSendRequest);
     }
 
-    public async Task MarkRequest()
+    public async Task MarkRequest(string providerName = null)
     {
         State.HasSendRequest = true;
+        if (providerName != null)
+        {
+            State.ProviderName = providerName;
+        }
+
         await WriteStateAsync();
+    }
+
+    public Task<RequestInfo> GetRequestInfo(string adoptId)
+    {
+        return Task.FromResult(new RequestInfo() { HasSendRequest = State.HasSendRequest, ProviderName = State.ProviderName });
     }
 }

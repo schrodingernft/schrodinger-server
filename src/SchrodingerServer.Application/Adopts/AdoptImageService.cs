@@ -79,9 +79,9 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
 
         var images = await grain.GetImagesAsync();
         var index = images.IndexOf(selectedImage);
-        
+
         // only works when there are two images in the list
-        images.RemoveAt((index+1) % 2);
+        images.RemoveAt((index + 1) % 2);
         await grain.SetImagesAsync(images);
     }
 
@@ -91,16 +91,22 @@ public class AdoptImageService : IAdoptImageService, ISingletonDependency
         var grainResult = await grain.GetWatermarkImageInfoAsync();
         return grainResult.Data;
     }
-    
+
     public Task<bool> HasSendRequest(string adoptId)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
         return grain.HasSendRequest();
     }
 
-    public async Task MarkRequest(string adoptId)
+    public Task<RequestInfo> GetRequestInfoAsync(string adoptId)
     {
         var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
-        await grain.MarkRequest();
+        return grain.GetRequestInfo(adoptId);
+    }
+
+    public async Task MarkRequest(string adoptId, string providerName = null)
+    {
+        var grain = _clusterClient.GetGrain<IAdoptImageInfoGrain>(adoptId);
+        await grain.MarkRequest(providerName);
     }
 }

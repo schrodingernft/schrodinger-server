@@ -11,7 +11,7 @@ public interface IAdoptImageService
     Task<string> SetImageGenerationIdNXAsync(string adoptId, string imageGenerationId);
 
     Task<List<string>> GetImagesAsync(string adoptId);
-    Task SetImagesAsync(string adoptId,List<string> images);
+    Task SetImagesAsync(string adoptId, List<string> images);
 
     Task SetWatermarkAsync(string adoptId);
     Task<bool> HasWatermark(string adoptId);
@@ -19,7 +19,9 @@ public interface IAdoptImageService
     Task SetWatermarkImageInfoAsync(string adoptId, string imageUri, string resizedImage, string selectedImage);
 
     Task<WaterImageGrainInfoDto> GetWatermarkImageInfoAsync(string adoptId);
-    
+
     Task<bool> HasSendRequest(string adoptId);
-    Task MarkRequest(string adoptId);
+    Task MarkRequest(string adoptId, string providerName = null);
+
+    Task<RequestInfo> GetRequestInfoAsync(string adoptId);
 }

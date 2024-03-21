@@ -95,13 +95,15 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
-        var provider = _imageDispatcher.CurrentProvider();
-        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId) && await provider.RequestIdIsNotNullOrEmptyAsync(adoptAddressId);
+        var requestInfo = await _adoptImageService.GetRequestInfoAsync(adoptId);
+        var hasSendRequest = requestInfo.HasSendRequest;
+        var provider = _imageDispatcher.GetProviderByName(requestInfo.ProviderName);
+        hasSendRequest = hasSendRequest && await provider.RequestIdIsNotNullOrEmptyAsync(adoptAddressId);
         if (!hasSendRequest)
         {
             _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
             await provider.SendAIGenerationRequestAsync(adoptAddressId, adoptId, AdoptInfo2GenerateImage(adoptInfo));
-            await _adoptImageService.MarkRequest(adoptId);
+            await _adoptImageService.MarkRequest(adoptId, provider.GetType().ToString());
 
             var images = await provider.GetAIGeneratedImagesAsync(adoptId, adoptAddressId);
             output.AdoptImageInfo.Images = images;

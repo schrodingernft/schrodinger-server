@@ -231,7 +231,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         Logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId}", requestId);
         var aiQueryResponse = await GetImagesByAiAsync(requestId);
         var images = new List<string>();
-        Logger.LogInformation("QueryImageInfoByAiAsync Finish. resp: {resp}", JsonConvert.SerializeObject(aiQueryResponse));
+        Logger.LogInformation("QueryImageInfoByAiAsync Finish. resp: {resp}", aiQueryResponse.images.Count);
         if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
         {
             Logger.LogInformation("TraitsActionProvider GetImagesAsync aiQueryResponse.images null");

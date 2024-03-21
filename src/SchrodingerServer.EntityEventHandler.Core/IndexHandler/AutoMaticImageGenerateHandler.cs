@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using SchrodingerServer.Adopts;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.EntityEventHandler.Core.Reporter;
 using SchrodingerServer.Image;

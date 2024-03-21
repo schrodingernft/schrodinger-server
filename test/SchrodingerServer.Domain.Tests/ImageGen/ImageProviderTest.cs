@@ -70,6 +70,7 @@ public class ImageProviderTest : SchrodingerServerDomainTestBase
     [Fact]
     public async void TestProviderType()
     {
+        string.IsNullOrEmpty(null).ShouldBeTrue();
         ProviderType.AutoMatic.ToString().ShouldBe("AutoMatic");
         ProviderType.Default.ToString().ShouldBe("Default");
     }

@@ -138,6 +138,6 @@ public class SyncWorker : AsyncPeriodicBackgroundWorkerBase
         _latestSubscribeHeight = grainHeight == 0 ? _options.CurrentValue.SubscribeStartHeight : grainHeight;
     }
 
-    private string GenerateSubscribeHeightGrainId() => GuidHelper.UniqGuid("SubscribeStartHeight").ToString();
-    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid("SyncPending").ToString();
+    private string GenerateSubscribeHeightGrainId() => GuidHelper.UniqGuid(_options.CurrentValue.SubscribeStartHeightGrainId).ToString();
+    private string GenerateSyncPendingListGrainId() => GuidHelper.UniqGuid(_options.CurrentValue.SyncPendingListGrainId).ToString();
 }

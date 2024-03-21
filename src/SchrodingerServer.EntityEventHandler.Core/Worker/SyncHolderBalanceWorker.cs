@@ -98,12 +98,6 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
 
             var symbolPriceDict = await _symbolDayPriceProvider.GetSymbolPricesAsync(priceBizDate, symbols.ToList());
 
-            var ids = realDailyChanges
-                .Select(item => IdGenerateHelper.GetHolderBalanceId(chainId, item.Symbol, item.Address)).ToList();
-
-            var holderBalanceDict =
-                await _holderBalanceProvider.GetHolderBalanceAsync(chainId, ids);
-
             //get user latest date balance and add change
             var saveList = new List<HolderBalanceIndex>();
             foreach (var item in realDailyChanges)
@@ -113,13 +107,6 @@ public class SyncHolderBalanceWorker :  AsyncPeriodicBackgroundWorkerBase
                 var holderBalance = _objectMapper.Map<HolderDailyChangeDto, HolderBalanceIndex>(item);
                 holderBalance.ChainId = chainId;
                 holderBalance.Id = IdGenerateHelper.GetHolderBalanceId(chainId, holderBalance.Symbol, holderBalance.Address);
-               
-                var preHolderBalance =
-                    holderBalanceDict.TryGetValue(holderBalance.Id, out var index) ? index.Balance : 0;
-
-                //save real balance
-                holderBalance.Balance = preHolderBalance + item.ChangeAmount;
-                item.Balance = holderBalance.Balance;
                 await _pointDailyRecordService.HandlePointDailyChangeAsync(chainId, item, symbolPrice);
                 saveList.Add(holderBalance);
             }

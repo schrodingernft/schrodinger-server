@@ -95,25 +95,32 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         };
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
-        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId);
+        var provider = _imageDispatcher.CurrentProvider();
+        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId) && await provider.HasRequestId(adoptAddressId);
         if (!hasSendRequest)
         {
+            _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
             await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
             await _adoptImageService.MarkRequest(adoptId);
+
+            var images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
+            output.AdoptImageInfo.Images = images;
             return output;
         }
 
-        var provider = _imageDispatcher.CurrentProvider();
+        _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
         output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
         return output;
     }
 
     private GenerateImage AdoptInfo2GenerateImage(AdoptInfo adoptInfo)
     {
-        var gb = CurrentUser.GetId().ToByteArray();
+        var seed = CurrentUser.IsAuthenticated
+            ? BitConverter.ToInt32(CurrentUser.GetId().ToByteArray(), 0)
+            : new Random().Next();
         var imageInfo = new GenerateImage
         {
-            seed = BitConverter.ToInt32(gb, 0),
+            seed = seed,
             newAttributes = new List<Trait> { },
             baseImage = new BaseImage
             {
@@ -163,7 +170,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
-        _logger.Info("GetWaterMarkImageInfoAsync, {req}", input.AdoptId);
+        _logger.Info("GetWaterMarkImageInfoAsync, AdoptId: {req}, dataLength: {length}", input.AdoptId, 
+            input.Image.Length);
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
 
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
@@ -211,10 +219,10 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 text = adoptInfo.Symbol
             }
         });
-        _logger.LogInformation("GetWatermarkImageAsync : {resized} ", waterMarkInfo.resized);
 
         if (waterMarkInfo == null || waterMarkInfo.processedImage == "" || waterMarkInfo.resized == "")
         {
+            _logger.LogError("waterMarkImage empty, input: {input}", JsonConvert.SerializeObject(input));
             throw new UserFriendlyException("waterMarkImage empty");
         }
 

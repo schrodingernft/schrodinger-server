@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RedisRateLimiting;
+using SchrodingerServer.Adopts;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Image;
 using Volo.Abp;
@@ -17,12 +18,14 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
     private readonly ILogger<AutoMaticImageGenerateHandler> _logger;
     private readonly AutoMaticImageProvider _autoMaticImageProvider;
     private readonly IRateDistributeLimiter _rateDistributeLimiter;
+    private readonly IAdoptImageService _adoptImageService;
 
-    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRateDistributeLimiter rateDistributeLimiter)
+    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRateDistributeLimiter rateDistributeLimiter, IAdoptImageService adoptImageService)
     {
         _logger = logger;
         _autoMaticImageProvider = autoMaticImageProvider;
         _rateDistributeLimiter = rateDistributeLimiter;
+        _adoptImageService = adoptImageService;
     }
 
     public async Task HandleEventAsync(AutoMaticImageGenerateEto eventData)
@@ -30,6 +33,10 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
         _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto start, data: {data}", JsonConvert.SerializeObject(eventData));
         // var images = await HandleAsync(async Task<List<string>>() => await _autoMaticImageProvider.RequestGenerateImage(eventData.AdoptId,
         //     eventData.GenerateImage), eventData.AdoptId);
+        var requestId = await _adoptImageService.GetRequestIdAsync(eventData.AdoptId);
+        var hasSendRequest = await _adoptImageService.HasSendRequest(eventData.AdoptId) &&
+                             !string.IsNullOrWhiteSpace(requestId);
+        if (hasSendRequest) return;
         var limiter = _rateDistributeLimiter.GetRateLimiterInstance("autoMaticImageGenerateHandler");
         var lease = await limiter.AcquireAsync();
         if (!lease.IsAcquired)

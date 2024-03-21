@@ -13,14 +13,7 @@ namespace SchrodingerServer.Adopts.dispatcher;
 
 public interface IImageDispatcher
 {
-    Task DispatchAIGenerationRequest(string aelfAddress, GenerateImage imageInfo, string adoptId);
     IImageProvider CurrentProvider();
-}
-
-public class ImageGenerationIdDto
-{
-    public string ImageGenerationId { get; set; }
-    public bool Exist { get; set; }
 }
 
 public class ImageDispatcher : IImageDispatcher, ISingletonDependency
@@ -28,29 +21,25 @@ public class ImageDispatcher : IImageDispatcher, ISingletonDependency
     private readonly AdoptImageOptions _adoptImageOptions;
     private readonly ILogger<ImageDispatcher> _logger;
     private readonly Dictionary<string, IImageProvider> _providers;
+    private readonly DefaultImageProvider _defaultImageProvider;
 
-    public ImageDispatcher(IOptionsMonitor<AdoptImageOptions> adoptImageOptions, ILogger<ImageDispatcher> logger, IEnumerable<IImageProvider> providers)
+    public ImageDispatcher(IOptionsMonitor<AdoptImageOptions> adoptImageOptions, ILogger<ImageDispatcher> logger, IEnumerable<IImageProvider> providers, DefaultImageProvider defaultImageProvider)
     {
         _adoptImageOptions = adoptImageOptions.CurrentValue;
         _logger = logger;
+        _defaultImageProvider = defaultImageProvider;
         _providers = providers.ToDictionary(x => x.Type.ToString(), y => y);
     }
 
-    public async Task DispatchAIGenerationRequest(string adoptAddressId, GenerateImage imageInfo, string adoptId)
-    {
-        var provider = CurrentProvider();
-        _logger.LogInformation("GenerateImageByAiAsync Begin. imageInfo: {info} adoptId: {adoptId} ", JsonConvert.SerializeObject(imageInfo), adoptId);
-        await provider.SendAIGenerationRequest(adoptAddressId, adoptId, imageInfo);
-    }
 
     public IImageProvider CurrentProvider()
     {
-        if (!_providers.TryGetValue(_adoptImageOptions.ImageProvider, out var provider))
+        if (_providers.TryGetValue(_adoptImageOptions.ImageProvider, out var provider))
         {
-            _logger.LogError("Get AI Provider Failed");
-            throw new UserFriendlyException("wrong type of image provider configuration");
+            return provider;
         }
 
-        return provider;
+        _logger.LogError("Get AI Provider Failed");
+        return _defaultImageProvider;
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -20,17 +21,15 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     private readonly DefaultImageProvider _defaultImageProvider;
     private readonly IRateDistributeLimiter _rateDistributeLimiter;
     private readonly IObjectMapper _objectMapper;
-    private readonly IAdoptImageService _adoptImageService;
     private readonly IHandlerReporter _handlerReporter;
 
     public DefaultImageGenerateHandler(ILogger<DefaultImageGenerateHandler> logger, DefaultImageProvider defaultImageProvider,
-        IRateDistributeLimiter rateDistributeLimiter, IObjectMapper objectMapper, IAdoptImageService adoptImageService, IHandlerReporter handlerReporter)
+        IRateDistributeLimiter rateDistributeLimiter, IObjectMapper objectMapper, IHandlerReporter handlerReporter)
     {
         _logger = logger;
         _defaultImageProvider = defaultImageProvider;
         _rateDistributeLimiter = rateDistributeLimiter;
         _objectMapper = objectMapper;
-        _adoptImageService = adoptImageService;
         _handlerReporter = handlerReporter;
     }
 
@@ -38,9 +37,11 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     {
         _handlerReporter.RecordAiImageHandle(ResourceName);
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto  data: {data}", JsonConvert.SerializeObject(eventData));
-        var requestId = await _adoptImageService.GetRequestIdAsync(eventData.AdoptId);
-        var hasSendRequest = await _adoptImageService.HasSendRequest(eventData.AdoptId) && !string.IsNullOrWhiteSpace(requestId);
-        if (hasSendRequest) return;
+        if (await _defaultImageProvider.RequestIdIsNotNullOrEmptyAsync(eventData.AdoptAddressId)) // already generated
+        {
+            return;
+        }
+
         var limiter = _rateDistributeLimiter.GetRateLimiterInstance(ResourceName);
         var lease = await limiter.AcquireAsync();
         if (!lease.IsAcquired)
@@ -52,15 +53,13 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
 
         _handlerReporter.RecordAiImageGen(ResourceName);
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
-        requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
+        var requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto1 end data: {data} requestId={requestId}", JsonConvert.SerializeObject(eventData), requestId);
-        if ("" == requestId)
+        if (requestId.IsNullOrEmpty())
         {
             return;
         }
 
-        await _defaultImageProvider.SetRequestId(eventData.AdoptAddressId, requestId);
-
-        _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto end data: {data} requestId={requestId}", JsonConvert.SerializeObject(eventData), requestId);
+        await _defaultImageProvider.SetRequestIdAsync(eventData.AdoptAddressId, requestId);
     }
 }

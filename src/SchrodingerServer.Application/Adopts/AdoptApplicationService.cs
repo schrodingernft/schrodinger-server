@@ -96,20 +96,20 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
         var aelfAddress = await _userActionProvider.GetCurrentUserAddressAsync(GetCurChain());
         var adoptAddressId = ImageProviderHelper.JoinAdoptIdAndAelfAddress(adoptId, aelfAddress);
         var provider = _imageDispatcher.CurrentProvider();
-        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId) && await provider.HasRequestId(adoptAddressId);
+        var hasSendRequest = await _adoptImageService.HasSendRequest(adoptId) && await provider.RequestIdIsNotNullOrEmptyAsync(adoptAddressId);
         if (!hasSendRequest)
         {
             _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
-            await _imageDispatcher.DispatchAIGenerationRequest(adoptAddressId, AdoptInfo2GenerateImage(adoptInfo), adoptId);
+            await provider.SendAIGenerationRequestAsync(adoptAddressId, adoptId, AdoptInfo2GenerateImage(adoptInfo));
             await _adoptImageService.MarkRequest(adoptId);
 
-            var images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
+            var images = await provider.GetAIGeneratedImagesAsync(adoptId, adoptAddressId);
             output.AdoptImageInfo.Images = images;
             return output;
         }
 
         _logger.LogInformation("GetAdoptImageInfoAsync, {req} has not send request {hasSendRequest}", adoptId, hasSendRequest);
-        output.AdoptImageInfo.Images = await provider.GetAIGeneratedImages(adoptId, adoptAddressId);
+        output.AdoptImageInfo.Images = await provider.GetAIGeneratedImagesAsync(adoptId, adoptAddressId);
         return output;
     }
 
@@ -170,7 +170,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
 
     public async Task<GetWaterMarkImageInfoOutput> GetWaterMarkImageInfoAsync(GetWaterMarkImageInfoInput input)
     {
-        _logger.Info("GetWaterMarkImageInfoAsync, AdoptId: {req}, dataLength: {length}", input.AdoptId, 
+        _logger.Info("GetWaterMarkImageInfoAsync, AdoptId: {req}, dataLength: {length}", input.AdoptId,
             input.Image.Length);
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
 

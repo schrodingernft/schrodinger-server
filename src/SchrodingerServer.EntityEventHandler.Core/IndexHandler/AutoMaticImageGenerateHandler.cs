@@ -17,16 +17,13 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
     private readonly ILogger<AutoMaticImageGenerateHandler> _logger;
     private readonly AutoMaticImageProvider _autoMaticImageProvider;
     private readonly IRateDistributeLimiter _rateDistributeLimiter;
-    private readonly IAdoptImageService _adoptImageService;
     private readonly IHandlerReporter _handlerReporter;
 
-    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRateDistributeLimiter rateDistributeLimiter, IAdoptImageService adoptImageService,
-        IHandlerReporter handlerReporter)
+    public AutoMaticImageGenerateHandler(ILogger<AutoMaticImageGenerateHandler> logger, AutoMaticImageProvider autoMaticImageProvider, IRateDistributeLimiter rateDistributeLimiter, IHandlerReporter handlerReporter)
     {
         _logger = logger;
         _autoMaticImageProvider = autoMaticImageProvider;
         _rateDistributeLimiter = rateDistributeLimiter;
-        _adoptImageService = adoptImageService;
         _handlerReporter = handlerReporter;
     }
 
@@ -34,8 +31,11 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
     {
         _handlerReporter.RecordAiImageHandle(ResourceName);
         _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto start, data: {data}", JsonConvert.SerializeObject(eventData));
-        var hasSendRequest = await _adoptImageService.HasSendRequest(eventData.AdoptId);
-        if (hasSendRequest) return;
+        if (await _autoMaticImageProvider.RequestIdIsNotNullOrEmptyAsync(eventData.AdoptAddressId)) // already generated
+        {
+            return;
+        }
+
         var limiter = _rateDistributeLimiter.GetRateLimiterInstance("autoMaticImageGenerateHandler");
         var lease = await limiter.AcquireAsync();
         if (!lease.IsAcquired)
@@ -47,8 +47,8 @@ public class AutoMaticImageGenerateHandler : IDistributedEventHandler<AutoMaticI
 
         _handlerReporter.RecordAiImageGen(ResourceName);
         var images = await _autoMaticImageProvider.RequestGenerateImage(eventData.AdoptId, eventData.GenerateImage);
-        await _autoMaticImageProvider.SetAIGeneratedImages(eventData.AdoptId, images);
-        await _autoMaticImageProvider.SetRequestId(eventData.AdoptAddressId, eventData.AdoptId);
+        await _autoMaticImageProvider.SetAIGeneratedImagesAsync(eventData.AdoptId, images);
+        await _autoMaticImageProvider.SetRequestIdAsync(eventData.AdoptAddressId, eventData.AdoptId);
         _logger.LogInformation("HandleEventAsync autoMaticImageGenerateEto end");
     }
 }

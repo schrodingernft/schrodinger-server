@@ -21,15 +21,15 @@ public interface IImageProvider
 
     Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
 
-    Task SendAIGenerationRequest(string adoptAddressId, string adoptId, GenerateImage imageInfo);
+    Task SendAIGenerationRequestAsync(string adoptAddressId, string adoptId, GenerateImage imageInfo);
 
-    Task SetRequestId(string adoptAddress, string requestId);
+    Task SetRequestIdAsync(string adoptAddress, string requestId);
 
-    Task SetAIGeneratedImages(string adoptId, List<string> images);
+    Task SetAIGeneratedImagesAsync(string adoptId, List<string> images);
 
-    Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId);
+    Task<List<string>> GetAIGeneratedImagesAsync(string adoptId, string adoptAddressId);
 
-    Task<bool> HasRequestId(string adoptAddressId);
+    Task<bool> RequestIdIsNotNullOrEmptyAsync(string adoptAddressId);
 }
 
 public abstract class ImageProvider : IImageProvider
@@ -44,7 +44,6 @@ public abstract class ImageProvider : IImageProvider
     protected readonly IAdoptImageService AdoptImageService;
     protected readonly ILogger<ImageProvider> Logger;
     protected readonly IDistributedEventBus DistributedEventBus;
-    private IImageProvider _imageProviderImplementation;
 
     protected ImageProvider(ILogger<ImageProvider> logger, IAdoptImageService adoptImageService, IDistributedEventBus distributedEventBus)
     {
@@ -53,17 +52,17 @@ public abstract class ImageProvider : IImageProvider
         DistributedEventBus = distributedEventBus;
     }
 
-    public async Task SetRequestId(string adoptAddressId, string requestId)
+    public async Task SetRequestIdAsync(string adoptAddressId, string requestId)
     {
         await AdoptImageService.SetImageGenerationIdNXAsync(adoptAddressId, requestId);
     }
 
-    public async Task SendAIGenerationRequest(string adoptAddressId, string adoptId, GenerateImage imageInfo)
+    public async Task SendAIGenerationRequestAsync(string adoptAddressId, string adoptId, GenerateImage imageInfo)
     {
         await PublishAsync(adoptAddressId, adoptId, imageInfo);
     }
 
-    public async Task SetAIGeneratedImages(string adoptId, List<string> images)
+    public async Task SetAIGeneratedImagesAsync(string adoptId, List<string> images)
     {
         await AdoptImageService.SetImagesAsync(adoptId, images);
     }
@@ -71,8 +70,8 @@ public abstract class ImageProvider : IImageProvider
     // public abstract Task<List<string>> GenerateImageAsync(string adoptId, GenerateImage imageInfo);
     public abstract Task PublishAsync(string requestId, string adoptId, GenerateImage imageInfo);
 
-    public abstract Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId);
-    public abstract Task<bool> HasRequestId(string adoptAddressId);
+    public abstract Task<List<string>> GetAIGeneratedImagesAsync(string adoptId, string adoptAddressId);
+    public abstract Task<bool> RequestIdIsNotNullOrEmptyAsync(string adoptAddressId);
 }
 
 public enum ProviderType
@@ -148,7 +147,7 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         queryImage.prompt = GetPrompt(imageInfo);
         var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
         var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        Client.DefaultRequestHeaders.Add("accept", "*/*");
+        Client.DefaultRequestHeaders.Add("accept", "*/*"); 
         var start = DateTime.Now;
         var response = await Client.PostAsync(_traitsOptions.AutoMaticImageGenerateUrl, requestContent);
         var timeCost = (DateTime.Now - start).TotalMilliseconds;
@@ -173,13 +172,13 @@ public class AutoMaticImageProvider : ImageProvider, ISingletonDependency
         await DistributedEventBus.PublishAsync(new AutoMaticImageGenerateEto() { AdoptAddressId = adoptAddressId, AdoptId = adoptId, GenerateImage = imageInfo });
     }
 
-    public override async Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId)
+    public override async Task<List<string>> GetAIGeneratedImagesAsync(string adoptId, string adoptAddressId)
     {
         var images = await AdoptImageService.GetImagesAsync(adoptId);
         return images;
     }
 
-    public override Task<bool> HasRequestId(string adoptAddressId)
+    public override Task<bool> RequestIdIsNotNullOrEmptyAsync(string adoptAddressId)
     {
         return Task.FromResult(true);
     }
@@ -204,15 +203,13 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
             Client.DefaultRequestHeaders.Add("accept", "*/*");
 
-            var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl, requestContent);
+            var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl + "/" + adoptId, requestContent);
             var responseString = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
             {
-                
-                // save adopt id and request id to grain
-                GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
-                Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId + " " + aiQueryResponse.requestId);
+                var aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
+                Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId + " requestId:" + aiQueryResponse.requestId);
                 return aiQueryResponse.requestId;
             }
             else
@@ -232,7 +229,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     public async Task<List<string>> QueryImages(string requestId)
     {
         Logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId}", requestId);
-        var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+        var aiQueryResponse = await GetImagesByAiAsync(requestId);
         var images = new List<string>();
         Logger.LogInformation("QueryImageInfoByAiAsync Finish. resp: {resp}", JsonConvert.SerializeObject(aiQueryResponse));
         if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
@@ -250,22 +247,16 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         await DistributedEventBus.PublishAsync(new DefaultImageGenerateEto() { AdoptAddressId = adoptAddressId, AdoptId = adoptId, GenerateImage = imageInfo });
     }
 
-    private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)
+    private async Task<AiQueryResponse> GetImagesByAiAsync(string requestId)
     {
-        var queryImage = new QueryImage
-        {
-            requestId = requestId
-        };
-        var jsonString = ImageProviderHelper.ConvertObjectToJsonString(queryImage);
-        var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
         Client.DefaultRequestHeaders.Add("accept", "*/*");
         var start = DateTime.Now;
-        var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageQueryUrl, requestContent);
+        var response = await Client.GetAsync(_traitsOptions.CurrentValue.ImageQueryUrl + "/" + requestId);
         var timeCost = (DateTime.Now - start).TotalMilliseconds;
         if (response.IsSuccessStatusCode)
         {
-            string responseContent = await response.Content.ReadAsStringAsync();
-            AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
             Logger.LogInformation("TraitsActionProvider QueryImageInfoByAiAsync query success {requestId} timeCost={timeCost}", requestId, timeCost);
             return aiQueryResponse;
         }
@@ -274,7 +265,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         return new AiQueryResponse { };
     }
 
-    public override async Task<List<string>> GetAIGeneratedImages(string adoptId, string adoptAddressId)
+    public override async Task<List<string>> GetAIGeneratedImagesAsync(string adoptId, string adoptAddressId)
     {
         var images = await AdoptImageService.GetImagesAsync(adoptId);
         if (images.IsNullOrEmpty())
@@ -290,14 +281,14 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
 
             if (!images.IsNullOrEmpty())
             {
-                await SetAIGeneratedImages(adoptId, images);
+                await SetAIGeneratedImagesAsync(adoptId, images);
             }
         }
 
         return images;
     }
 
-    public override async Task<bool> HasRequestId(string adoptAddressId)
+    public override async Task<bool> RequestIdIsNotNullOrEmptyAsync(string adoptAddressId)
     {
         var requestId = await AdoptImageService.GetRequestIdAsync(adoptAddressId);
         return !string.IsNullOrEmpty(requestId);

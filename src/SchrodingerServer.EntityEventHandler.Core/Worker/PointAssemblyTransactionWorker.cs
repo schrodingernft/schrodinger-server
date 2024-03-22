@@ -44,7 +44,7 @@ public class PointAssemblyTransactionWorker : AsyncPeriodicBackgroundWorkerBase
         await using var handle =
             await _distributedLock.TryAcquireAsync(_lockKey);
         _logger.LogInformation("Executing point assembly transaction job start");
-        var bizDate = _workerOptionsMonitor.CurrentValue.BizDate;
+        var bizDate = _workerOptionsMonitor.CurrentValue.GetWorkerBizDate(_lockKey);
         if (bizDate.IsNullOrEmpty())
         {
             bizDate = DateTime.UtcNow.AddDays(-1).ToString(TimeHelper.Pattern);

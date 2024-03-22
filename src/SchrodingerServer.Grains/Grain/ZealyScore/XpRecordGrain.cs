@@ -97,6 +97,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
             var recordDto = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State);
             recordDto.Status = ContractInvokeStatus.ToBeCreated.ToString();
 
+            await ClearRecordsAsync(userId, input.Date);
             return new GrainResultDto<XpRecordGrainDto>()
             {
                 Success = true,
@@ -116,17 +117,21 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
         await WriteStateAsync();
 
         // update xp
+        await ClearRecordsAsync(userId, input.Date);
+        return Success();
+    }
+
+    private async Task ClearRecordsAsync(string userId, string date)
+    {
         try
         {
             var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(userId);
-            await userXpGrain.ClearRecordInfo(input.Date);
+            await userXpGrain.ClearRecordInfo(date);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "ClearRecordInfo error, userId:{userId}", State.UserId);
+            _logger.LogError(e, "ClearRecordInfo error, userId:{userId}", userId);
         }
-
-        return Success();
     }
 
     public Task<GrainResultDto<XpRecordGrainDto>> GetAsync()
@@ -192,12 +197,12 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
             State.Remark = State.Remark == null ? remark : $"{State.Remark}:{remark}";
         }
 
-        if (State.Status == ContractInvokeStatus.FinalFailed.ToString())
-        {
-            // rollback user xp
-            var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(State.UserId);
-            await userXpGrain.RollbackXpAsync(State.IncreaseXp);
-        }
+        // if (State.Status == ContractInvokeStatus.FinalFailed.ToString())
+        // {
+        //     // rollback user xp
+        //     var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(State.UserId);
+        //     await userXpGrain.RollbackXpAsync(State.IncreaseXp);
+        // }
 
         await WriteStateAsync();
         return Success();
@@ -211,7 +216,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
             Data = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State)
         };
     }
-    
+
     private GrainResultDto<XpRecordGrainDto> Fail(string message)
     {
         return new GrainResultDto<XpRecordGrainDto>()

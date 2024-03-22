@@ -108,17 +108,6 @@ public class XpScoreResultService : IXpScoreResultService, ISingletonDependency
             var contractInfo = contractInfos.FirstOrDefault(t => t.BizId == record.BizId);
             if (contractInfo == null)
             {
-                var time = DateTimeOffset.UtcNow.AddHours(-_options.SetFailHours).ToUnixTimeSeconds();
-                if (record.UpdateTime < time)
-                {
-                    _logger.LogWarning(
-                        "because contract info is null, record will set to final fail, time:{time}, record:{record}",
-                        time,
-                        JsonConvert.SerializeObject(record));
-                    await SetFinalStatusAsync(record.Id, ContractInvokeStatus.FinalFailed.ToString(), record.BizId,
-                        "rollback");
-                }
-
                 _logger.LogWarning(
                     "modify record status fail, contract info is null, recordId:{recordId}, bizId:{bizId}",
                     record.Id, record.BizId ?? "-");

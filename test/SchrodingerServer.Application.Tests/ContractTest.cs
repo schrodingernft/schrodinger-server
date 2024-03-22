@@ -134,4 +134,30 @@ public class ContractTest
         }
 
     }
+    
+    [Fact]
+    public void Base64string_Test()
+    {
+        var base64String = "CgpTR1JIb2xkaW5nEisKIgogAkajTTdgOVW167GHyLJd2EJyuroKNyi86bispUjmttMQ5t2y5aYREisKIgog8tBswciTAGgDYRKKrR/IAvaCLQzEog0iXxip186RlIgQyvnZvuoMEi0KIgogc8MWaFYs0vsR9H5jlukVsGePKLP/PYNdt0RIPuawTRYQ09/69NX92DYSLQoiCiAyihkI9Hcp53WFaHLqTgZv9algUanlYKlZseUn4bigZRDDtL616aiFAxIrCiIKIDxoBDBv4tbJu3XjPDVoSj4C3i9iO/XxNLgFJRBvNUIWEP3U/frBVhIrCiIKIL9pBHyHWXLCTcogEaHjrO9tgBYh6KBgK2Droj3A3B5xEP3U/frBVhIrCiIKIE4Pq2BxyJkaJhK/Q3EBeCOnI2kmvVEpCYv/Ap4OvHUBEPOu2bLTCBIuCiIKIJ9K/Qi+SBVTdjfPOchGZM7fXDl7yliRF8E3jL8qY0+BEPmy+NiRsfn5MxIrCiIKIPxiLjfugU8tCNG67Gcz4ESoeQ+qlw53hHgSlBqvJMHhEP3U/frBVhIrCiIKIBBsD8txpHF2JtcaMWlrfpGRc3lcCDsEpAFt9tLWuOtwENTd+Z+KTg==";
+
+        var byteString = ByteString.FromBase64(base64String);
+        
+        BatchSettleInput batchSettleInput = BatchSettleInput.Parser.ParseFrom(byteString);
+
+        Console.WriteLine($"batchSettleInput: {batchSettleInput}");
+        
+        
+        var date = getUTCDay();
+        var dateStr = date.AddDays(-1).ToString("yyyyMMdd");
+        
+        Console.WriteLine($"date: {date}");
+
+    }
+    
+    
+    private DateTime getUTCDay()
+    {
+        DateTime nowUtc = DateTime.UtcNow;
+        return new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, 0, 0, 0, DateTimeKind.Utc);
+    }
 }

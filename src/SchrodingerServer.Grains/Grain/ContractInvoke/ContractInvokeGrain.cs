@@ -116,15 +116,19 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         }
         
         var client = _blockchainClientFactory.GetClient(State.ChainId);
-        
-        var txResult = await SendTransactionAsync(State.ChainId, await GenerateRawTransaction(State.ContractMethod,
-            State.Param, State.ChainId, State.ContractAddress));
-        
+        var rawTxResult = await GenerateRawTransaction(State.ContractMethod,
+            State.Param, State.ChainId, State.ContractAddress);
+        //save txId
         var oriStatus = State.Status;
+        var signedTransaction = rawTxResult.Item2;
+        var txId = signedTransaction.GetHash().ToHex();
+        State.RefBlockNumber = rawTxResult.Item1;
         State.Sender = client.GetAddressFromPrivateKey(chainInfo.PrivateKey);
-        State.TransactionId = txResult.TransactionId;
+        State.TransactionId = txId;
         State.Status = ContractInvokeStatus.Pending.ToString();
-        
+        //Send Transaction
+        await SendTransactionAsync(State.ChainId, signedTransaction);
+
         _logger.LogInformation(
             "HandleCreatedAsync Contract bizId {bizId} txHash:{txHash} invoke status {oriStatus} to {status}",
             State.BizId, State.TransactionId, oriStatus, State.Status);
@@ -142,21 +146,28 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         }
 
         var txResult = await GetTxResultAsync(State.ChainId, State.TransactionId);
-
-        if (txResult.Status != TransactionState.Mined)
+        switch (txResult.Status)
         {
-            await TransactionFailedAsync(txResult);
-            return;
+            case TransactionState.Mined:
+                await HandleSuccessAsync(txResult);
+                break;
+            case TransactionState.Pending:
+                break;
+            case TransactionState.Notexisted:
+                var client = _blockchainClientFactory.GetClient(State.ChainId);
+                var status = await client.GetChainStatusAsync();
+                var libHeight = status.LastIrreversibleBlockHeight;
+                //check libHeight - refBlockNumber
+                if (libHeight - State.RefBlockNumber > _chainOptionsMonitor.CurrentValue.BlockPackingMaxHeightDiff)
+                {
+                    await UpdateFailedAsync(txResult);
+                }
+
+                break;
+            default:
+                await UpdateFailedAsync(txResult);
+                break;
         }
-
-        var oriStatus = State.Status;
-        State.BlockHeight = txResult.BlockNumber;
-        State.Status = ContractInvokeStatus.Success.ToString();
-
-        _logger.LogInformation(
-            "HandlePendingAsync Contract bizId {bizId} txHash:{txHash} invoke status {oriStatus} to {status}",
-            State.BizId, State.TransactionId, oriStatus, State.Status);
-        await WriteStateAsync();
     }
 
     private async Task HandleFailedAsync()
@@ -177,18 +188,25 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         await WriteStateAsync();
     }
     
-    private async Task TransactionFailedAsync(TransactionResultDto txResult)
+    
+    private async Task HandleSuccessAsync(TransactionResultDto txResult)
     {
-        if (txResult.Status is TransactionState.Mined or TransactionState.Pending)
-        {
-            return;
-        }
+        var oriStatus = State.Status;
+        State.BlockHeight = txResult.BlockNumber;
+        State.Status = ContractInvokeStatus.Success.ToString();
+        _logger.LogInformation(
+            "HandlePendingAsync Contract bizId {bizId} txHash:{txHash} invoke status {oriStatus} to {status}",
+            State.BizId, State.TransactionId, oriStatus, State.Status);
+        await WriteStateAsync();
+    }
+    
+    private async Task UpdateFailedAsync(TransactionResultDto txResult)
+    {
         var oriStatus = State.Status;
         State.Status = ContractInvokeStatus.Failed.ToString();
         State.TransactionStatus = txResult.Status;
         // When Transaction status is not mined or pending, Transaction is judged to be failed.
         State.Message = $"Transaction failed, status: {State.Status}. error: {txResult.Error}";
-
         _logger.LogWarning(
             "TransactionFailedAsync Contract bizId {bizId} txHash:{txHash} invoke status {oriStatus} to {status}",
             State.BizId, State.TransactionId, oriStatus, State.Status);
@@ -196,22 +214,28 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         await WriteStateAsync();
     }
     
-    private async Task<SendTransactionOutput> SendTransactionAsync(string chainId, string rawTx)
+    private async Task SendTransactionAsync(string chainId, Transaction signedTransaction)
     {
-        var client = _blockchainClientFactory.GetClient(chainId);
-        return await client.SendTransactionAsync(new SendTransactionInput() { RawTransaction = rawTx });
+        try
+        {
+            var client = _blockchainClientFactory.GetClient(chainId);
+            await client.SendTransactionAsync(new SendTransactionInput { RawTransaction = signedTransaction.ToByteArray().ToHex() });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "SendTransaction error, txId:{txId}", signedTransaction.GetHash().ToHex());
+        }
     }
 
-    private async Task<string> GenerateRawTransaction(string methodName, string param, string chainId,
+    private async Task<(long, Transaction)> GenerateRawTransaction(string methodName, string param, string chainId,
         string contractAddress)
     {
-        if (!_chainOptionsMonitor.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo)) return "";
+        if (!_chainOptionsMonitor.CurrentValue.ChainInfos.TryGetValue(chainId, out var chainInfo)) return (0, null);
 
         var client = _blockchainClientFactory.GetClient(chainId);
         var status = await client.GetChainStatusAsync();
         var height = status.BestChainHeight;
         var blockHash = status.BestChainHash;
-
         var from = client.GetAddressFromPrivateKey(chainInfo.PrivateKey);
         var transaction = new Transaction
         {
@@ -222,8 +246,8 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
             RefBlockNumber = height,
             RefBlockPrefix = ByteString.CopyFrom(Hash.LoadFromHex(blockHash).Value.Take(4).ToArray())
         };
-        
-        return client.SignTransaction(chainInfo.PrivateKey, transaction).ToByteArray().ToHex();
+        //transaction
+        return (height, client.SignTransaction(chainInfo.PrivateKey, transaction));
     }
     
     private async Task<TransactionResultDto> GetTxResultAsync(string chainId, string txId)

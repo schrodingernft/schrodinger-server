@@ -5,6 +5,8 @@ public class ChainOptions
     public int MaxRetryCount { get; set; } = 5;
 
     public Dictionary<string, ChainInfo> ChainInfos { get; set; }
+    
+    public int BlockPackingMaxHeightDiff { get; set; } = 512;
 }
 
 public class ChainInfo

@@ -94,7 +94,7 @@ public class XpScoreSettleService : IXpScoreSettleService, ISingletonDependency
         }
 
         var points = pointRecords.Select(record => new UserPointInfo()
-            { Address = record.Address, PointAmount = record.Amount }).ToList();
+            { Address = record.Address, PointAmount = record.PointsAmount }).ToList();
 
         pointSettleDto.UserPointsInfos = points;
 

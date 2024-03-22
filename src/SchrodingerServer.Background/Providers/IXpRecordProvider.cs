@@ -59,9 +59,9 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
             var recordDto = new XpRecordGrainDto
             {
                 Id = recordId,
-                Xp = xp,
+                IncreaseXp = xp,
                 CurrentXp = currentXp,
-                Amount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
+                PointsAmount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
                 BizId = string.Empty,
                 Status = ContractInvokeStatus.ToBeCreated.ToString(),
                 UserId = userId,

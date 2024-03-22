@@ -48,7 +48,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
 
         var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(input.UserId);
         // update xp
-        var updateResult = await userXpGrain.UpdateXpAsync(input.CurrentXp, input.Xp, input.Amount);
+        var updateResult = await userXpGrain.UpdateXpAsync(input.CurrentXp, input.IncreaseXp, input.PointsAmount);
         if (!updateResult.Success)
         {
             result.Success = false;
@@ -91,6 +91,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
     public async Task<GrainResultDto<XpRecordGrainDto>> HandleRecordAsync(RecordInfo input, string userId,
         string address)
     {
+        await ReadStateAsync();
         if (!State.Id.IsNullOrEmpty())
         {
             var recordDto = _objectMapper.Map<XpRecordState, XpRecordGrainDto>(State);
@@ -104,9 +105,9 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
         }
 
         State.Id = this.GetPrimaryKeyString();
-        State.Xp = input.Xp;
+        State.IncreaseXp = input.IncreaseXp;
         State.CurrentXp = input.CurrentXp;
-        State.Amount = input.Amount;
+        State.PointsAmount = input.PointsAmount;
         State.UserId = userId;
         State.Address = address;
         State.Status = ContractInvokeStatus.ToBeCreated.ToString();
@@ -195,7 +196,7 @@ public class XpRecordGrain : Grain<XpRecordState>, IXpRecordGrain
         {
             // rollback user xp
             var userXpGrain = GrainFactory.GetGrain<IZealyUserXpGrain>(State.UserId);
-            await userXpGrain.RollbackXpAsync(State.Xp);
+            await userXpGrain.RollbackXpAsync(State.IncreaseXp);
         }
 
         await WriteStateAsync();

@@ -119,6 +119,7 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         var rawTxResult = await GenerateRawTransaction(State.ContractMethod,
             State.Param, State.ChainId, State.ContractAddress);
         //save txId
+        var oriStatus = State.Status;
         var signedTransaction = rawTxResult.Item2;
         var txId = signedTransaction.GetHash().ToHex();
         State.RefBlockNumber = rawTxResult.Item1;
@@ -128,7 +129,6 @@ public class ContractInvokeGrain : Grain<ContractInvokeState>, IContractInvokeGr
         //Send Transaction
         await SendTransactionAsync(State.ChainId, signedTransaction);
 
-        var oriStatus = State.Status;
         _logger.LogInformation(
             "HandleCreatedAsync Contract bizId {bizId} txHash:{txHash} invoke status {oriStatus} to {status}",
             State.BizId, State.TransactionId, oriStatus, State.Status);

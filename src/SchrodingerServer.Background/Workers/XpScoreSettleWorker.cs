@@ -13,6 +13,7 @@ public class XpScoreSettleWorker : AsyncPeriodicBackgroundWorkerBase
 {
     private readonly ILogger<XpScoreSettleWorker> _logger;
     private readonly IXpScoreSettleService _scoreSettleService;
+    private readonly UpdateScoreOptions _options;
 
     public XpScoreSettleWorker(AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IOptionsSnapshot<UpdateScoreOptions> options, ILogger<XpScoreSettleWorker> logger,
@@ -20,11 +21,17 @@ public class XpScoreSettleWorker : AsyncPeriodicBackgroundWorkerBase
     {
         _logger = logger;
         _scoreSettleService = scoreSettleService;
+        _options = options.Value;
         timer.Period = options.Value.SettleXpScorePeriod * 60 * 1000;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
+        if (!_options.OpenXpScoreSettle)
+        {
+            _logger.LogInformation("settle xp record not open.");
+            return;
+        }
         _logger.LogInformation("begin execute XpScoreSettleWorker.");
         await _scoreSettleService.BatchSettleAsync();
         _logger.LogInformation("finish execute XpScoreSettleWorker.");

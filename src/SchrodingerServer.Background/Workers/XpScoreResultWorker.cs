@@ -13,6 +13,7 @@ public class XpScoreResultWorker : AsyncPeriodicBackgroundWorkerBase
 {
     private readonly IXpScoreResultService _xpScoreResultService;
     private readonly ILogger<XpScoreResultService> _logger;
+    private readonly UpdateScoreOptions _options;
 
     public XpScoreResultWorker(AbpAsyncTimer timer, IServiceScopeFactory serviceScopeFactory,
         IXpScoreResultService xpScoreResultService, ILogger<XpScoreResultService> logger,
@@ -21,11 +22,18 @@ public class XpScoreResultWorker : AsyncPeriodicBackgroundWorkerBase
     {
         _xpScoreResultService = xpScoreResultService;
         _logger = logger;
+        _options = options.Value;
         timer.Period = options.Value.UpdateXpScoreResultPeriod * 60 * 1000;
     }
 
     protected override async Task DoWorkAsync(PeriodicBackgroundWorkerContext workerContext)
     {
+        if (!_options.OpenXpScoreResult)
+        {
+            _logger.LogInformation("set xp record result not open.");
+            return;
+        }
+        
         _logger.LogInformation("XpScoreResultWorker begin");
         await _xpScoreResultService.HandleXpResultAsync();
         _logger.LogInformation("XpScoreResultWorker finish");

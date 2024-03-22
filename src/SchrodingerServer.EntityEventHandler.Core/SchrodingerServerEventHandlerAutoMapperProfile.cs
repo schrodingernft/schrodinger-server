@@ -7,6 +7,8 @@ using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Eto;
 using SchrodingerServer.Users.Index;
+using SchrodingerServer.Zealy;
+using SchrodingerServer.Zealy.Eto;
 
 
 namespace SchrodingerServer.EntityEventHandler.Core;
@@ -27,5 +29,8 @@ public class SchrodingerServerEventHandlerAutoMapperProfile : Profile
                 => opt.MapFrom(source => source.Date));
         CreateMap<PointDailyRecordEto, PointDailyRecordIndex>();
         CreateMap<GenerateImage, GenerateOpenAIImage>();
+        
+        CreateMap<XpRecordEto, ZealyUserXpRecordIndex>();
+        CreateMap<AddXpRecordEto, ZealyUserXpRecordIndex>();
     }
 }

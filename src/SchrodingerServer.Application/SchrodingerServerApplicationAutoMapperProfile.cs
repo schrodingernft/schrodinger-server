@@ -5,6 +5,8 @@ using SchrodingerServer.Dtos.Faucets;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Grains.Grain.Faucets;
 using SchrodingerServer.Grains.Grain.Points;
+using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
+using SchrodingerServer.Grains.State.ZealyScore;
 using SchrodingerServer.ScoreRepair.Dtos;
 using SchrodingerServer.Users;
 using SchrodingerServer.Users.Dto;
@@ -29,5 +31,9 @@ public class SchrodingerServerApplicationAutoMapperProfile : Profile
             .ForMember(t => t.UserId, m => m.MapFrom(f => f.Id));
         
         CreateMap<PointDailyRecordGrainDto, PointDailyRecordEto>().ReverseMap();
+        
+        CreateMap<RecordInfo, RecordInfoDto>();
+        CreateMap<ZealyUserXpGrainDto, UserXpInfoDto>();
+        CreateMap<ZealyUserXpRecordIndex, XpRecordDto>();
     }
 }

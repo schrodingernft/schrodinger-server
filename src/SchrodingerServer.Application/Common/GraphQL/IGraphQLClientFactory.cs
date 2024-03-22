@@ -10,5 +10,6 @@ public interface IGraphQLClientFactory
 public enum GraphQLClientEnum
 {
     ForestClient,
-    SchrodingerClient
+    SchrodingerClient,
+    PointPlatform
 }

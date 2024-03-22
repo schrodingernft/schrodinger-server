@@ -22,7 +22,7 @@ public class ScoreRepairController : AbpControllerBase
         _repairAppService = repairAppService;
     }
 
-    [Authorize(Roles = "admin")]
+    //[Authorize(Roles = "admin")]
     [HttpPost("xp-score")]
     public async Task UpdateScoreRepairDataAsync(List<UpdateXpScoreRepairDataDto> input)
     {
@@ -33,5 +33,17 @@ public class ScoreRepairController : AbpControllerBase
     public async Task<XpScoreRepairDataPageDto> GetXpScoreRepairDataAsync(XpScoreRepairDataRequestDto input)
     {
         return await _repairAppService.GetXpScoreRepairDataAsync(input);
+    }
+        
+    [HttpGet("user-xp-info")]
+    public async Task<UserXpInfoDto> GetUserXpAsync(UserXpInfoRequestDto input)
+    {
+        return await _repairAppService.GetUserXpAsync(input);
+    }
+    
+    [HttpGet("user-records")]
+    public async Task<XpRecordPageResultDto> GetUserRecordsAsync(string userId, int skipCount, int maxResultCount)
+    {
+        return await _repairAppService.GetUserRecordsAsync(userId, skipCount, maxResultCount);
     }
 }

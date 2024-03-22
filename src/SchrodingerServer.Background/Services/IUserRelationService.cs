@@ -110,7 +110,7 @@ public class UserRelationService : IUserRelationService, ISingletonDependency
             return;
         }
 
-        await AddZealyUserAsync(response.NextCursor);
+        await AddZealyUserFromBeginAsync(response.NextCursor);
     }
 
     private async Task AddZealyUserWithRetryAsync()

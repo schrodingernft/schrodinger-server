@@ -68,6 +68,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         Configure<ContractSyncOptions>(configuration.GetSection("Sync"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
         Configure<CmsConfigOptions>(configuration.GetSection("CmsConfig"));
+        Configure<PointContractOptions>(configuration.GetSection("PointContract"));
         Configure<ExchangeOptions>(configuration.GetSection("Exchange"));
         
         var hostingEnvironment = context.Services.GetHostingEnvironment();
@@ -175,6 +176,7 @@ public class SchrodingerServerBackgroundModule : AbpModule
         context.AddBackgroundWorkerAsync<UserRelationWorker>();
         context.AddBackgroundWorkerAsync<ContractInvokeWorker>();
         context.AddBackgroundWorkerAsync<UniswapPriceSnapshotWorker>();
+        context.AddBackgroundWorkerAsync<XpScoreSettleWorker>();
         context.AddBackgroundWorkerAsync<XpScoreResultWorker>();
         InitRecurringJob(context.ServiceProvider);
         StartOrleans(context.ServiceProvider);

@@ -12,6 +12,7 @@ namespace SchrodingerServer.Common.GraphQL
         private readonly GraphQLOptions _graphQlClientOptions;
         private readonly ConcurrentDictionary<string, IGraphQLClient> _clientDic;
         private static readonly object lockObject = new object();
+
         public GraphQLClientFactory(IOptionsSnapshot<GraphQLOptions> graphQlClientOptions)
         {
             _graphQlClientOptions = graphQlClientOptions.Value;
@@ -21,7 +22,7 @@ namespace SchrodingerServer.Common.GraphQL
         public IGraphQLClient GetClient(GraphQLClientEnum clientEnum)
         {
             var clientName = clientEnum.ToString();
-            
+
             if (_clientDic.TryGetValue(clientName, out var client))
             {
                 return client;
@@ -31,14 +32,32 @@ namespace SchrodingerServer.Common.GraphQL
             {
                 if (!_clientDic.TryGetValue(clientName, out client))
                 {
-                    client = clientEnum == GraphQLClientEnum.ForestClient
-                        ? new GraphQLHttpClient(_graphQlClientOptions.ForestConfiguration,
-                            new NewtonsoftJsonSerializer())
-                        : new GraphQLHttpClient(_graphQlClientOptions.Configuration,
-                            new NewtonsoftJsonSerializer());
+                    // client = clientEnum == GraphQLClientEnum.ForestClient
+                    //     ? new GraphQLHttpClient(_graphQlClientOptions.ForestConfiguration,
+                    //         new NewtonsoftJsonSerializer())
+                    //     : new GraphQLHttpClient(_graphQlClientOptions.Configuration,
+                    //         new NewtonsoftJsonSerializer());
+
+                    switch (clientEnum)
+                    {
+                        case GraphQLClientEnum.ForestClient:
+                            client = new GraphQLHttpClient(_graphQlClientOptions.ForestConfiguration,
+                                new NewtonsoftJsonSerializer());
+                            break;
+                        case GraphQLClientEnum.SchrodingerClient:
+                            client = new GraphQLHttpClient(_graphQlClientOptions.Configuration,
+                                new NewtonsoftJsonSerializer());
+                            break;
+                        case GraphQLClientEnum.PointPlatform:
+                            client = new GraphQLHttpClient(_graphQlClientOptions.PointPlatformConfiguration,
+                                new NewtonsoftJsonSerializer());
+                            break;
+                    }
+
                     _clientDic[clientName] = client;
                 }
             }
+
             return client;
         }
     }

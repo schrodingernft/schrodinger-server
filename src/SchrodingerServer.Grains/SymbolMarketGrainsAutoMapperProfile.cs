@@ -4,14 +4,15 @@ using SchrodingerServer.Grains.Grain.Traits;
 using SchrodingerServer.Grains.Grain.ContractInvoke;
 using SchrodingerServer.Grains.Grain.Faucets;
 using SchrodingerServer.Grains.Grain.Points;
+using SchrodingerServer.Grains.Grain.ZealyScore.Dtos;
 using SchrodingerServer.Grains.State.ContractInvoke;
 using SchrodingerServer.Grains.Grain.Synchronize;
 using SchrodingerServer.Grains.State.Faucets;
 using SchrodingerServer.Grains.State.Points;
 using SchrodingerServer.Grains.State.Sync;
 using SchrodingerServer.Grains.State.Users;
+using SchrodingerServer.Grains.State.ZealyScore;
 using SchrodingerServer.Users;
-using SchrodingerServer.Users.Dto;
 using SchrodingerServer.Users.Eto;
 
 namespace SchrodingerServer.Grains;
@@ -28,5 +29,7 @@ public class SymbolMarketGrainsAutoMapperProfile : Profile
         CreateMap<ContractInvokeGrainDto, ContractInvokeState>().ReverseMap();;
         CreateMap<PointDailyRecordGrainDto, PointDailyRecordState>().ReverseMap();;
         CreateMap<PointDailyDispatchGrainDto, PointDailyDispatchState>().ReverseMap();;
+        CreateMap<XpRecordState, XpRecordGrainDto>().ReverseMap();
+        CreateMap<ZealyUserXpState, ZealyUserXpGrainDto>().ReverseMap();
     }
 }

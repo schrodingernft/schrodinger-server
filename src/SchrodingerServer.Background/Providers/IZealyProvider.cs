@@ -18,7 +18,8 @@ public interface IZealyProvider
     Task<ZealyUserXpIndex> GetUserXpByIdAsync(string id);
     Task<List<ZealyXpScoreIndex>> GetXpScoresAsync(int skipCount, int maxResultCount);
 
-    Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount);
+    Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount, long startTime,
+        long endTime);
 
     Task UserXpAddOrUpdateAsync(ZealyUserXpIndex zealyUserXp);
     Task XpRecordAddOrUpdateAsync(ZealyUserXpRecordIndex record);
@@ -58,11 +59,11 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         {
             return null;
         }
-        
+
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserIndex>, QueryContainer>>();
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.Id).Value(userId)));
-        
+
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
 
@@ -83,11 +84,11 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         {
             return null;
         }
-        
+
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpIndex>, QueryContainer>>();
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.Id).Value(id)));
-        
+
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
 
@@ -98,7 +99,7 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
     {
         await _zealyUserXpRepository.AddOrUpdateAsync(zealyUserXp);
     }
-    
+
     public async Task XpRecordAddOrUpdateAsync(ZealyUserXpRecordIndex record)
     {
         await _zealyXpRecordRepository.AddOrUpdateAsync(record);
@@ -112,17 +113,29 @@ public class ZealyProvider : IZealyProvider, ISingletonDependency
         return data;
     }
 
-    public async Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount)
+    public async Task<List<ZealyUserXpRecordIndex>> GetPendingUserXpsAsync(int skipCount, int maxResultCount,
+        long startTime, long endTime)
     {
         var mustQuery = new List<Func<QueryContainerDescriptor<ZealyUserXpRecordIndex>, QueryContainer>>();
 
         mustQuery.Add(q => q.Term(i =>
             i.Field(f => f.Status).Value(ContractInvokeStatus.Pending.ToString())));
 
+        if (startTime > 0)
+        {
+            mustQuery.Add(q => q.Range(i => i.Field(f => f.CreateTime).GreaterThanOrEquals(startTime)));
+        }
+
+        if (endTime > 0)
+        {
+            mustQuery.Add(q => q.Range(i => i.Field(f => f.CreateTime).LessThanOrEquals(endTime)));
+        }
+
         QueryContainer Filter(QueryContainerDescriptor<ZealyUserXpRecordIndex> f) =>
             f.Bool(b => b.Must(mustQuery));
 
-        var (totalCount, data) = await _zealyXpRecordRepository.GetListAsync(Filter);
+        var (totalCount, data) =
+            await _zealyXpRecordRepository.GetListAsync(Filter, skip: skipCount, limit: maxResultCount);
 
         return data;
     }

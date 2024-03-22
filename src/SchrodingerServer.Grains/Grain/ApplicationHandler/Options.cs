@@ -11,7 +11,6 @@ public class ChainInfo
 {
     public string BaseUrl { get; set; }
     public string PrivateKey { get; set; }
-    
     public string PointTxPublicKey { get; set; }
     public string TokenContractAddress { get; set; }
     public string CrossChainContractAddress { get; set; }
@@ -29,5 +28,6 @@ public class FaucetsTransferOptions
 public class SyncTokenOptions
 {
     public string TargetChainId { get; set; } = "AELF";
-    public string SourceChainId { get; set; } = "tDVW";
+    public string SourceChainId { get; set; } = "tDVV";
+    public string IndexBlockHeightGrainId { get; set; } = "IndexBlockHeight";
 }

@@ -10,11 +10,11 @@ public class ZealyUserXpRecordIndex : SchrodingerEntity<string>, IIndexBuild
     [Keyword] public string UserId { get; set; }
     [Keyword] public string Address { get; set; }
 
-    public decimal Xp { get; set; }
+    public decimal IncreaseXp { get; set; }
     public decimal CurrentXp { get; set; }
 
     // xp * coefficient
-    public decimal Amount { get; set; }
+    public decimal PointsAmount { get; set; }
     [Keyword] public string BizId { get; set; }
     [Keyword] public string Status { get; set; }
     public long CreateTime { get; set; }

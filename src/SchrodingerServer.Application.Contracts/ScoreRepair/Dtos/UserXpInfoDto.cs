@@ -20,6 +20,6 @@ public class RecordInfoDto
 {
     public string Date { get; set; }
     public decimal CurrentXp { get; set; }
-    public decimal Xp { get; set; }
-    public decimal Amount { get; set; }
+    public decimal IncreaseXp { get; set; }
+    public decimal PointsAmount { get; set; }
 }

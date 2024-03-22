@@ -81,11 +81,10 @@ public class ZealyUserXpGrain : Grain<ZealyUserXpState>, IZealyUserXpGrain
         {
             Date = DateTime.UtcNow.ToString("yyyy-MM-dd"),
             CurrentXp = currentXp,
-            Xp = sendXp,
-            Amount = sendAmount
+            IncreaseXp = sendXp,
+            PointsAmount = sendAmount
         });
 
-        State.TempXp = State.LastXp;
         State.LastXp = State.CurrentXp;
         State.CurrentXp = currentXp;
 

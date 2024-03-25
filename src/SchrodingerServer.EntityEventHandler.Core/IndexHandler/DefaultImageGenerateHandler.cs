@@ -1,12 +1,14 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RedisRateLimiting;
 using SchrodingerServer.Adopts;
 using SchrodingerServer.Adopts.dispatcher;
 using SchrodingerServer.Dtos.TraitsDto;
 using SchrodingerServer.Image;
+using SchrodingerServer.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
@@ -21,15 +23,17 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
     private readonly IRateDistributeLimiter _rateDistributeLimiter;
     private readonly IObjectMapper _objectMapper;
     private readonly IAdoptImageService _adoptImageService;
+    private readonly IOptionsMonitor<TraitsOptions> _traitsOptions;
 
     public DefaultImageGenerateHandler(ILogger<DefaultImageGenerateHandler> logger, DefaultImageProvider defaultImageProvider,
-        IRateDistributeLimiter rateDistributeLimiter, IObjectMapper objectMapper, IAdoptImageService adoptImageService)
+        IRateDistributeLimiter rateDistributeLimiter, IObjectMapper objectMapper, IAdoptImageService adoptImageService, IOptionsMonitor<TraitsOptions> traitsOptions)
     {
         _logger = logger;
         _defaultImageProvider = defaultImageProvider;
         _rateDistributeLimiter = rateDistributeLimiter;
         _objectMapper = objectMapper;
         _adoptImageService = adoptImageService;
+        _traitsOptions = traitsOptions;
     }
 
     public async Task HandleEventAsync(DefaultImageGenerateEto eventData)
@@ -48,7 +52,15 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         }
 
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
-        requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
+        if (_traitsOptions.CurrentValue.UseNewInterface)
+        {
+            requestId = await _defaultImageProvider.RequestImageGenerations(eventData.AdoptId, imageInfo);
+        }
+        else
+        {
+            requestId = await _defaultImageProvider.RequestGenerateImage(eventData.AdoptId, imageInfo);
+        }
+        
         // var requestId = await HandleAsync(async Task<string>() => , eventData.AdoptId);
         _logger.LogInformation("HandleEventAsync DefaultImageGenerateEto1 end data: {data} requestId={requestId}", JsonConvert.SerializeObject(eventData), requestId);
         if ("" == requestId)

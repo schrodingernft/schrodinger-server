@@ -195,6 +195,44 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     {
         _traitsOptions = traitsOptions;
     }
+    
+    public async Task<string> RequestImageGenerations(string adoptId, GenerateOpenAIImage imageInfo)
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var jsonString = ImageProviderHelper.ConvertObjectToJsonString(imageInfo);
+            var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+            httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+            Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync start request adopt_id:{adoptId} imageInfo: {imageInfo}", adoptId, jsonString);
+            var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageGenerationsUrl + adoptId, requestContent);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                // save adopt id and request id to grain
+                GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
+                Logger.LogInformation("TraitsActionProvider RequestImageGenerations generate success adopt id:" + adoptId + " " + aiQueryResponse.requestId);
+                if (null == aiQueryResponse.requestId)
+                {
+                    Logger.LogInformation("TraitsActionProvider RequestImageGenerations generate success adopt id:{adoptId} requestId null", adoptId );
+                    return "";
+                }
+                return aiQueryResponse.requestId;
+            }
+            else
+            {
+                Logger.LogError("TraitsActionProvider RequestImageGenerations generate error {adoptId} response{response}", adoptId, responseString);
+            }
+
+            return "";
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "TraitsActionProvider RequestImageGenerations generate exception {adoptId}", adoptId);
+            return "";
+        }
+    }
 
     public async Task<string> RequestGenerateImage(string adoptId, GenerateOpenAIImage imageInfo)
     {
@@ -203,16 +241,20 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             var jsonString = ImageProviderHelper.ConvertObjectToJsonString(imageInfo);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
             Client.DefaultRequestHeaders.Add("accept", "*/*");
-
+            Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync start request adopt_id:{adoptId} imageInfo: {imageInfo}", adoptId, jsonString);
             var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl, requestContent);
             var responseString = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
             {
-                
                 // save adopt id and request id to grain
                 GenerateImageFromAiRes aiQueryResponse = JsonConvert.DeserializeObject<GenerateImageFromAiRes>(responseString);
                 Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:" + adoptId + " " + aiQueryResponse.requestId);
+                if (null == aiQueryResponse.requestId)
+                {
+                    Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync generate success adopt id:{adoptId} requestId null", adoptId );
+                    return "";
+                }
                 return aiQueryResponse.requestId;
             }
             else
@@ -232,7 +274,16 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     public async Task<List<string>> QueryImages(string requestId)
     {
         Logger.LogInformation("QueryImageInfoByAiAsync Begin. requestId: {requestId}", requestId);
-        var aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+        var aiQueryResponse = new AiQueryResponse { }; 
+        if (_traitsOptions.CurrentValue.UseNewInterface)
+        {
+            aiQueryResponse = await QueryImageInfoByAiNewAsync(requestId);
+        }
+        else
+        {
+            aiQueryResponse = await QueryImageInfoByAiAsync(requestId);
+        }
+        
         var images = new List<string>();
         Logger.LogInformation("QueryImageInfoByAiAsync Finish. resp: {resp}", JsonConvert.SerializeObject(aiQueryResponse));
         if (aiQueryResponse == null || aiQueryResponse.images == null || aiQueryResponse.images.Count == 0)
@@ -249,6 +300,27 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
     {
         await DistributedEventBus.PublishAsync(new DefaultImageGenerateEto() { AdoptAddressId = adoptAddressId, AdoptId = adoptId, GenerateImage = imageInfo });
     }
+    
+    private async Task<AiQueryResponse> QueryImageInfoByAiNewAsync(string requestId)
+    {
+        using var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.Add("accept", "*/*");
+        var start = DateTime.Now;
+        var url = _traitsOptions.CurrentValue.ImageGenerationsUrl + requestId;
+        Logger.LogInformation("TraitsActionProvider QueryImageInfoByAiNewAsync start new query {requestId} url={timeCost}", requestId, url);
+        var response = await httpClient.GetAsync(url);
+        var timeCost = (DateTime.Now - start).TotalMilliseconds;
+        if (response.IsSuccessStatusCode)
+        {
+            string responseContent = await response.Content.ReadAsStringAsync();
+            AiQueryResponse aiQueryResponse = JsonConvert.DeserializeObject<AiQueryResponse>(responseContent);
+            Logger.LogInformation("TraitsActionProvider QueryImageInfoByAiNewAsync query success {requestId} timeCost={timeCost}", requestId, timeCost);
+            return aiQueryResponse;
+        }
+
+        Logger.LogError("TraitsActionProvider QueryImageInfoByAiNewAsync query not success {requestId}", requestId);
+        return new AiQueryResponse { };
+    }
 
     private async Task<AiQueryResponse> QueryImageInfoByAiAsync(string requestId)
     {
@@ -261,6 +333,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         Client.DefaultRequestHeaders.Add("accept", "*/*");
         var start = DateTime.Now;
         var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageQueryUrl, requestContent);
+        
         var timeCost = (DateTime.Now - start).TotalMilliseconds;
         if (response.IsSuccessStatusCode)
         {

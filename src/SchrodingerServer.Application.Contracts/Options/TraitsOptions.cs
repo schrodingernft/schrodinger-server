@@ -2,6 +2,8 @@ namespace SchrodingerServer.Options;
 
 public class TraitsOptions
 {
+    public bool UseNewInterface { get; set; }
+    public string ImageGenerationsUrl { get; set; }
     public string ImageGenerateUrl { get; set; }
     public string AutoMaticImageGenerateUrl { get; set; }
     public string ImageQueryUrl { get; set; }

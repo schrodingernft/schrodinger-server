@@ -33,18 +33,20 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
     private readonly IObjectMapper _objectMapper;
     private readonly IDistributedEventBus _distributedEventBus;
     private readonly IPointSettleService _pointSettleService;
+    private readonly IBalanceProvider _balanceProvider;
 
     public XpRecordProvider(
         IOptionsSnapshot<ZealyScoreOptions> options,
         ILogger<XpRecordProvider> logger,
         IClusterClient clusterClient, IObjectMapper objectMapper, IDistributedEventBus distributedEventBus,
-        IPointSettleService pointSettleService)
+        IPointSettleService pointSettleService, IBalanceProvider balanceProvider)
     {
         _logger = logger;
         _clusterClient = clusterClient;
         _objectMapper = objectMapper;
         _distributedEventBus = distributedEventBus;
         _pointSettleService = pointSettleService;
+        _balanceProvider = balanceProvider;
         _options = options.Value;
     }
 
@@ -55,17 +57,23 @@ public class XpRecordProvider : IXpRecordProvider, ISingletonDependency
         {
             var recordId = $"{userId}-{DateTime.UtcNow:yyyy-MM-dd}";
             _logger.LogInformation("begin create, recordId:{recordId}", recordId);
-
+            
+            var pointOutput = await _balanceProvider.GetBalanceAsync(address);
+            _logger.LogInformation("GetBalanceAsync: {pointOutput}", pointOutput);
+            
+            var remark = $"add-score-{pointOutput}";
+            
             var recordDto = new XpRecordGrainDto
             {
                 Id = recordId,
                 IncreaseXp = xp,
                 CurrentXp = currentXp,
-                PointsAmount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8),
+                PointsAmount = DecimalHelper.MultiplyByPowerOfTen(xp * _options.Coefficient, 8) - pointOutput,
                 BizId = string.Empty,
                 Status = ContractInvokeStatus.ToBeCreated.ToString(),
                 UserId = userId,
-                Address = address
+                Address = address,
+                Remark = remark
             };
 
             var recordGrain = _clusterClient.GetGrain<IXpRecordGrain>(recordId);

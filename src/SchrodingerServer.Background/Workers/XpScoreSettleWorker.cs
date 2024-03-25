@@ -33,7 +33,7 @@ public class XpScoreSettleWorker : AsyncPeriodicBackgroundWorkerBase
             return;
         }
         _logger.LogInformation("begin execute XpScoreSettleWorker.");
-        await _scoreSettleService.BatchSettleAsync();
+       // await _scoreSettleService.BatchSettleAsync();
         _logger.LogInformation("finish execute XpScoreSettleWorker.");
     }
 }

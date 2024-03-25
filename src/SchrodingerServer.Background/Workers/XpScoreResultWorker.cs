@@ -35,7 +35,7 @@ public class XpScoreResultWorker : AsyncPeriodicBackgroundWorkerBase
         }
         
         _logger.LogInformation("XpScoreResultWorker begin");
-        await _xpScoreResultService.HandleXpResultAsync();
+        //await _xpScoreResultService.HandleXpResultAsync();
         _logger.LogInformation("XpScoreResultWorker finish");
     }
 }

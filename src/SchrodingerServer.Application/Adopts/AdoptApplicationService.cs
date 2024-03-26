@@ -172,7 +172,9 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
     {
         _logger.Info("GetWaterMarkImageInfoAsync, AdoptId: {req}, dataLength: {length}", input.AdoptId, 
             input.Image.Length);
+        
         var images = await _adoptImageService.GetImagesAsync(input.AdoptId);
+        _logger.Info("AI generated images count: {}", images.Count);
 
         if (images.IsNullOrEmpty() || !images.Contains(input.Image))
         {
@@ -200,7 +202,9 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 Signature = signature,
                 ImageUri = info.ImageUri
             };
-
+                
+            _logger.LogInformation("GetWatermarkImageResp AdoptId: {adoptId} sig: {Signature} uri: {ImageUri}", 
+                input.AdoptId, signature, info.ImageUri);
             return response;
         }
 
@@ -257,7 +261,8 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             Signature = signatureWithSecretService,
             ImageUri = uri
         };
-        _logger.LogInformation("GetWatermarkImageResp {Signature} {ImageUri}", resp.Signature, resp.ImageUri);
+        _logger.LogInformation("GetWatermarkImageResp AdoptId: {adoptId} sig: {Signature} uri: {ImageUri}", 
+            input.AdoptId, resp.Signature, resp.ImageUri);
 
         return resp;
     }

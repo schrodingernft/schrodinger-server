@@ -204,7 +204,6 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             var jsonString = ImageProviderHelper.ConvertObjectToJsonString(imageInfo);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
             httpClient.DefaultRequestHeaders.Add("accept", "*/*");
-            Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync start request adopt_id:{adoptId} imageInfo: {imageInfo}", adoptId, jsonString);
             var response = await httpClient.PostAsync(_traitsOptions.CurrentValue.ImageGenerationsUrl + adoptId, requestContent);
             var responseString = await response.Content.ReadAsStringAsync();
 
@@ -247,7 +246,6 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
             var jsonString = ImageProviderHelper.ConvertObjectToJsonString(imageInfo);
             var requestContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
             Client.DefaultRequestHeaders.Add("accept", "*/*");
-            Logger.LogInformation("TraitsActionProvider GenerateImageByAiAsync start request adopt_id:{adoptId} imageInfo: {imageInfo}", adoptId, jsonString);
             var response = await Client.PostAsync(_traitsOptions.CurrentValue.ImageGenerateUrl, requestContent);
             var responseString = await response.Content.ReadAsStringAsync();
 

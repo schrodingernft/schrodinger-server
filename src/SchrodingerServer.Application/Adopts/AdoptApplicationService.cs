@@ -202,9 +202,6 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
                 Signature = signature,
                 ImageUri = info.ImageUri
             };
-                
-            _logger.LogInformation("GetWatermarkImageResp AdoptId: {adoptId} sig: {Signature} uri: {ImageUri}", 
-                input.AdoptId, signature, info.ImageUri);
             return response;
         }
 
@@ -261,8 +258,7 @@ public class AdoptApplicationService : ApplicationService, IAdoptApplicationServ
             Signature = signatureWithSecretService,
             ImageUri = uri
         };
-        _logger.LogInformation("GetWatermarkImageResp AdoptId: {adoptId} sig: {Signature} uri: {ImageUri}", 
-            input.AdoptId, resp.Signature, resp.ImageUri);
+        _logger.LogInformation("GetWatermarkImageResp {Signature} {ImageUri}", resp.Signature, resp.ImageUri);
 
         return resp;
     }

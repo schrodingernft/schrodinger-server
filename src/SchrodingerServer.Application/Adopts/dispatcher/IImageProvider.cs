@@ -196,7 +196,7 @@ public class DefaultImageProvider : ImageProvider, ISingletonDependency
         _traitsOptions = traitsOptions;
     }
     
-    public async Task<string> RequestImageGenerations(string adoptId, GenerateOpenAIImage imageInfo)
+    public async Task<string> RequestImageGenerationsAsync(string adoptId, GenerateOpenAIImage imageInfo)
     {
         try
         {

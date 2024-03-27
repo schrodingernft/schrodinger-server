@@ -54,7 +54,7 @@ public class DefaultImageGenerateHandler : IDistributedEventHandler<DefaultImage
         var imageInfo = _objectMapper.Map<GenerateImage, GenerateOpenAIImage>(eventData.GenerateImage);
         if (_traitsOptions.CurrentValue.UseNewInterface)
         {
-            requestId = await _defaultImageProvider.RequestImageGenerations(eventData.AdoptId, imageInfo);
+            requestId = await _defaultImageProvider.RequestImageGenerationsAsync(eventData.AdoptId, imageInfo);
         }
         else
         {
